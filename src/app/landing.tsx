@@ -17,7 +17,7 @@ const NAV = [["Overview", "#features"], ["Notified AI", "#ai"], ["Hot Topics", "
 
 const HIGHLIGHTS: { tag: string; color: string; title: string; body: string; slot?: string; alt?: string }[] = [
   { tag: "Library", color: "#FF9500", title: "Every course. Every topic.", body: "Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline.", slot: "library", alt: "Reader view — Judicial Review note" },
-  { tag: "Flashcards", color: "#34C759", title: "Finish a note. Get the deck.", body: "AI turns every note into cards you can flip on the trotro.", slot: "flashcards", alt: "Flashcard — Tuffuor v A-G" },
+  { tag: "Flashcards", color: "#34C759", title: "Finish a note. Get the deck.", body: "AI turns every note into cards you can flip on the go.", slot: "flashcards", alt: "Flashcard — Tuffuor v A-G" },
   { tag: "Case Law", color: "#0071E3", title: "The judgments, searchable.", body: "Find the ratio, the holding and the dissent without the 80-page scroll.", slot: "case-law", alt: "Case Law search results" },
   { tag: "Legislation", color: "#34C759", title: "Every Act, with its status.", body: "The Constitution and Acts of Parliament, marked in force, amended or repealed, with original and current text." },
   { tag: "Articles", color: "#FF9F0A", title: "Plain-English explainers.", body: "Short pieces on the questions Ghanaian law students actually ask, linked to the cases and notes behind them." },
@@ -101,8 +101,15 @@ export default function Landing() {
         )}
       </nav>
 
-      <div className="bg-[#F5F5F7] px-[22px] py-3.5 text-center text-sm mt-3">
-        Law students get a 7-day Supreme Justice (Max) trial with a university email. <a href="#pricing" className={link}>Learn more ›</a>
+      <div className="mt-5 flex justify-center px-4">
+        <a
+          href="#pricing"
+          className="group flex max-w-full items-center gap-3 rounded-[22px] bg-[#F5F5F7] py-1.5 pl-1.5 pr-4 text-left text-sm leading-snug text-[#1D1D1F]! no-underline transition-colors hover:bg-[#EBEBF0] hover:text-[#1D1D1F]! sm:rounded-full"
+        >
+          <span className="shrink-0 rounded-full bg-[#1D1D1F] px-3 py-1.5 text-xs font-semibold text-white">For law students</span>
+          <span><b className="font-semibold">Try Supreme Justice free for 7 days</b> with your university email</span>
+          <span aria-hidden className="shrink-0 text-lg leading-none text-[#6E6E73] transition-transform group-hover:translate-x-0.5">›</span>
+        </a>
       </div>
 
       <section id="top" className="flex flex-col items-center overflow-hidden px-[22px] pt-[72px] text-center">
