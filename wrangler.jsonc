@@ -9,6 +9,10 @@
     "binding": "ASSETS"
   },
   "observability": { "enabled": true },
+  "r2_buckets": [
+    // Public marketing videos, streamed by src/app/media/[...key]/route.ts
+    { "binding": "VIDEOS", "bucket_name": "notifiedlaw-videos" }
+  ],
   "routes": [
     { "pattern": "notifiedlaw.com", "custom_domain": true },
     { "pattern": "www.notifiedlaw.com", "custom_domain": true } // redirected to the apex in next.config.ts
@@ -16,7 +20,7 @@
 
   // Add as features land (all Cloudflare-native):
   //   D1 (users, progress, quiz results)   "d1_databases"
-  //   R2 (My Files uploads, podcast audio) "r2_buckets"
+  //   R2 (My Files uploads, podcast audio) more "r2_buckets"
   //   KV (sessions, rate limits)           "kv_namespaces"
   //   Workers AI + Vectorize (Notified AI) "ai", "vectorize"
   //   Turnstile on sign-in; Email Service for receipts.

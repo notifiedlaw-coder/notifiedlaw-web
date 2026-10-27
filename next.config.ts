@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import { PRIVATE_PATHS } from "./src/lib/site";
 
 const nextConfig: NextConfig = {
@@ -30,3 +31,6 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// Exposes Cloudflare bindings (the VIDEOS R2 bucket) to `next dev`, using local simulated storage.
+initOpenNextCloudflareForDev();

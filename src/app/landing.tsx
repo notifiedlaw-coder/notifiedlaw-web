@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { EPISODES, PODCAST } from "@/lib/content";
 import { FAQ } from "@/lib/site";
 
@@ -28,6 +28,7 @@ const HIGHLIGHTS: { tag: string; color: string; title: string; body: string; slo
 
 // Mobile: swipeable card rail that bleeds to the screen edges. md+: the normal grid.
 const rail = "-mx-[22px] flex snap-x snap-mandatory gap-4 overflow-x-auto px-[22px] pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:gap-5 md:overflow-visible md:px-0 md:pb-0";
+const heroBtn = "flex size-9 items-center justify-center rounded-full border-0 bg-black/45 backdrop-blur-md hover:bg-black/60";
 const railItem = "w-[82%] shrink-0 snap-center md:w-auto";
 
 const h2 = "m-0 font-bold tracking-[-0.035em] leading-[1.07] text-[clamp(36px,5vw,56px)]";
@@ -64,6 +65,11 @@ export default function Landing() {
   const [billing, setBilling] = useState<"month" | "semester">("month");
   const [playing, setPlaying] = useState(false);
   const [menu, setMenu] = useState(false);
+  const heroRef = useRef<HTMLVideoElement>(null);
+  const [heroPlaying, setHeroPlaying] = useState(true);
+  const [heroMuted, setHeroMuted] = useState(true);
+  const toggleHeroPlay = () => { const v = heroRef.current; if (v) void (v.paused ? v.play() : v.pause()); };
+  const toggleHeroMute = () => { const v = heroRef.current; if (v) { v.muted = !v.muted; setHeroMuted(v.muted); } };
   const p = PRICES[billing];
 
   return (
@@ -111,8 +117,39 @@ export default function Landing() {
           <Link href={SIGNUP} className={`${pill} bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]`}>Start studying free</Link>
           <a href="#pricing" className={link}>See plans ›</a>
         </div>
-        <div className="mt-14 aspect-[16/10] w-full max-w-[1080px] overflow-hidden rounded-t-[22px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.1),0_30px_80px_rgba(0,0,0,0.14)]">
-          <Slot src="hero" label="NotifiedLaw on Mac — Home screen" />
+        <div className="relative mt-14 aspect-[16/10] w-full max-w-[1080px] overflow-hidden rounded-t-[22px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.1),0_30px_80px_rgba(0,0,0,0.14)]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/landing/hero-poster.jpg" alt="NotifiedLaw on Mac, Home screen" className="absolute inset-0 size-full object-cover" />
+          <video
+            ref={heroRef}
+            onPlay={() => setHeroPlaying(true)}
+            onPause={() => setHeroPlaying(false)}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            poster="/landing/hero-poster.jpg"
+            aria-label="NotifiedLaw product walkthrough"
+            className="hero-video absolute inset-0 size-full object-cover"
+          >
+            <source src="/media/hero.mp4" type="video/mp4" />
+          </video>
+          <div className="hero-controls absolute bottom-3 right-3 flex gap-2 opacity-60 transition-opacity hover:opacity-100 focus-within:opacity-100">
+            <button onClick={() => toggleHeroPlay()} aria-label={heroPlaying ? "Pause video" : "Play video"} className={heroBtn}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden>
+                {heroPlaying ? <><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></> : <path d="M8 5v14l11-7z" />}
+              </svg>
+            </button>
+            <button onClick={() => toggleHeroMute()} aria-label={heroMuted ? "Unmute video" : "Mute video"} className={heroBtn}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden>
+                <path d="M4 9v6h4l5 4V5L8 9z" />
+                {heroMuted
+                  ? <path d="M16 9l5 6M21 9l-5 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" fill="none" />
+                  : <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="#fff" strokeWidth="2" strokeLinecap="round" fill="none" />}
+              </svg>
+            </button>
+          </div>
         </div>
       </section>
 
