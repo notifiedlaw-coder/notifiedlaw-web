@@ -51,6 +51,7 @@ function Tier({ name, color, price, per, blurb, items, cta, dark, ctaCls, badge 
 export default function Landing() {
   const [billing, setBilling] = useState<"month" | "semester">("month");
   const [playing, setPlaying] = useState(false);
+  const [menu, setMenu] = useState(false);
   const p = PRICES[billing];
 
   return (
@@ -64,10 +65,27 @@ export default function Landing() {
             {NAV.map(([l, h]) => <a key={h} href={h} className="rounded-[10px] px-3 py-[7px] text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]! hover:bg-black/5">{l}</a>)}
           </div>
           <div className="ml-auto flex items-center gap-1.5 md:ml-0">
-            <Link href={LOGIN} className="rounded-[10px] px-3 py-[7px] text-sm font-medium text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]! hover:bg-black/5">Sign in</Link>
+            <Link href={LOGIN} className="hidden rounded-[10px] px-3 py-[7px] text-sm font-medium text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]! hover:bg-black/5 md:block">Sign in</Link>
             <Link href={SIGNUP} className="flex h-10 items-center rounded-full bg-[#0071E3] px-[18px] text-sm font-medium text-white! no-underline hover:text-white! hover:bg-[#0077ED]">Start free</Link>
+            <button
+              onClick={() => setMenu((v) => !v)}
+              aria-label={menu ? "Close menu" : "Open menu"}
+              aria-expanded={menu}
+              aria-controls="mobile-menu"
+              className="flex size-10 items-center justify-center rounded-full border-0 bg-transparent text-[#1D1D1F] hover:bg-black/5 md:hidden"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                {menu ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+              </svg>
+            </button>
           </div>
         </div>
+        {menu && (
+          <div id="mobile-menu" className="mx-auto mt-2 flex max-w-[1080px] flex-col rounded-[18px] bg-white/95 p-2 text-[17px] font-medium shadow-[0_0_0_0.5px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.1)] backdrop-blur-xl md:hidden">
+            {NAV.map(([l, h]) => <a key={h} href={h} onClick={() => setMenu(false)} className="rounded-[12px] px-4 py-3 text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]! hover:bg-black/5">{l}</a>)}
+            <Link href={LOGIN} className="rounded-[12px] px-4 py-3 text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]! hover:bg-black/5">Sign in</Link>
+          </div>
+        )}
       </nav>
 
       <div className="bg-[#F5F5F7] px-[22px] py-3.5 text-center text-sm mt-3">
