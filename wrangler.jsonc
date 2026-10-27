@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "notifiedlaw",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true }
+
+  // Add as features land (all Cloudflare-native):
+  //   D1 (users, progress, quiz results)   "d1_databases"
+  //   R2 (My Files uploads, podcast audio) "r2_buckets"
+  //   KV (sessions, rate limits)           "kv_namespaces"
+  //   Workers AI + Vectorize (Notified AI) "ai", "vectorize"
+  //   Turnstile on sign-in; Email Service for receipts.
+  // Routes: "routes": [{ "pattern": "notifiedlaw.com", "custom_domain": true }]
+}
