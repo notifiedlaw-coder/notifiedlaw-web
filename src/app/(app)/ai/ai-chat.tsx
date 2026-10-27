@@ -56,7 +56,7 @@ export function AiChat() {
   };
 
   return (
-    <div className="relative flex h-[calc(100dvh-52px)]">
+    <div className="relative flex h-full">
       <aside className="hidden w-[240px] shrink-0 flex-col gap-2 border-r border-edge/10 bg-panel p-3 lg:flex">
         <button onClick={() => setMsgs([])} className="h-8 rounded-[7px] bg-blue text-[13px] font-medium text-white">New chat</button>
         <div className="px-1 pt-2 text-[11px] font-semibold text-faint">History</div>
