@@ -9,7 +9,10 @@
     "binding": "ASSETS"
   },
   "observability": { "enabled": true },
-  "routes": [{ "pattern": "notifiedlaw.com", "custom_domain": true }]
+  "routes": [
+    { "pattern": "notifiedlaw.com", "custom_domain": true },
+    { "pattern": "www.notifiedlaw.com", "custom_domain": true } // redirected to the apex in next.config.ts
+  ]
 
   // Add as features land (all Cloudflare-native):
   //   D1 (users, progress, quiz results)   "d1_databases"
