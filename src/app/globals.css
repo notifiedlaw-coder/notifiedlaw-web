@@ -150,7 +150,3 @@ img {
   -webkit-user-drag: none;
 }
 
-/* Hero video: show only the poster for people who prefer reduced motion. */
-@media (prefers-reduced-motion: reduce) {
-  .hero-video, .hero-controls { display: none; }
-}

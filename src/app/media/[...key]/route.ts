@@ -1,8 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-const TYPES: Record<string, string> = { mp4: "video/mp4", webm: "video/webm" };
+const TYPES: Record<string, string> = { mp4: "video/mp4", webm: "video/webm", mp3: "audio/mpeg" };
 
-// Streams public videos from the VIDEOS R2 bucket, with Range support so browsers can
+// Streams public videos and audio from the VIDEOS R2 bucket, with Range support so browsers can
 // start playback immediately and scrub.
 export async function GET(request: Request, { params }: { params: Promise<{ key: string[] }> }) {
   const key = (await params).key.join("/");
