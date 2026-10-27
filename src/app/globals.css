@@ -150,3 +150,21 @@ img {
   -webkit-user-drag: none;
 }
 
+
+@keyframes nl-drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+
+/* Phones: a chip row becomes one swipeable line that bleeds to the screen edge, instead of wrapping into stacks. */
+@media (max-width: 639px) {
+  .scroll-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: -1.25rem;
+    padding-inline: 1.25rem;
+    scrollbar-width: none;
+  }
+  .scroll-row::-webkit-scrollbar { display: none; }
+  .scroll-row > * { flex-shrink: 0; }
+}

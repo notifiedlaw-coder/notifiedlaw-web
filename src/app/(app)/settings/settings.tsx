@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePlan } from "@/components/plan";
 import { useTheme, type Theme } from "@/components/theme";
-import { Eyebrow, Initials, Page, Segmented } from "@/components/ui";
-import { CREDIT_NAME, DEMO_USER, LEVEL_SHORT, LEVELS, PLAN_NAMES, type Level, type Plan } from "@/lib/data";
+import { Eyebrow, Initials, LevelSelect, Page, Segmented } from "@/components/ui";
+import { CREDIT_NAME, DEMO_USER, PLAN_NAMES, type Level, type Plan } from "@/lib/data";
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="flex flex-col gap-1.5"><Eyebrow>{title}</Eyebrow><div className="overflow-hidden rounded-xl bg-surface shadow-card">{children}</div></section>
@@ -27,7 +27,7 @@ export function Settings() {
       </div>
       <Group title="Studies">
         <Row label="University">University of Ghana</Row>
-        <Row label="Level"><Segmented options={LEVELS} value={level} onChange={setLevel} labels={LEVEL_SHORT} /></Row>
+        <Row label="Level"><LevelSelect value={level} onChange={setLevel} /></Row>
       </Group>
       <Group title="Subscription">
         <Row label="Current plan">{PLAN_NAMES[plan]}</Row>

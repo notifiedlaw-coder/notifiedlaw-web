@@ -25,15 +25,6 @@ export const NAV_RESEARCH: NavItem[] = [
   { href: "/files", label: "My Files", icon: "folder" },
 ];
 
-// Phone bottom tabs, per the mobile prototype.
-export const NAV_TABS: NavItem[] = [
-  { href: "/home", label: "Home", icon: "home" },
-  { href: "/library", label: "Library", icon: "book" },
-  { href: "/ai", label: "AI", icon: "sparkle" },
-  { href: "/search", label: "Search", icon: "search" },
-  { href: "/settings", label: "Profile", icon: "user" },
-];
-
 export function titleFor(pathname: string): { title: string; sub: string } {
   const map: [string, string, string][] = [
     ["/home", "Home", "Monday, 26 October"],

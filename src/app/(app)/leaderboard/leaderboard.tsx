@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { usePlan } from "@/components/plan";
-import { Btn, Gate, Initials, Segmented } from "@/components/ui";
+import { Btn, Gate, Initials, LevelSelect } from "@/components/ui";
 import { LB_NAMES } from "@/lib/content";
-import { DEMO_USER, LEVEL_LABEL, LEVEL_SHORT, LEVELS, type Level } from "@/lib/data";
+import { DEMO_USER, LEVEL_LABEL, type Level } from "@/lib/data";
 
 const COLORS = ["#FF9500", "#34C759", "#AF52DE", "#30B0C7", "#FF3B30", "#5856D6", "#A2845E", "#007AFF"];
 const OFFSET: Record<Level, number> = { "100": 7, "200": 0, "300": 11, "400": 4, "pre-bar": 9, bar: 2 };
@@ -31,7 +31,7 @@ export function Leaderboard() {
   const podium = [1, 0, 2].map((i) => ({ ...people[i], medal: MEDALS[i], big: i === 0 }));
 
   return (
-    <div className="relative min-h-[calc(100dvh-52px-64px)] md:min-h-[calc(100dvh-52px)]">
+    <div className="relative min-h-[calc(100dvh-52px)]">
       <div className="mx-auto flex max-w-[1040px] flex-col gap-6 px-5 pb-12 pt-8 md:px-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -39,13 +39,13 @@ export function Leaderboard() {
             <h1 className="text-[30px] font-bold tracking-[-0.02em]">Weekly Quiz Leaderboard</h1>
             <div className="mt-1 flex items-center gap-1.5 text-[13px] text-muted"><Icon name="lock" size={12} />University of Ghana law students only</div>
           </div>
-          <Segmented options={LEVELS} value={level} onChange={setLevel} labels={LEVEL_SHORT} />
+          <LevelSelect value={level} onChange={setLevel} />
         </div>
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-4">
-            <div className="flex items-end justify-center gap-3 rounded-2xl bg-surface px-4 pt-6 shadow-card">
+            <div className="flex items-end justify-center gap-2 rounded-2xl bg-surface px-3 pt-6 shadow-card sm:gap-3 sm:px-4">
               {podium.map((p) => (
-                <div key={p.rank} className="flex w-28 flex-col items-center gap-1 rounded-t-xl bg-canvas px-2 pb-4 pt-4" style={{ height: p.big ? 214 : 190 }}>
+                <div key={p.rank} className="flex min-w-0 max-w-28 flex-1 flex-col items-center gap-1 rounded-t-xl bg-canvas px-2 pb-4 pt-4" style={{ height: p.big ? 214 : 190 }}>
                   <div className="relative">
                     <Initials name={p.name} color={p.color} size={p.big ? 68 : 56} />
                     <span className="absolute -bottom-1 -right-1 flex size-6 items-center justify-center rounded-full border-2 border-surface text-xs font-bold text-white" style={{ background: p.medal }}>{p.rank}</span>

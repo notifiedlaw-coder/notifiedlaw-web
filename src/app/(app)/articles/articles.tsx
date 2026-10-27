@@ -17,7 +17,7 @@ export function Articles() {
     <Page>
       <Title title="Articles" sub="Short explainers on Ghanaian law, linked to cases, statutes and topics" />
       <SearchField value={q} onChange={setQ} placeholder="Search articles" />
-      <div className="flex flex-wrap gap-2">
+      <div className="scroll-row flex flex-wrap gap-2">
         <Chip on={trending} onClick={() => setTrending((t) => !t)}>Trending</Chip>
         <span className="mx-1 h-4 w-px bg-edge/10 self-center" />
         {["All", ...INDUSTRIES].map((i) => <Chip key={i} on={industry === i} onClick={() => setIndustry(i)}>{i === "All" ? "All industries" : i}</Chip>)}

@@ -23,7 +23,7 @@ export function Statute() {
   };
 
   return (
-    <div className="relative flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+    <div className="relative flex h-[calc(100dvh-52px)]">
       <nav className="hidden w-[220px] shrink-0 flex-col gap-0.5 overflow-auto border-r border-edge/10 bg-panel p-3 lg:flex">
         <div className="px-2 pb-1 text-[11px] font-semibold text-faint">Jump to section</div>
         {ACT29.map((s) => (
@@ -58,7 +58,7 @@ export function Statute() {
         <div className="flex items-center gap-2 px-4 py-3.5"><Icon name="sparkle" size={14} className="text-indigo" /><span className="text-[13px] font-semibold">Ask this Act</span></div>
         <div className="flex flex-1 flex-col gap-2 overflow-auto px-4 pb-3">
           {msgs.map((m, i) => <div key={i} className={`max-w-[90%] rounded-2xl px-3 py-2 text-[13px] leading-normal ${m.role === "user" ? "self-end bg-blue text-white" : "bg-fill"}`}>{m.text}</div>)}
-          <div className="flex flex-wrap gap-1.5">{SUGG.map((s) => <button key={s} onClick={() => ask(s)} className="rounded-full bg-surface px-2.5 py-1 text-xs shadow-[0_0_0_0.5px_var(--hairline)]">{s}</button>)}</div>
+          <div className="scroll-row flex flex-wrap gap-1.5">{SUGG.map((s) => <button key={s} onClick={() => ask(s)} className="rounded-full bg-surface px-2.5 py-1 text-xs shadow-[0_0_0_0.5px_var(--hairline)]">{s}</button>)}</div>
         </div>
         <div className="border-t border-edge/[0.08] p-3">
           <div className="flex items-center gap-2 rounded-full bg-fill py-1 pl-3.5 pr-1">

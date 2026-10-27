@@ -27,7 +27,7 @@ export function CaseLaw() {
         <SearchField value={q} onChange={setQ} placeholder={tab === "Cases" ? "Search by party, citation or topic" : "Search by title or Act number"} />
         <Link href="/search" className="hidden h-9 items-center rounded-[10px] bg-surface px-3 text-[13px] shadow-[0_0_0_0.5px_var(--hairline)] sm:flex">Search inside judgments</Link>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="scroll-row flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted">Sort</span>
         {(["Recent", "A–Z"] as const).map((s) => <Chip key={s} on={sort === s} onClick={() => setSort(s)}>{s}</Chip>)}
         <span className="mx-1 h-4 w-px bg-edge/10" />

@@ -23,7 +23,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
   const done = Math.round(course.progress * course.topics.length);
 
   return (
-    <div className="mx-auto grid max-w-[1040px] gap-6 px-5 pb-12 pt-6 md:px-10 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div className="mx-auto grid max-w-[1040px] grid-cols-[minmax(0,1fr)] gap-6 px-5 pb-12 pt-6 md:px-10 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="flex flex-col gap-5">
         <div className="relative h-40 overflow-hidden rounded-2xl" style={{ background: `linear-gradient(135deg, ${course.color}, ${course.color}66)` }}>
           <div className="absolute bottom-4 left-5 flex items-end gap-4 text-white">

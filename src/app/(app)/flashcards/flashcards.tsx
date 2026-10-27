@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePlan } from "@/components/plan";
-import { Segmented } from "@/components/ui";
-import { DEMO_USER, FLASHCARDS, LEVELS, LEVEL_LABEL, LEVEL_SHORT, type Level } from "@/lib/data";
+import { LevelSelect } from "@/components/ui";
+import { DEMO_USER, FLASHCARDS, LEVEL_LABEL, type Level } from "@/lib/data";
 
 const GRADES = [
   ["Again", "< 1 min", "#FFF1F0"],
@@ -81,9 +81,9 @@ export function Flashcards() {
       </div>
 
       <div className="overflow-x-auto">
-        <Segmented options={LEVELS} value={level} onChange={pickLevel} labels={LEVEL_SHORT} />
+        <LevelSelect value={level} onChange={pickLevel} />
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="scroll-row flex flex-wrap gap-2">
         {courses.map((c) => (
           <button key={c} onClick={() => pickCourse(c)}
             className={`h-[26px] rounded-full px-3 text-xs font-medium ${c === course ? "bg-strong text-strong-fg" : "bg-surface shadow-[0_0_0_0.5px_var(--hairline)]"}`}>
@@ -108,10 +108,10 @@ export function Flashcards() {
       ) : (
         <>
           <div role="button" tabIndex={0} onClick={() => setFlipped((f) => !f)}
-            className="flex min-h-[320px] cursor-pointer flex-col items-center justify-center gap-4 rounded-[20px] bg-surface p-8 text-center shadow-card transition-shadow hover:shadow-card-hover">
+            className="flex min-h-[280px] cursor-pointer flex-col items-center justify-center gap-4 rounded-[20px] bg-surface p-6 sm:min-h-[320px] sm:p-8 text-center shadow-card transition-shadow hover:shadow-card-hover">
             <div className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: flipped ? "#34C759" : "#AF52DE" }}>{flipped ? "Answer" : "Question"} · {card[2]}</div>
             <div className="text-pretty max-w-[560px] text-2xl font-semibold leading-snug tracking-[-0.01em]">{card[flipped ? 1 : 0]}</div>
-            {!flipped && <div className="text-xs text-muted">Click or press Space to reveal</div>}
+            {!flipped && <div className="text-xs text-muted"><span className="sm:hidden">Tap to reveal</span><span className="hidden sm:inline">Click or press Space to reveal</span></div>}
           </div>
           {flipped && (
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">

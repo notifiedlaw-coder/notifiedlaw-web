@@ -36,7 +36,7 @@ export function Search() {
         <span className="text-xs text-muted">{mode === "Titles" ? "Matches names, articles and topics." : "Finds the exact passage in a judgment."}</span>
       </div>
       {mode === "Titles" && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="scroll-row flex flex-wrap items-center gap-2">
           <Chip on={trending} onClick={() => setTrending((t) => !t)}>Trending</Chip>
           <span className="mx-1 h-4 w-px bg-edge/10" />
           <span className="text-xs text-muted">Industry</span>

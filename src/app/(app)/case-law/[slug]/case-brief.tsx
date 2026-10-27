@@ -33,7 +33,7 @@ export function CaseBrief() {
   const head = "text-[11px] font-bold uppercase tracking-[0.05em] text-faint";
 
   return (
-    <div className="relative flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+    <div className="relative flex h-[calc(100dvh-52px)]">
       <div ref={scroller} className="min-w-0 flex-1 overflow-auto">
         <div className="mx-auto flex max-w-[760px] flex-col gap-5 px-5 pb-12 pt-7 md:px-8">
           <div>
@@ -44,7 +44,7 @@ export function CaseBrief() {
             </div>
             <div className="mt-2.5 flex flex-wrap gap-1.5">{C.areas.map((a) => <span key={a} className="rounded-full bg-fill px-2.5 py-0.5 text-xs">{a}</span>)}</div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="scroll-row flex flex-wrap gap-2">
             <Btn href="/flashcards" tone="plain">Make flashcards from principles</Btn>
             <Btn tone="plain" onClick={() => setFind(find === null ? "" : null)}>Find in judgment</Btn>
             <Btn tone="plain">Download PDF</Btn>
@@ -128,7 +128,7 @@ export function CaseBrief() {
           <div className="relative flex min-h-0 flex-1 flex-col">
             <div className="flex flex-1 flex-col gap-2 overflow-auto px-4 pb-3">
               {msgs.map((m, i) => <div key={i} className={`max-w-[90%] rounded-2xl px-3 py-2 text-[13px] leading-normal ${m.role === "user" ? "self-end bg-blue text-white" : "bg-fill"}`}>{m.text}</div>)}
-              <div className="flex flex-wrap gap-1.5">{SUGG.map((s) => <button key={s} onClick={() => ask(s)} className="rounded-full bg-surface px-2.5 py-1 text-xs shadow-[0_0_0_0.5px_var(--hairline)]">{s}</button>)}</div>
+              <div className="scroll-row flex flex-wrap gap-1.5">{SUGG.map((s) => <button key={s} onClick={() => ask(s)} className="rounded-full bg-surface px-2.5 py-1 text-xs shadow-[0_0_0_0.5px_var(--hairline)]">{s}</button>)}</div>
             </div>
             <div className="border-t border-edge/[0.08] p-3">
               <div className="flex items-center gap-2 rounded-full bg-fill py-1 pl-3.5 pr-1">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { BADGES, type Treatment } from "@/lib/content";
+import { LEVELS, LEVEL_LABEL, LEVEL_SHORT, type Level } from "@/lib/data";
 import { Icon } from "./icons";
 
 export const cardCls = "rounded-2xl bg-surface shadow-card";
@@ -38,12 +39,12 @@ export function Segmented<T extends string>({
   options, value, onChange, labels,
 }: { options: readonly T[]; value: T; onChange: (v: T) => void; labels?: Record<string, string> }) {
   return (
-    <div className="flex rounded-lg bg-[rgba(118,118,128,0.12)] p-0.5">
+    <div className="flex max-w-full overflow-x-auto rounded-lg bg-[rgba(118,118,128,0.12)] p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {options.map((o) => (
         <button
           key={o}
           onClick={() => onChange(o)}
-          className={`h-7 flex-1 whitespace-nowrap rounded-md px-3 text-[13px] font-medium ${
+          className={`h-8 flex-1 whitespace-nowrap rounded-md px-2.5 text-[13px] sm:h-7 sm:px-3 font-medium ${
             o === value ? "bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.12)]" : "text-ink/80"
           }`}
         >
@@ -51,6 +52,30 @@ export function Segmented<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+/** Level picker: a dropdown on phones (six options don't fit edge to edge), the segmented control from sm up. */
+export function LevelSelect({ value, onChange }: { value: Level; onChange: (v: Level) => void }) {
+  return (
+    <>
+      <label className="relative sm:hidden">
+        <span className="sr-only">Level</span>
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value as Level)}
+          className="h-10 appearance-none rounded-[10px] border-0 bg-surface py-0 pl-3.5 pr-9 text-[15px] font-medium text-ink shadow-[0_0_0_0.5px_var(--hairline)] outline-none focus-visible:ring-2 focus-visible:ring-blue"
+        >
+          {LEVELS.map((l) => <option key={l} value={l}>{LEVEL_LABEL[l]}</option>)}
+        </select>
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden>
+          <path d="m3 6 5 5 5-5" />
+        </svg>
+      </label>
+      <div className="hidden sm:block">
+        <Segmented options={LEVELS} value={value} onChange={onChange} labels={LEVEL_SHORT} />
+      </div>
+    </>
   );
 }
 

@@ -56,7 +56,7 @@ export function AiChat() {
   };
 
   return (
-    <div className="relative flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+    <div className="relative flex h-[calc(100dvh-52px)]">
       <aside className="hidden w-[240px] shrink-0 flex-col gap-2 border-r border-edge/10 bg-panel p-3 lg:flex">
         <button onClick={() => setMsgs([])} className="h-8 rounded-[7px] bg-blue text-[13px] font-medium text-white">New chat</button>
         <div className="px-1 pt-2 text-[11px] font-semibold text-faint">History</div>
@@ -103,7 +103,7 @@ export function AiChat() {
         </div>
         <div className="border-t border-edge/[0.08] bg-surface/80 px-5 pb-4 pt-3">
           <div className="mx-auto flex max-w-[720px] flex-col gap-2">
-            <div className="flex flex-wrap gap-2">{SUGG.map((s) => <button key={s} onClick={() => ask(s)} className="rounded-full bg-fill px-3 py-1 text-xs hover:bg-track">{s}</button>)}</div>
+            <div className="scroll-row flex flex-wrap gap-2">{SUGG.map((s) => <button key={s} onClick={() => ask(s)} className="rounded-full bg-fill px-3 py-1 text-xs hover:bg-track">{s}</button>)}</div>
             <div className="flex items-center gap-2 rounded-2xl bg-surface p-2 pl-4 shadow-[0_0_0_0.5px_var(--hairline)]">
               <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask(draft)} placeholder="Ask about any case, article or statute…" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
               <button onClick={() => ask(draft)} aria-label="Send" className="flex size-8 items-center justify-center rounded-full bg-blue text-white"><Icon name="back" size={14} className="rotate-90" /></button>

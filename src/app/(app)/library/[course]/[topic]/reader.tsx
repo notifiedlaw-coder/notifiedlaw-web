@@ -47,7 +47,7 @@ export function Reader({ course, code, n, title }: { course: string; code: strin
   const caption = PODCAST_CAPTIONS[Math.min(3, Math.floor(progress * 4))];
 
   return (
-    <div className="relative flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+    <div className="relative flex h-[calc(100dvh-52px)]">
       <div className="flex min-w-0 flex-1 flex-col">
         <div ref={scroller} className="flex-1 overflow-auto bg-surface">
           <article className="mx-auto max-w-[720px] px-5 py-8 md:px-8 md:py-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>
@@ -58,7 +58,7 @@ export function Reader({ course, code, n, title }: { course: string; code: strin
             <div className="mb-5 text-[13px] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
               {total} chapters · 14 min read · Updated for the 2026/27 academic year
             </div>
-            <div className="mb-6 flex flex-wrap gap-2" style={{ fontFamily: "var(--font-sans)" }}>
+            <div className="scroll-row mb-6 flex flex-wrap gap-2" style={{ fontFamily: "var(--font-sans)" }}>
               {CHAPTERS.map((c, i) => {
                 const isCur = i === cur, isDone = !isCur && i < done, locked = !isCur && i > Math.min(done, total - 1);
                 return (
@@ -75,7 +75,7 @@ export function Reader({ course, code, n, title }: { course: string; code: strin
             </div>
             {cur === 0 && (
               <figure className="mb-2" style={{ fontFamily: "var(--font-sans)" }}>
-                <div className="h-[260px] overflow-hidden rounded-[14px] bg-cover bg-center md:h-[340px]"
+                <div className="h-[200px] overflow-hidden rounded-[14px] bg-cover bg-center sm:h-[260px] md:h-[340px]"
                   style={{ backgroundImage: "url(https://commons.wikimedia.org/wiki/Special:FilePath/Supreme_Court%2C_Accra_(IMG_20230201_140723_1).jpg?width=1600)", backgroundColor: "#1C1C1E" }} />
                 <figcaption className="mt-2 text-xs text-muted">The Supreme Court of Ghana, Accra. It has exclusive original jurisdiction under Article 130.</figcaption>
               </figure>

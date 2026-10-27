@@ -5,192 +5,148 @@ import { abbr, COURSES, DEMO_USER, QUOTE } from "@/lib/data";
 
 export const metadata = { title: "Home" };
 
-const Eyebrow = ({
-  color,
-  children,
-}: {
-  color: string;
-  children: React.ReactNode;
-}) => (
-  <div
-    className="text-xs font-semibold uppercase tracking-[0.05em]"
-    style={{ color }}
-  >
+const Eyebrow = ({ color, children }: { color: string; children: React.ReactNode }) => (
+  <div className="text-xs font-semibold uppercase tracking-[0.05em]" style={{ color }}>
     {children}
   </div>
 );
 
+const Heading = ({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) => (
+  <div className="flex items-baseline justify-between">
+    <h2 className="text-[22px] font-bold tracking-[-0.02em]">{children}</h2>
+    {right}
+  </div>
+);
+
+const Chevron = () => (
+  <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-faint sm:hidden" aria-hidden>
+    <path d="M1 1l6 6-6 6" />
+  </svg>
+);
+
+const link = { textDecoration: "none", color: "inherit" } as const;
+
 export default function Home() {
   const courses = COURSES[DEMO_USER.level];
+
+  // One list on phones (iOS-style grouped rows), three tiles from sm up.
+  const today = [
+    { href: "/flashcards", icon: "cards", color: "#af52de", title: "24 cards due", sub: "Judicial Review · Negligence · Mens Rea" },
+    { href: "/ai", icon: "sparkle", color: "#5856d6", title: "Ask Notified AI", sub: "Any case, article or statute", tag: true },
+    { href: "/hot-topics", icon: "headphones", color: "#ff9500", title: "Passport withheld? Where do you actually sue?", sub: "Hot Topics · New episode · 17 min" },
+  ];
+
   return (
-    <div className="mx-auto flex max-w-[1080px] flex-col gap-7 px-5 pb-12 pt-6 md:px-10 md:pt-9">
-      <div className="flex flex-col gap-3.5 pb-2 pt-2 md:pt-5">
-        <h1 className="text-balance max-w-[900px] text-[44px] font-bold leading-[0.98] tracking-[-0.05em] sm:text-7xl md:text-[84px]">
-          The Law at Your Fingertips.
-        </h1>
-        <p className="text-pretty max-w-[620px] text-lg font-medium leading-snug tracking-[-0.01em] text-muted md:text-[21px]">
-          Notes, podcasts and exam prep for every law course, from Level 100 to the Bar Course.
-        </p>
-      </div>
+    <div className="mx-auto flex max-w-[1080px] flex-col gap-8 px-4 pb-12 pt-5 sm:px-6 md:px-10 md:pt-9">
+      <header>
+        <div className="text-[13px] font-semibold uppercase tracking-[0.04em] text-muted">Monday, 26 October</div>
+        <h1 className="mt-1 text-[34px] font-bold leading-tight tracking-[-0.03em] md:text-5xl">Akwaaba, {DEMO_USER.first}</h1>
+      </header>
 
-      <section className="flex flex-col gap-2.5 rounded-2xl bg-surface px-6 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_0.5px_rgba(0,0,0,0.06)]">
-        <Eyebrow color="#ff9f0a">Quote of the day</Eyebrow>
-        <p className="text-pretty text-xl font-medium leading-snug tracking-[-0.01em]">
-          {QUOTE.text}
-        </p>
-        <p className="text-[13px] text-muted">
-          <span className="font-semibold text-ink">{QUOTE.by}</span> · {QUOTE.role}
-        </p>
-      </section>
-
-      <div>
-        <div className="text-[13px] font-semibold uppercase tracking-[0.04em] text-muted">
-          Monday, 26 October
+      <section aria-label="Continue reading" className="relative flex flex-col gap-4 overflow-hidden rounded-3xl bg-ink-dark p-6 text-white md:p-8">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "url(https://commons.wikimedia.org/wiki/Special:FilePath/Supreme_Court%2C_Accra_(IMG_20230201_140723_1).jpg?width=1600)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "linear-gradient(90deg, rgba(28,28,30,0.94) 0%, rgba(28,28,30,0.82) 55%, rgba(28,28,30,0.35) 100%)" }}
+        />
+        <div className="relative">
+          <Eyebrow color="#ff9f0a">Continue reading</Eyebrow>
         </div>
-        <div className="mt-1 text-3xl font-bold tracking-[-0.02em]">
-          Akwaaba, {DEMO_USER.first}
+        <div className="relative max-w-[640px]">
+          <div className="text-pretty text-2xl font-bold leading-[1.15] tracking-[-0.02em] md:text-[32px]">
+            Judicial Review &amp; the Supremacy of the Constitution
+          </div>
+          <div className="mt-2 text-sm text-white/65">Constitutional Law II · Topic 1 · 6 min left</div>
         </div>
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <section className="relative flex min-h-60 flex-col gap-[18px] overflow-hidden rounded-2xl bg-ink-dark p-7 text-white">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage:
-                "url(https://commons.wikimedia.org/wiki/Special:FilePath/Supreme_Court%2C_Accra_(IMG_20230201_140723_1).jpg?width=1600)",
-            }}
-          />
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(28,28,30,0.94) 0%, rgba(28,28,30,0.82) 55%, rgba(28,28,30,0.35) 100%)",
-            }}
-          />
-          <div className="relative">
-            <Eyebrow color="#ff9f0a">Continue reading</Eyebrow>
-          </div>
-          <div className="relative">
-            <div className="text-pretty text-[26px] font-bold leading-[1.15] tracking-[-0.015em]">
-              Judicial Review &amp; the Supremacy of the Constitution
-            </div>
-            <div className="mt-2 text-sm text-white/60">
-              Constitutional Law II · Topic 1 · 6 min left
-            </div>
-          </div>
-          <div className="relative h-1 rounded-sm bg-white/15">
+        <div className="relative flex items-center gap-3 md:max-w-[640px]">
+          <div className="h-1 flex-1 rounded-sm bg-white/15">
             <div className="h-full w-[62%] rounded-sm bg-amber-soft" />
           </div>
-          <div className="flex-1" />
-          <div className="relative flex flex-wrap gap-2.5">
-            <Link
-              href="/library/law-201/1"
-              className="flex h-9 items-center rounded-full bg-[#fff] px-[18px] text-sm font-semibold"
-              style={{ color: "#1d1d1f", textDecoration: "none" }}
-            >
-              Resume
-            </Link>
-            <Link
-              href="/library/law-201/1?tab=listen"
-              className="flex h-9 items-center gap-2 rounded-full bg-white/15 px-4 text-sm font-medium"
-              style={{ color: "#fff", textDecoration: "none" }}
-            >
-              <Icon name="headphones" size={14} />
-              Listen as podcast · 18 min
-              <ShowUnlessMax><Icon name="lock" size={12} /></ShowUnlessMax>
-            </Link>
-          </div>
-        </section>
-
-        <div className="flex flex-col gap-5">
+          <span className="text-xs font-medium tabular-nums text-white/65">62%</span>
+        </div>
+        <div className="relative flex items-center gap-3">
           <Link
-            href="/flashcards"
-            className="flex flex-1 flex-col gap-1.5 rounded-2xl bg-surface p-5 shadow-card transition-shadow hover:shadow-card-hover"
-            style={{ textDecoration: "none", color: "inherit" }}
+            href="/library/law-201/1"
+            className="flex h-11 flex-1 items-center justify-center rounded-full bg-[#fff] px-6 text-[15px] font-semibold sm:flex-none"
+            style={{ color: "#1d1d1f", textDecoration: "none" }}
           >
-            <Eyebrow color="#af52de">Flashcards</Eyebrow>
-            <div className="text-[22px] font-bold">24 cards due today</div>
-            <div className="text-[13px] text-muted">
-              Judicial Review · Negligence · Mens Rea
-            </div>
-            <div className="flex-1" />
-            <div className="text-[13px] font-semibold text-blue">Start review</div>
+            Resume
           </Link>
           <Link
-            href="/ai"
-            className="flex flex-1 flex-col gap-2.5 rounded-2xl bg-surface p-5 shadow-card transition-shadow hover:shadow-card-hover"
-            style={{ textDecoration: "none", color: "inherit" }}
+            href="/library/law-201/1?tab=listen"
+            className="flex h-11 items-center justify-center gap-2 rounded-full bg-white/15 px-4 text-[15px] font-medium"
+            style={{ color: "#fff", textDecoration: "none" }}
+            aria-label="Listen as podcast, 18 minutes"
           >
-            <div className="flex items-center gap-1.5">
-              <Eyebrow color="#5856d6">Notified AI</Eyebrow>
-              <ShowIfFree>
-                <span className="rounded bg-indigo/10 px-1.5 py-0.5 text-[10px] font-semibold text-indigo">
-                  NOTIFY CREDITS
+            <Icon name="headphones" size={16} />
+            <span className="hidden sm:inline">Listen · 18 min</span>
+            <ShowUnlessMax><Icon name="lock" size={12} /></ShowUnlessMax>
+          </Link>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <Heading>Today</Heading>
+        <div className="flex flex-col divide-y divide-edge/10 overflow-hidden rounded-2xl bg-surface shadow-card sm:grid sm:grid-cols-3 sm:gap-4 sm:divide-y-0 sm:overflow-visible sm:bg-transparent sm:shadow-none">
+          {today.map((t) => (
+            <Link
+              key={t.href}
+              href={t.href}
+              className="flex min-h-[68px] items-center gap-3.5 p-4 transition-shadow sm:flex-col sm:items-start sm:gap-3 sm:rounded-2xl sm:bg-surface sm:p-5 sm:shadow-card sm:hover:shadow-card-hover"
+              style={link}
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: t.color }}>
+                <Icon name={t.icon} size={20} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 block text-[15px] font-semibold leading-snug">{t.title}</span>
+                <span className="mt-0.5 block text-[13px] leading-snug text-muted sm:line-clamp-2">
+                  {t.sub}
+                  {t.tag && (
+                    <ShowIfFree>
+                      <span className="ml-1.5 rounded bg-indigo/10 px-1.5 py-0.5 text-[10px] font-semibold text-indigo">NOTIFY CREDITS</span>
+                    </ShowIfFree>
+                  )}
                 </span>
-              </ShowIfFree>
-            </div>
-            <div className="flex h-[38px] items-center rounded-[10px] bg-fill px-3.5 text-sm text-muted">
-              Ask about any case, article or statute…
-            </div>
-            <div className="text-xs text-muted">
-              Try “Explain Article 2 vs Article 33”
-            </div>
-          </Link>
+              </span>
+              <Chevron />
+            </Link>
+          ))}
         </div>
-      </div>
+      </section>
 
-      <Link
-        href="/hot-topics"
-        className="flex items-center gap-4 rounded-2xl bg-surface p-5 shadow-card transition-shadow hover:shadow-card-hover"
-        style={{ textDecoration: "none", color: "inherit" }}
-      >
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-amber text-white">
-          <Icon name="headphones" size={22} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <Eyebrow color="#ff9f0a">Hot Topics Podcast</Eyebrow>
-          <div className="truncate text-lg font-bold">Passport withheld? Where do you actually sue?</div>
-          <div className="text-[13px] text-muted">The latest in Accra, with cases and articles from our site · 17 min</div>
-        </div>
-      </Link>
-
-      <section className="flex flex-col gap-3.5">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-bold">Your Level {DEMO_USER.level} courses</h2>
-          <Link href="/library" className="text-[13px]">
-            See all levels
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="flex flex-col gap-3">
+        <Heading
+          right={<Link href="/library" className="text-[13px]">See all levels</Link>}
+        >
+          Level {DEMO_USER.level} courses
+        </Heading>
+        {/* Phones: swipeable row that bleeds to the screen edge. sm+: grid. */}
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4">
           {courses.map((c) => (
             <Link
               key={c.slug}
               href={`/library/${c.slug}`}
-              className="flex flex-col gap-3.5 overflow-hidden rounded-[14px] bg-surface px-[18px] pb-[18px] shadow-card transition-shadow hover:shadow-card-hover"
-              style={{ textDecoration: "none", color: "inherit" }}
+              className="flex w-[68%] shrink-0 snap-start flex-col gap-3 overflow-hidden rounded-2xl bg-surface px-4 pb-4 shadow-card transition-shadow hover:shadow-card-hover sm:w-auto"
+              style={link}
             >
-              <div
-                className="-mx-[18px] h-[116px]"
-                style={{
-                  background: `linear-gradient(135deg, ${c.color}33, ${c.color}0d)`,
-                }}
-              />
+              <div className="-mx-4 h-[72px]" style={{ background: `linear-gradient(135deg, ${c.color}33, ${c.color}0d)` }} />
               <div
                 className="relative -mt-9 flex size-11 items-center justify-center rounded-xl border-[3px] border-surface text-[15px] font-bold text-white"
                 style={{ background: c.color }}
               >
                 {abbr(c.code)}
               </div>
-              <div className="min-h-[38px] text-[15px] font-semibold leading-tight">
-                {c.title}
-              </div>
+              <div className="min-h-[38px] text-[15px] font-semibold leading-tight">{c.title}</div>
               <div className="flex flex-col gap-1.5">
                 <div className="h-1 rounded-sm bg-track">
-                  <div
-                    className="h-full rounded-sm"
-                    style={{ width: `${c.progress * 100}%`, background: c.color }}
-                  />
+                  <div className="h-full rounded-sm" style={{ width: `${c.progress * 100}%`, background: c.color }} />
                 </div>
                 <div className="text-xs text-muted">
                   {c.topics.length} topics · {Math.round(c.progress * 100)}% complete
@@ -200,6 +156,16 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <figure className="m-0 flex flex-col items-center gap-2 px-2 pb-2 pt-4 text-center">
+        <Eyebrow color="#ff9f0a">Quote of the day</Eyebrow>
+        <blockquote className="m-0 max-w-[560px] text-pretty text-lg font-medium leading-snug tracking-[-0.01em]">
+          “{QUOTE.text}”
+        </blockquote>
+        <figcaption className="text-[13px] text-muted">
+          <span className="font-semibold text-ink">{QUOTE.by}</span> · {QUOTE.role}
+        </figcaption>
+      </figure>
     </div>
   );
 }

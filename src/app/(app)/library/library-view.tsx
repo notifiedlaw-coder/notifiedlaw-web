@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Btn, Chevron, Page, Segmented, Title } from "@/components/ui";
+import { Btn, Chevron, LevelSelect, Page, Title } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { usePlan } from "@/components/plan";
-import { abbr, COURSES, DEMO_USER, LEVEL_SHORT, LEVEL_LABEL, LEVELS, TOTAL_TOPICS, type Level } from "@/lib/data";
+import { abbr, COURSES, DEMO_USER, TOTAL_TOPICS, type Level } from "@/lib/data";
 
 export function TopicRow({ slug, i, title, color, locked }: { slug: string; i: number; title: string; color: string; locked: boolean }) {
   return (
@@ -37,7 +37,7 @@ export function LibraryView() {
       <Title
         title="Library"
         sub="LLB syllabus aligned to Ghanaian law faculties"
-        right={<Segmented options={LEVELS} value={level} onChange={setLevel} labels={LEVEL_SHORT} />}
+        right={<LevelSelect value={level} onChange={setLevel} />}
       />
       {!pro && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl bg-surface px-4 py-3 shadow-card">
