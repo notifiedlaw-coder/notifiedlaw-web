@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { CopyGuard } from "@/components/copy-guard";
 import { JsonLd } from "@/components/json-ld";
 import { SITE, abs } from "@/lib/site";
 import "./globals.css";
@@ -72,13 +73,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         {/* Apply the saved theme before paint to avoid a flash. */}
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("nl-theme");if(t!=="dark"&&t!=="system")t="light";document.documentElement.dataset.theme=t}catch(e){}` }} />
       </head>
       <body>
         <JsonLd data={siteSchema} />
+        <CopyGuard />
         {children}
       </body>
     </html>

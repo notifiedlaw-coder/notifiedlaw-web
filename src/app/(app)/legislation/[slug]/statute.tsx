@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { usePlan } from "@/components/plan";
+import { Watermark } from "@/components/watermark";
 import { Badge, Btn, Gate, Segmented } from "@/components/ui";
 import { ACT29 } from "@/lib/content";
 
@@ -23,7 +24,8 @@ export function Statute() {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+    <div className="relative flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+      <Watermark />
       <nav className="hidden w-[220px] shrink-0 flex-col gap-0.5 overflow-auto border-r border-edge/10 bg-panel p-3 lg:flex">
         <div className="px-2 pb-1 text-[11px] font-semibold text-faint">Jump to section</div>
         {ACT29.map((s) => (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { usePlan } from "@/components/plan";
+import { Watermark } from "@/components/watermark";
 import { Btn, Gate, Segmented } from "@/components/ui";
 import { CHAPTERS, PODCAST_CAPTIONS } from "@/lib/content";
 
@@ -47,7 +48,8 @@ export function Reader({ course, code, n, title }: { course: string; code: strin
   const caption = PODCAST_CAPTIONS[Math.min(3, Math.floor(progress * 4))];
 
   return (
-    <div className="flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+    <div className="relative flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+      <Watermark />
       <div className="flex min-w-0 flex-1 flex-col">
         <div ref={scroller} className="flex-1 overflow-auto bg-surface">
           <article className="mx-auto max-w-[720px] px-5 py-8 md:px-8 md:py-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>

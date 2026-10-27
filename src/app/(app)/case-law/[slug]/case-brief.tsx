@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { usePlan } from "@/components/plan";
+import { Watermark } from "@/components/watermark";
 import { Badge, Btn, Gate, Segmented } from "@/components/ui";
 import { EDUSEI as C } from "@/lib/content";
 
@@ -33,7 +34,8 @@ export function CaseBrief() {
   const head = "text-[11px] font-bold uppercase tracking-[0.05em] text-faint";
 
   return (
-    <div className="flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+    <div className="relative flex h-[calc(100dvh-52px-64px)] md:h-[calc(100dvh-52px)]">
+      <Watermark />
       <div ref={scroller} className="min-w-0 flex-1 overflow-auto">
         <div className="mx-auto flex max-w-[760px] flex-col gap-5 px-5 pb-12 pt-7 md:px-8">
           <div>
