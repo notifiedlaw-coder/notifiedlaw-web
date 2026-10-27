@@ -14,6 +14,18 @@ const PRICES = {
 };
 const NAV = [["Overview", "#features"], ["Notified AI", "#ai"], ["Hot Topics", "#listen"], ["Exam Prep", "#exam"], ["Pricing", "#pricing"]];
 
+const HIGHLIGHTS: { tag: string; color: string; title: string; body: string; slot?: string; alt?: string }[] = [
+  { tag: "Library", color: "#FF9500", title: "Every course. Every topic.", body: "Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline.", slot: "library", alt: "Reader view — Judicial Review note" },
+  { tag: "Flashcards", color: "#34C759", title: "Finish a note. Get the deck.", body: "AI turns every note into cards you can flip on the trotro.", slot: "flashcards", alt: "Flashcard — Tuffuor v A-G" },
+  { tag: "Case Law", color: "#0071E3", title: "The judgments, searchable.", body: "Find the ratio, the holding and the dissent without the 80-page scroll.", slot: "case-law", alt: "Case Law search results" },
+  { tag: "Legislation", color: "#34C759", title: "Every Act, with its status.", body: "The Constitution and Acts of Parliament, marked in force, amended or repealed, with original and current text." },
+  { tag: "Articles", color: "#FF9F0A", title: "Plain-English explainers.", body: "Short pieces on the questions Ghanaian law students actually ask, linked to the cases and notes behind them." },
+  { tag: "Hot Topics", color: "#FF2D55", title: "A podcast on the law in the news.", body: "Each episode links back to the cases, Acts and notes you can study next." },
+  { tag: "Exam Prep", color: "#34C759", title: "Past questions, expertly marked.", body: "Answer timed questions and get written feedback from an expert marker." },
+  { tag: "My Files", color: "#5E5CE6", title: "Your own materials, in one place.", body: "Keep lecture slides and your own notes next to the library." },
+  { tag: "Leaderboard", color: "#FF9500", title: "Study streaks, with company.", body: "See how you rank against coursemates and keep the habit going." },
+];
+
 // Mobile: swipeable card rail that bleeds to the screen edges. md+: the normal grid.
 const rail = "-mx-[22px] flex snap-x snap-mandatory gap-4 overflow-x-auto px-[22px] pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:gap-5 md:overflow-visible md:px-0 md:pb-0";
 const railItem = "w-[82%] shrink-0 snap-center md:w-auto";
@@ -33,15 +45,15 @@ function Tier({ name, color, price, per, blurb, items, cta, dark, ctaCls, badge 
 }) {
   const sub = dark ? "text-[#A1A1A6]" : "text-[#6E6E73]";
   return (
-    <div className={`${railItem} flex flex-col gap-[18px] rounded-[28px] p-9 ${dark ? "bg-[#1D1D1F] text-[#F5F5F7]" : "bg-[#F5F5F7]"}`}>
+    <div className={`${railItem} flex flex-col gap-3 rounded-[28px] p-6 md:gap-[18px] md:p-9 ${dark ? "bg-[#1D1D1F] text-[#F5F5F7]" : "bg-[#F5F5F7]"}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-[21px] font-semibold" style={{ color }}>{name}</div>
         {badge && <div className="text-xs font-semibold text-[#FF9F0A]">{badge}</div>}
       </div>
-      <div><span className="text-[40px] font-bold tracking-[-0.03em]">{price}</span>{per && <span className={`text-[15px] ${sub}`}> {per}</span>}</div>
+      <div><span className="text-[32px] font-bold tracking-[-0.03em] md:text-[40px]">{price}</span>{per && <span className={`text-[15px] ${sub}`}> {per}</span>}</div>
       <div className={`text-[15px] ${sub}`}>{blurb}</div>
       <div className={`h-px ${dark ? "bg-white/20" : "bg-black/12"}`} />
-      <div className="flex flex-col gap-2.5 text-[15px]">{items.map((i) => <div key={i}>{i}</div>)}</div>
+      <div className="flex flex-col gap-1.5 text-[15px] md:gap-2.5">{items.map((i) => <div key={i}>{i}</div>)}</div>
       <div className="flex-1" />
       <Link href={SIGNUP} className={`${pill} ${ctaCls}`}>{cta}</Link>
     </div>
@@ -93,8 +105,7 @@ export default function Landing() {
       </div>
 
       <section id="top" className="flex flex-col items-center overflow-hidden px-[22px] pt-[72px] text-center">
-        <div className="text-[21px] font-semibold text-[#FF9500]">NotifiedLaw</div>
-        <h1 className="mt-2 max-w-[900px] text-balance text-[clamp(48px,9vw,96px)] font-bold leading-[1.02] tracking-[-0.045em]">The Law at Your Fingertips.</h1>
+        <h1 className="max-w-[900px] text-balance text-[clamp(48px,9vw,96px)] font-bold leading-[1.02] tracking-[-0.045em]">The Law at Your Fingertips.</h1>
         <p className="mt-[18px] max-w-[640px] text-pretty text-[clamp(19px,2.2vw,24px)] font-medium leading-[1.35] text-[#6E6E73]">Notes, podcasts and exam prep for every law course, at every level.</p>
         <div className="mt-[30px] flex flex-wrap items-center justify-center gap-6">
           <Link href={SIGNUP} className={`${pill} bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]`}>Start studying free</Link>
@@ -108,40 +119,15 @@ export default function Landing() {
       <section id="features" className="bg-[#F5F5F7] px-[22px] py-24">
         <div className="mx-auto flex max-w-[1024px] flex-col gap-10">
           <h2 className={h2}>Get the highlights.</h2>
-          <div className={`${rail} md:grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))]`}>
-            <div className={`${railItem} grid grid-cols-1 overflow-hidden rounded-[28px] bg-white md:col-span-full md:grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))]`}>
-              <div className="flex flex-col justify-center gap-3 p-8 md:p-12">
-                <div className="text-sm font-semibold text-[#FF9500]">Library</div>
-                <div className="text-balance text-[clamp(28px,3.4vw,40px)] font-bold leading-[1.1] tracking-[-0.03em]">Every course. Every topic. Written for your outline.</div>
-                <div className="text-pretty text-[#6E6E73]">Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline.</div>
-              </div>
-              <div className="min-h-[340px]"><Slot src="library" label="Reader view — Judicial Review note" /></div>
-            </div>
-            {[
-              { tag: "Flashcards", color: "#34C759", title: "Finish a note. Get the deck.", body: "AI turns every note into cards you can flip on the trotro.", slot: "flashcards", alt: "Flashcard — Tuffuor v A-G" },
-              { tag: "Case Law", color: "#0071E3", title: "The judgments, searchable.", body: "Find the ratio, the holding and the dissent without the 80-page scroll.", slot: "case-law", alt: "Case Law search results" },
-            ].map((f) => (
+          <div className={`${rail} md:grid-cols-2 lg:grid-cols-3`}>
+            {HIGHLIGHTS.map((f) => (
               <div key={f.tag} className={`${railItem} flex flex-col overflow-hidden rounded-[28px] bg-white`}>
-                <div className="flex flex-col gap-2.5 px-10 pb-6 pt-10">
+                <div className="flex flex-col gap-2 px-6 pb-4 pt-6 md:px-8 md:pt-8">
                   <div className="text-sm font-semibold" style={{ color: f.color }}>{f.tag}</div>
-                  <div className="text-balance text-[28px] font-bold leading-[1.14] tracking-[-0.025em]">{f.title}</div>
+                  <div className="text-balance text-[24px] font-bold leading-[1.14] tracking-[-0.025em]">{f.title}</div>
                   <div className="text-[#6E6E73]">{f.body}</div>
                 </div>
-                <div className="min-h-[260px] flex-1"><Slot src={f.slot} label={f.alt} /></div>
-              </div>
-            ))}
-            {[
-              { tag: "Legislation", color: "#34C759", title: "Every Act, with its status.", body: "The Constitution and Acts of Parliament, marked in force, amended or repealed, with original and current text." },
-              { tag: "Articles", color: "#FF9F0A", title: "Plain-English explainers.", body: "Short pieces on the questions Ghanaian law students actually ask, linked to the cases and notes behind them." },
-              { tag: "Hot Topics", color: "#FF2D55", title: "A podcast on the law in the news.", body: "Each episode links back to the cases, Acts and notes you can study next." },
-              { tag: "Exam Prep", color: "#34C759", title: "Past questions, expertly marked.", body: "Answer timed questions and get written feedback from an expert marker." },
-              { tag: "My Files", color: "#5E5CE6", title: "Your own materials, in one place.", body: "Keep lecture slides and your own notes next to the library." },
-              { tag: "Leaderboard", color: "#FF9500", title: "Study streaks, with company.", body: "See how you rank against coursemates and keep the habit going." },
-            ].map((f) => (
-              <div key={f.tag} className={`${railItem} flex flex-col gap-2 rounded-[28px] bg-white p-8`}>
-                <div className="text-sm font-semibold" style={{ color: f.color }}>{f.tag}</div>
-                <div className="text-balance text-[22px] font-bold leading-[1.15] tracking-[-0.02em]">{f.title}</div>
-                <div className="text-[#6E6E73]">{f.body}</div>
+                {f.slot && <div className="mt-auto h-[170px] shrink-0 md:h-[200px]"><Slot src={f.slot} label={f.alt ?? f.tag} /></div>}
               </div>
             ))}
           </div>
@@ -215,7 +201,7 @@ export default function Landing() {
               <button key={k} onClick={() => setBilling(k)} className={`h-[34px] rounded-full border-0 px-5 text-sm font-medium text-[#1D1D1F] ${billing === k ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)]" : "bg-transparent"}`}>{l}</button>
             ))}
           </div>
-          <div className={`${rail} w-[calc(100%+44px)] max-w-none md:w-full md:grid-cols-[repeat(auto-fit,minmax(min(280px,100%),1fr))]`}>
+          <div className={`${rail} w-[calc(100%+44px)] max-w-none md:w-full md:grid-cols-3`}>
             <Tier name="Attorney" price="Free" blurb="Try NotifiedLaw with starter content." items={["First 2 topics of every course", "Starter flashcard decks"]} cta="Start free" ctaCls="border border-[#0071E3] text-[#0071E3]! hover:text-[#0071E3]! hover:bg-[#0071E3]/5" />
             <Tier name="Senior Judicial" color="#0071E3" price={p.pro} per={p.per} blurb="The full library, with AI to help it stick." items={["All topics, at every level", "AI summaries for every note", "Unlimited AI flashcards"]} cta="Choose Pro" ctaCls="bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]" />
             <Tier dark name="Supreme Justice" color="#BF5AF2" badge="Most complete" price={p.max} per={p.per} blurb="Everything, plus AI that listens, talks and tutors." items={["Everything in Senior Judicial", "AI podcast of any note", "Personal AI tutor, unlimited", "Exam mode with expert marking"]} cta="Choose Max" ctaCls="bg-[#F5F5F7] text-[#1D1D1F]! hover:text-[#1D1D1F]! hover:bg-white" />
