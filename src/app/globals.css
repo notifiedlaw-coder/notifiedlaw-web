@@ -169,10 +169,11 @@ img {
   .scroll-row > * { flex-shrink: 0; }
 }
 
-/* Text shimmer: a highlight band sweeps across the glyphs only. Used on the Max plan label. */
+/* Text shimmer: a soft highlight glides across the glyphs only. Used on the Max plan label.
+   Both ends of the sweep show plain ink, so the loop restarts invisibly. */
 @keyframes nl-shimmer {
-  from { background-position: 150% 0; }
-  to { background-position: -50% 0; }
+  0%, 12% { background-position: 100% 0; }
+  88%, 100% { background-position: 0% 0; }
 }
 .nl-shimmer {
   color: var(--ink);
@@ -180,16 +181,21 @@ img {
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
   .nl-shimmer {
     background-color: transparent;
-    background-image: linear-gradient(110deg, var(--ink) 35%, var(--shimmer-hi, #fff) 50%, var(--ink) 65%);
-    background-size: 250% 100%;
+    background-image: linear-gradient(
+      105deg,
+      var(--ink) 38%,
+      var(--shimmer-hi) 50%,
+      var(--ink) 62%
+    );
+    background-size: 300% 100%;
     background-repeat: no-repeat;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: nl-shimmer 2.2s linear infinite;
+    animation: nl-shimmer 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 }
-:root { --shimmer-hi: #ff9500; }
+:root { --shimmer-hi: #8e8e93; }
 :root[data-theme="dark"] { --shimmer-hi: #fff; }
 @media (prefers-color-scheme: dark) { :root[data-theme="system"] { --shimmer-hi: #fff; } }
 @media (prefers-reduced-motion: reduce) {
