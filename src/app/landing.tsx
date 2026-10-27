@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 
-const SIGN_IN = "/welcome";
+const LOGIN = "/login";
+const SIGNUP = "/signup";
 const SUGGESTIONS = ["Quiz me on Tuffuor v A-G", "Outline an IRAC answer on negligence", "What is an allodial title?"];
 const PRICES = {
   month: { pro: "GH₵45", max: "GH₵85", per: "/ month" },
@@ -36,7 +37,7 @@ function Tier({ name, color, price, per, blurb, items, cta, dark, ctaCls, badge 
       <div className={`h-px ${dark ? "bg-white/20" : "bg-black/12"}`} />
       <div className="flex flex-col gap-2.5 text-[15px]">{items.map((i) => <div key={i}>{i}</div>)}</div>
       <div className="flex-1" />
-      <Link href={SIGN_IN} className={`${pill} ${ctaCls}`}>{cta}</Link>
+      <Link href={SIGNUP} className={`${pill} ${ctaCls}`}>{cta}</Link>
     </div>
   );
 }
@@ -57,8 +58,8 @@ export default function Landing() {
             {NAV.map(([l, h]) => <a key={h} href={h} className="rounded-[10px] px-3 py-[7px] text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]! hover:bg-black/5">{l}</a>)}
           </div>
           <div className="ml-auto flex items-center gap-1.5 md:ml-0">
-            <Link href={SIGN_IN} className="rounded-[10px] px-3 py-[7px] text-sm font-medium text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]! hover:bg-black/5">Sign in</Link>
-            <Link href={SIGN_IN} className="flex h-10 items-center rounded-full bg-[#0071E3] px-[18px] text-sm font-medium text-white! no-underline hover:text-white! hover:bg-[#0077ED]">Start free</Link>
+            <Link href={LOGIN} className="rounded-[10px] px-3 py-[7px] text-sm font-medium text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]! hover:bg-black/5">Sign in</Link>
+            <Link href={SIGNUP} className="flex h-10 items-center rounded-full bg-[#0071E3] px-[18px] text-sm font-medium text-white! no-underline hover:text-white! hover:bg-[#0077ED]">Start free</Link>
           </div>
         </div>
       </nav>
@@ -72,7 +73,7 @@ export default function Landing() {
         <h1 className="mt-2 max-w-[900px] text-balance text-[clamp(48px,9vw,96px)] font-bold leading-[1.02] tracking-[-0.045em]">The Law at Your Fingertips.</h1>
         <p className="mt-[18px] max-w-[640px] text-pretty text-[clamp(19px,2.2vw,24px)] font-medium leading-[1.35] text-[#6E6E73]">Notes, podcasts and exam prep for every law course, Level 100 to 300.</p>
         <div className="mt-[30px] flex flex-wrap items-center justify-center gap-6">
-          <Link href={SIGN_IN} className={`${pill} bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]`}>Start studying free</Link>
+          <Link href={SIGNUP} className={`${pill} bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]`}>Start studying free</Link>
           <a href="#pricing" className={link}>See plans ›</a>
         </div>
         <div className="mt-14 aspect-[16/10] w-full max-w-[1080px] overflow-hidden rounded-t-[22px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.1),0_30px_80px_rgba(0,0,0,0.14)]">
@@ -189,7 +190,7 @@ export default function Landing() {
           <h2 className="m-0 text-balance text-[clamp(40px,6vw,72px)] font-bold leading-[1.04] tracking-[-0.045em]">Your LLB starts here.</h2>
           <p className="m-0 text-[21px] text-[#6E6E73]">On Mac, iPhone, Android and the web.</p>
           <div className="mt-3 flex flex-wrap items-center justify-center gap-6">
-            <Link href={SIGN_IN} className={`${pill} bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]`}>Start studying free</Link>
+            <Link href={SIGNUP} className={`${pill} bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]`}>Start studying free</Link>
             <a href="#features" className={link}>Learn more ›</a>
           </div>
         </div>

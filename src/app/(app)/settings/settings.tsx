@@ -42,7 +42,7 @@ export function Settings() {
       <Group title="Demo">
         <Row label="Preview as plan"><Segmented options={["Free", "Pro", "Pro Max"] as readonly Plan[]} value={plan} onChange={setPlan} /></Row>
       </Group>
-      <Link href="/welcome" className="rounded-xl bg-surface py-3 text-center text-sm font-medium text-red shadow-card" style={{ textDecoration: "none", color: "#FF3B30" }}>Sign Out</Link>
+      <Link href="/" className="rounded-xl bg-surface py-3 text-center text-sm font-medium text-red shadow-card" style={{ textDecoration: "none", color: "#FF3B30" }}>Sign Out</Link>
     </Page>
   );
 }
