@@ -1,7 +1,7 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { Files } from "./files";
 
 export const metadata = { title: "My Files" };
 
 export default function Page() {
-  return <ScreenStub title="My Files" source="16 My Files" />;
+  return <Files />;
 }

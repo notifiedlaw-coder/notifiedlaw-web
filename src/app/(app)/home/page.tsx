@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { ShowIfFree, ShowUnlessMax } from "@/components/plan";
 import { abbr, COURSES, DEMO_USER, QUOTE } from "@/lib/data";
 
 export const metadata = { title: "Home" };
@@ -22,17 +23,17 @@ const Eyebrow = ({
 export default function Home() {
   const courses = COURSES[DEMO_USER.level];
   return (
-    <div className="mx-auto flex max-w-[1080px] flex-col gap-7 px-5 pb-12 pt-6 lg:px-10 lg:pt-9">
-      <div className="flex flex-col gap-3.5 pb-2 pt-2 lg:pt-5">
-        <h1 className="text-balance max-w-[900px] text-[44px] font-bold leading-[0.98] tracking-[-0.05em] sm:text-7xl lg:text-[84px]">
+    <div className="mx-auto flex max-w-[1080px] flex-col gap-7 px-5 pb-12 pt-6 md:px-10 md:pt-9">
+      <div className="flex flex-col gap-3.5 pb-2 pt-2 md:pt-5">
+        <h1 className="text-balance max-w-[900px] text-[44px] font-bold leading-[0.98] tracking-[-0.05em] sm:text-7xl md:text-[84px]">
           The Law at Your Fingertips.
         </h1>
-        <p className="text-pretty max-w-[620px] text-lg font-medium leading-snug tracking-[-0.01em] text-muted lg:text-[21px]">
-          Notes, podcasts and exam prep for every law course, Level 100 to 300.
+        <p className="text-pretty max-w-[620px] text-lg font-medium leading-snug tracking-[-0.01em] text-muted md:text-[21px]">
+          Notes, podcasts and exam prep for every law course, from Level 100 to the Bar Course.
         </p>
       </div>
 
-      <section className="flex flex-col gap-2.5 rounded-2xl bg-white px-6 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_0.5px_rgba(0,0,0,0.06)]">
+      <section className="flex flex-col gap-2.5 rounded-2xl bg-surface px-6 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_0.5px_rgba(0,0,0,0.06)]">
         <Eyebrow color="#ff9f0a">Quote of the day</Eyebrow>
         <p className="text-pretty text-xl font-medium leading-snug tracking-[-0.01em]">
           {QUOTE.text}
@@ -51,7 +52,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <div className="grid gap-5 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <section className="relative flex min-h-60 flex-col gap-[18px] overflow-hidden rounded-2xl bg-ink-dark p-7 text-white">
           <div
             className="absolute inset-0 bg-cover bg-center"
@@ -85,7 +86,7 @@ export default function Home() {
           <div className="relative flex flex-wrap gap-2.5">
             <Link
               href="/library/law-201/1"
-              className="flex h-9 items-center rounded-full bg-white px-[18px] text-sm font-semibold"
+              className="flex h-9 items-center rounded-full bg-[#fff] px-[18px] text-sm font-semibold"
               style={{ color: "#1d1d1f", textDecoration: "none" }}
             >
               Resume
@@ -97,7 +98,7 @@ export default function Home() {
             >
               <Icon name="headphones" size={14} />
               Listen as podcast · 18 min
-              {DEMO_USER.plan !== "Pro Max" && <Icon name="lock" size={12} />}
+              <ShowUnlessMax><Icon name="lock" size={12} /></ShowUnlessMax>
             </Link>
           </div>
         </section>
@@ -105,7 +106,7 @@ export default function Home() {
         <div className="flex flex-col gap-5">
           <Link
             href="/flashcards"
-            className="flex flex-1 flex-col gap-1.5 rounded-2xl bg-white p-5 shadow-card transition-shadow hover:shadow-card-hover"
+            className="flex flex-1 flex-col gap-1.5 rounded-2xl bg-surface p-5 shadow-card transition-shadow hover:shadow-card-hover"
             style={{ textDecoration: "none", color: "inherit" }}
           >
             <Eyebrow color="#af52de">Flashcards</Eyebrow>
@@ -118,16 +119,16 @@ export default function Home() {
           </Link>
           <Link
             href="/ai"
-            className="flex flex-1 flex-col gap-2.5 rounded-2xl bg-white p-5 shadow-card transition-shadow hover:shadow-card-hover"
+            className="flex flex-1 flex-col gap-2.5 rounded-2xl bg-surface p-5 shadow-card transition-shadow hover:shadow-card-hover"
             style={{ textDecoration: "none", color: "inherit" }}
           >
             <div className="flex items-center gap-1.5">
               <Eyebrow color="#5856d6">Notified AI</Eyebrow>
-              {DEMO_USER.plan !== "Pro Max" && (
+              <ShowIfFree>
                 <span className="rounded bg-indigo/10 px-1.5 py-0.5 text-[10px] font-semibold text-indigo">
-                  SUPREME JUSTICE
+                  NOTIFY CREDITS
                 </span>
-              )}
+              </ShowIfFree>
             </div>
             <div className="flex h-[38px] items-center rounded-[10px] bg-fill px-3.5 text-sm text-muted">
               Ask about any case, article or statute…
@@ -138,6 +139,21 @@ export default function Home() {
           </Link>
         </div>
       </div>
+
+      <Link
+        href="/hot-topics"
+        className="flex items-center gap-4 rounded-2xl bg-surface p-5 shadow-card transition-shadow hover:shadow-card-hover"
+        style={{ textDecoration: "none", color: "inherit" }}
+      >
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-amber text-white">
+          <Icon name="headphones" size={22} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <Eyebrow color="#ff9f0a">Hot Topics Podcast</Eyebrow>
+          <div className="truncate text-lg font-bold">Passport withheld? Where do you actually sue?</div>
+          <div className="text-[13px] text-muted">The latest in Accra, with cases and articles from our site · 17 min</div>
+        </div>
+      </Link>
 
       <section className="flex flex-col gap-3.5">
         <div className="flex items-baseline justify-between">
@@ -151,7 +167,7 @@ export default function Home() {
             <Link
               key={c.slug}
               href={`/library/${c.slug}`}
-              className="flex flex-col gap-3.5 overflow-hidden rounded-[14px] bg-white px-[18px] pb-[18px] shadow-card transition-shadow hover:shadow-card-hover"
+              className="flex flex-col gap-3.5 overflow-hidden rounded-[14px] bg-surface px-[18px] pb-[18px] shadow-card transition-shadow hover:shadow-card-hover"
               style={{ textDecoration: "none", color: "inherit" }}
             >
               <div
@@ -161,7 +177,7 @@ export default function Home() {
                 }}
               />
               <div
-                className="relative -mt-9 flex size-11 items-center justify-center rounded-xl border-[3px] border-white text-[15px] font-bold text-white"
+                className="relative -mt-9 flex size-11 items-center justify-center rounded-xl border-[3px] border-surface text-[15px] font-bold text-white"
                 style={{ background: c.color }}
               >
                 {abbr(c.code)}

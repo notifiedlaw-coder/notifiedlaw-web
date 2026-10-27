@@ -1,7 +1,12 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { Suspense } from "react";
+import { Plans } from "./plans";
 
 export const metadata = { title: "Plans" };
 
 export default function Page() {
-  return <ScreenStub title="Plans" source="06 Plans / M09 / M11 Paywall" />;
+  return (
+    <Suspense>
+      <Plans />
+    </Suspense>
+  );
 }

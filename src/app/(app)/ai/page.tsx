@@ -1,7 +1,7 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { AiChat } from "./ai-chat";
 
 export const metadata = { title: "Notified AI" };
 
 export default function Page() {
-  return <ScreenStub title="Notified AI" source="05 Notified AI / M06" />;
+  return <AiChat />;
 }

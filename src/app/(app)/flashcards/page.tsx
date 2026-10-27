@@ -1,7 +1,7 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { Flashcards } from "./flashcards";
 
 export const metadata = { title: "Flashcards" };
 
 export default function Page() {
-  return <ScreenStub title="Flashcards" source="04 Flashcards" />;
+  return <Flashcards />;
 }

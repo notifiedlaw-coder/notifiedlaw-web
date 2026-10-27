@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Keep the dev badge off the sidebar's user card.
+  devIndicators: { position: "bottom-right" },
   turbopack: {
     rules: {
       "*.css": {

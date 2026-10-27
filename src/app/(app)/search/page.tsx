@@ -1,7 +1,7 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { Search } from "./search";
 
 export const metadata = { title: "Search" };
 
 export default function Page() {
-  return <ScreenStub title="Search" source="10 Search / M07" />;
+  return <Search />;
 }

@@ -1,7 +1,12 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { Suspense } from "react";
+import { Checkout } from "./checkout";
 
 export const metadata = { title: "Checkout" };
 
 export default function Page() {
-  return <ScreenStub title="Checkout" source="11 Checkout / M10" />;
+  return (
+    <Suspense>
+      <Checkout />
+    </Suspense>
+  );
 }

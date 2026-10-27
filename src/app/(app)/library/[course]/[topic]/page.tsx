@@ -1,7 +1,11 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { notFound } from "next/navigation";
+import { findCourse } from "@/lib/data";
+import { Reader } from "./reader";
 
-export const metadata = { title: "Reader" };
-
-export default function Page() {
-  return <ScreenStub title="Reader" source="03 Reader / M04 (chapters, quiz gate, AI summary, podcast)" />;
+export default async function TopicPage({ params }: { params: Promise<{ course: string; topic: string }> }) {
+  const { course: slug, topic } = await params;
+  const hit = findCourse(slug);
+  const n = Number(topic);
+  if (!hit || !Number.isInteger(n) || n < 1 || n > hit.course.topics.length) notFound();
+  return <Reader course={hit.course.title} code={hit.course.code} n={n} title={hit.course.topics[n - 1]} />;
 }

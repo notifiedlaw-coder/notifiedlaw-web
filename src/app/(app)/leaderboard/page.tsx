@@ -1,7 +1,7 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { Leaderboard } from "./leaderboard";
 
 export const metadata = { title: "Leaderboard" };
 
 export default function Page() {
-  return <ScreenStub title="Leaderboard" source="09 Leaderboard" />;
+  return <Leaderboard />;
 }

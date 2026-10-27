@@ -1,7 +1,7 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { Onboarding } from "./onboarding";
 
-export const metadata = { title: "Onboarding" };
+export const metadata = { title: "Welcome" };
 
 export default function Page() {
-  return <ScreenStub title="Onboarding" source="00b Onboarding / M00b" />;
+  return <Onboarding />;
 }

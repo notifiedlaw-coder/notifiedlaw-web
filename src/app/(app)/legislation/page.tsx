@@ -1,7 +1,6 @@
-import { ScreenStub } from "@/components/screen-stub";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Legislation" };
-
+// Legislation is browsed from the Case Law screen (Legislation tab).
 export default function Page() {
-  return <ScreenStub title="Legislation" source="15 Legislation" />;
+  redirect("/case-law");
 }

@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation";
+import Landing from "./landing";
 
-// Signed-out visitors land on the welcome screen; auth gating comes later.
+export const metadata = { title: { absolute: "NotifiedLaw — The Law at Your Fingertips" } };
+
 export default function Root() {
-  redirect("/welcome");
+  return <Landing />;
 }
