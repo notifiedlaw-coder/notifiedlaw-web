@@ -229,8 +229,8 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
         className="flex h-6 shrink-0 items-center whitespace-nowrap rounded-xl bg-fill px-2.5 text-xs font-semibold min-[1440px]:h-7 min-[1440px]:text-[13px] min-[1920px]:h-8 min-[1920px]:px-3.5 min-[1920px]:text-sm min-[2560px]:h-9 min-[2560px]:text-[15px]"
         style={{ textDecoration: "none", color: "inherit" }}
       >
-        <span className={`md:hidden${plan === "Pro Max" ? " nl-shimmer" : ""}`}>{PLAN_NAMES[plan].replace(/^.*\((.*)\)$/, "$1")}</span>
-        <span className={`hidden md:inline${plan === "Pro Max" ? " nl-shimmer" : ""}`}>{PLAN_NAMES[plan]}</span>
+        <span className="md:hidden"><span className={plan === "Pro Max" ? "nl-shimmer" : undefined}>{PLAN_NAMES[plan].replace(/^.*\((.*)\)$/, "$1")}</span></span>
+        <span className="hidden md:inline"><span className={plan === "Pro Max" ? "nl-shimmer" : undefined}>{PLAN_NAMES[plan]}</span></span>
       </Link>
       {plan !== "Pro Max" && (
         <Link
