@@ -3,7 +3,7 @@ export const SITE = {
   url: "https://notifiedlaw.com",
   tagline: "The Law at Your Fingertips",
   description:
-    "Notes, podcasts, flashcards and IRAC exam prep for every Ghanaian law course, from Level 100 to the Bar Course.",
+    "Notes, podcasts, flashcards and expertly marked exam prep for every Ghanaian law course, from Level 100 to the Bar Course.",
   locale: "en_GH",
   ogImage: "/landing/hero.jpg",
 } as const;
@@ -19,7 +19,7 @@ export const PRIVATE_PATHS = [
 export const FAQ = [
   {
     q: "What is NotifiedLaw?",
-    a: "NotifiedLaw is a study platform for Ghanaian law students. It offers course notes, case law briefs, statutes, AI flashcards, podcasts and IRAC exam practice for every law course from Level 100 to the Bar Course.",
+    a: "NotifiedLaw is a study platform for Ghanaian law students. It offers course notes, case law briefs, statutes, AI flashcards, a Hot Topics podcast and expertly marked exam practice for every law course from Level 100 to the Bar Course.",
   },
   {
     q: "Which courses and levels does NotifiedLaw cover?",
@@ -42,7 +42,7 @@ export const FAQ = [
     a: "Yes. Law students who sign up with a university email get a 7-day Supreme Justice trial.",
   },
   {
-    q: "How does IRAC exam prep work?",
-    a: "You answer timed past questions and receive feedback on your Issue, Rule, Application and Conclusion before an examiner sees your work.",
+    q: "How does exam marking work?",
+    a: "You answer timed past questions and receive expert marking with written feedback before your real examiner sees your work.",
   },
 ] as const;

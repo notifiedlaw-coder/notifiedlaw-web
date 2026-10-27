@@ -11,7 +11,7 @@ export function GET() {
     "",
     `> ${SITE.description} Based in Accra, Ghana.`,
     "",
-    "NotifiedLaw helps Ghanaian LLB students study. Content covers the 1992 Constitution, Acts of Parliament, Supreme Court decisions and course notes, with IRAC-style exam practice and an AI tutor (Notified AI).",
+    "NotifiedLaw helps Ghanaian LLB students study. Content covers the 1992 Constitution, Acts of Parliament, Supreme Court decisions and course notes, with expertly marked exam practice and an AI tutor (Notified AI).",
     "",
     "## Key pages",
     `- [Home](${abs("/")}): product overview, features and pricing`,

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   applicationName: SITE.name,
   keywords: [
     "Ghana law", "LLB Ghana", "law notes Ghana", "Ghana case law", "Ghana statutes",
-    "Bar Course Ghana", "law exam prep", "IRAC", "law flashcards", "Notified AI",
+    "Bar Course Ghana", "law exam prep", "Hot Topics podcast", "law flashcards", "Notified AI",
   ],
   alternates: { canonical: "/" },
   openGraph: {
