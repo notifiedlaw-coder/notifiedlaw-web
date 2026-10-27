@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Btn, Eyebrow } from "@/components/ui";
-import { COURSES, abbr, findCourse, LEVEL_LABEL, LEVELS } from "@/lib/data";
+import { COURSES, abbr, findCourse, isMaxLevel, LEVEL_LABEL, LEVELS } from "@/lib/data";
 import { CourseTopics } from "./course-topics";
 
 export function generateStaticParams() {
@@ -42,7 +42,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
           <Btn href="/exam-prep" tone="plain">Practice questions</Btn>
         </div>
         <Eyebrow>Topics</Eyebrow>
-        <CourseTopics slug={course.slug} topics={course.topics} color={course.color} />
+        <CourseTopics slug={course.slug} topics={course.topics} color={course.color} maxOnly={isMaxLevel(level)} />
       </div>
       <aside className="flex flex-col gap-4">
         <div className="overflow-hidden rounded-2xl bg-surface shadow-card">

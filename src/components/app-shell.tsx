@@ -189,11 +189,11 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
   const deep = parts.length > 1;
   const atHome = path === "/home";
   return (
-    <header className="flex h-[52px] shrink-0 items-center gap-3 border-b border-edge/10 bg-surface/90 px-4 backdrop-blur md:px-5">
+    <header className="flex h-[52px] shrink-0 items-center gap-3 border-b border-edge/10 bg-surface/90 px-4 backdrop-blur md:px-5 min-[1440px]:h-14 min-[1440px]:gap-3.5 min-[1440px]:px-6 min-[1920px]:h-16 min-[1920px]:gap-4 min-[1920px]:px-8 min-[2560px]:h-[72px] min-[2560px]:px-10">
       {deep && (
         <Link
           href={"/" + parts.slice(0, -1).join("/")}
-          className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-md text-blue hover:bg-edge/5 md:size-7 md:text-muted"
+          className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-md text-blue hover:bg-edge/5 md:hidden"
           aria-label="Back"
         >
           <Icon name="back" size={18} />
@@ -202,22 +202,22 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
       {!atHome && (
         <Link
           href="/home"
-          className={`${deep ? "" : "-ml-2 "}flex size-9 shrink-0 items-center justify-center rounded-md text-blue hover:bg-edge/5 md:size-7 md:text-muted`}
+          className={`${deep ? "" : "-ml-2 "}flex size-9 shrink-0 items-center justify-center rounded-md text-blue hover:bg-edge/5 md:hidden`}
           aria-label="Home"
         >
           <Icon name="home" size={18} />
         </Link>
       )}
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-[15px] font-semibold">{title}</span>
-        {sub && <span className="truncate text-[11px] text-muted">{sub}</span>}
+        <span className="truncate text-[15px] font-semibold min-[1440px]:text-[17px] min-[1920px]:text-[20px] min-[2560px]:text-[22px]">{title}</span>
+        {sub && <span className="truncate text-[11px] text-muted min-[1440px]:text-xs min-[1920px]:text-[13px] min-[2560px]:text-sm">{sub}</span>}
       </div>
       <div className="flex-1" />
       <div className="hidden sm:block"><ThemeToggle /></div>
       <Link
         href="/plans#credits"
         title={`${CREDIT_NAME}: buy more`}
-        className="hidden h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-xl bg-fill px-2.5 text-xs font-semibold tabular-nums sm:flex"
+        className="hidden h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-xl bg-fill px-2.5 text-xs font-semibold tabular-nums sm:flex min-[1440px]:h-7 min-[1440px]:text-[13px] min-[1920px]:h-8 min-[1920px]:px-3.5 min-[1920px]:text-sm min-[2560px]:h-9 min-[2560px]:text-[15px]"
         style={{ textDecoration: "none", color: "inherit" }}
       >
         <Icon name="sparkle" size={11} />
@@ -226,7 +226,7 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
       <Link
         href="/plans"
         title="Plans"
-        className="flex h-6 shrink-0 items-center whitespace-nowrap rounded-xl bg-fill px-2.5 text-xs font-semibold"
+        className="flex h-6 shrink-0 items-center whitespace-nowrap rounded-xl bg-fill px-2.5 text-xs font-semibold min-[1440px]:h-7 min-[1440px]:text-[13px] min-[1920px]:h-8 min-[1920px]:px-3.5 min-[1920px]:text-sm min-[2560px]:h-9 min-[2560px]:text-[15px]"
         style={{ textDecoration: "none", color: "inherit" }}
       >
         <span className="sm:hidden">{PLAN_NAMES[plan].replace(/^.*\((.*)\)$/, "$1")}</span>
@@ -235,7 +235,7 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
       {plan !== "Pro Max" && (
         <Link
           href="/plans"
-          className="hidden h-7 items-center rounded-[7px] bg-blue px-3.5 text-[13px] font-medium sm:flex"
+          className="hidden h-7 items-center rounded-[7px] bg-blue px-3.5 text-[13px] font-medium sm:flex min-[1440px]:h-8 min-[1440px]:text-sm min-[1920px]:h-9 min-[1920px]:px-4 min-[1920px]:text-[15px] min-[2560px]:h-10 min-[2560px]:text-base"
           style={{ textDecoration: "none", color: "#fff" }}
         >
           Upgrade
@@ -261,7 +261,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar path={path} />
       <main className="relative flex min-w-0 flex-1 flex-col">
         <Toolbar path={path} onMenu={() => setMenu(true)} />
-        <div className="min-h-0 flex-1 overflow-auto bg-canvas">
+        <div className="nl-content min-h-0 flex-1 overflow-auto bg-canvas">
           {children}
         </div>
       </main>

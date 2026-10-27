@@ -88,6 +88,9 @@ export const COURSES: Record<Level, Course[]> = {
 
 export const LEVELS: Level[] = ["100", "200", "300", "400", "pre-bar", "bar"];
 
+/** Pre-Bar and the Bar Course are included only with Supreme Justice (Max). */
+export const isMaxLevel = (l: Level) => l === "pre-bar" || l === "bar";
+
 export function findCourse(slug: string) {
   for (const level of LEVELS) {
     const course = COURSES[level].find((x) => x.slug === slug);

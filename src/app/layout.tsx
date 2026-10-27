@@ -43,7 +43,7 @@ const siteSchema = [
     "@id": abs("/#org"),
     name: SITE.name,
     url: SITE.url,
-    logo: abs("/favicon.ico"),
+    logo: abs("/icon.svg"),
     description: SITE.description,
     address: { "@type": "PostalAddress", addressLocality: "Accra", addressCountry: "GH" },
   },

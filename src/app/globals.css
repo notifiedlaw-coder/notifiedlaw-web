@@ -151,10 +151,10 @@ img {
 }
 
 
-@keyframes nl-drawer-in {
-  from { transform: translateX(-100%); }
-  to { transform: none; }
-}
+/* Desktop content scales with the screen, matching the sidebar and toolbar steps. */
+@media (min-width: 1440px) { .nl-content { zoom: 1.1; } }
+@media (min-width: 1920px) { .nl-content { zoom: 1.25; } }
+@media (min-width: 2560px) { .nl-content { zoom: 1.5; } }
 
 /* Phones: a chip row becomes one swipeable line that bleeds to the screen edge, instead of wrapping into stacks. */
 @media (max-width: 639px) {

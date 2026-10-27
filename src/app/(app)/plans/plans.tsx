@@ -9,8 +9,8 @@ import { CREDIT_NAME, PLAN_CREDITS, PLAN_NAMES, type Plan } from "@/lib/data";
 
 const TIERS: { plan: Plan; blurb: string; feats: [boolean, string][]; badge?: string }[] = [
   { plan: "Free", blurb: "Try NotifiedLaw with starter content.", feats: [[true, "First 2 topics of every course"], [true, "Starter flashcard decks"], [false, `No ${CREDIT_NAME}`]] },
-  { plan: "Pro", blurb: "The full library, with AI to help it stick.", feats: [[true, "Every level, Pre-Bar and Bar Course"], [true, "AI Summaries for every note"], [true, "Unlimited AI flashcards"], [false, "AI podcasts"]] },
-  { plan: "Pro Max", badge: "MOST COMPLETE", blurb: "Everything, plus AI that listens, talks and tutors.", feats: [[true, "Everything in Senior Judicial (Pro)"], [true, "AI podcast of any note"], [true, "Personal AI tutor"], [true, "Exam mode with IRAC feedback"]] },
+  { plan: "Pro", blurb: "The full library, with AI to help it stick.", feats: [[true, "Every level, 100 to 400"], [true, "AI Summaries for every note"], [true, "Unlimited AI flashcards"], [false, "Pre-Bar and Bar Course"], [false, "AI podcasts"]] },
+  { plan: "Pro Max", badge: "MOST COMPLETE", blurb: "Everything, plus AI that listens, talks and tutors.", feats: [[true, "Everything in Senior Judicial (Pro)"], [true, "Pre-Bar and Bar Course"], [true, "AI podcast of any note"], [true, "Personal AI tutor"], [true, "Exam mode with IRAC feedback"]] },
 ];
 
 export function Plans() {
@@ -51,6 +51,7 @@ export function Plans() {
           );
         })}
       </div>
+      <p className="w-full rounded-xl bg-fill px-4 py-3 text-left text-[13px] text-ink/80"><b>Pre-Bar and Bar Course are Supreme Justice (Max) only.</b> Senior Judicial (Pro) covers Levels 100 to 400.</p>
       <section id="credits" className="flex w-full scroll-mt-6 flex-col gap-3 text-left">
         <div className="text-center">
           <h2 className="text-2xl font-bold tracking-[-0.01em]">Need more {CREDIT_NAME}?</h2>

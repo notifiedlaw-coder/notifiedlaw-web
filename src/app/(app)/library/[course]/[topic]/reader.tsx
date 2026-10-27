@@ -10,7 +10,7 @@ import { CHAPTERS, PODCAST_CAPTIONS } from "@/lib/content";
 const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
 const SPEEDS = [1, 1.25, 1.5, 2];
 
-export function Reader({ course, code, n, title }: { course: string; code: string; n: number; title: string }) {
+export function Reader({ course, code, n, title, maxOnly = false }: { course: string; code: string; n: number; title: string; maxOnly?: boolean }) {
   const { pro, max } = usePlan();
   const [cur, setCur] = useState(0);
   const [done, setDone] = useState(0);
@@ -48,6 +48,7 @@ export function Reader({ course, code, n, title }: { course: string; code: strin
 
   return (
     <div className="relative flex h-[calc(100dvh-52px)]">
+      {maxOnly && !max && <Gate title="Pre-Bar and Bar Course come with Supreme Justice (Max)" body="Upgrade to read every note and use the full set of AI tools." cta="Unlock with Supreme Justice (Max)" color="#AF52DE" />}
       <div className="flex min-w-0 flex-1 flex-col">
         <div ref={scroller} className="flex-1 overflow-auto bg-surface">
           <article className="mx-auto max-w-[720px] px-5 py-8 md:px-8 md:py-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>
