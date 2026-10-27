@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { FAQ } from "@/lib/site";
 
 const LOGIN = "/login";
 const SIGNUP = "/signup";
@@ -181,6 +182,23 @@ export default function Landing() {
             <Tier name="Attorney" price="Free" blurb="Try NotifiedLaw with starter content." items={["First 2 topics of every course", "Starter flashcard decks"]} cta="Start free" ctaCls="border border-[#0071E3] text-[#0071E3]! hover:text-[#0071E3]! hover:bg-[#0071E3]/5" />
             <Tier name="Senior Judicial" color="#0071E3" price={p.pro} per={p.per} blurb="The full library, with AI to help it stick." items={["All topics, Levels 100–300", "AI summaries for every note", "Unlimited AI flashcards"]} cta="Choose Pro" ctaCls="bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]" />
             <Tier dark name="Supreme Justice" color="#BF5AF2" badge="Most complete" price={p.max} per={p.per} blurb="Everything, plus AI that listens, talks and tutors." items={["Everything in Senior Judicial", "AI podcast of any note", "Personal AI tutor, unlimited", "Exam mode with IRAC feedback"]} cta="Choose Max" ctaCls="bg-[#F5F5F7] text-[#1D1D1F]! hover:text-[#1D1D1F]! hover:bg-white" />
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" className="bg-white px-[22px] py-[120px]">
+        <div className="mx-auto flex max-w-[760px] flex-col gap-9">
+          <h2 className={h2}>Questions, answered.</h2>
+          <div className="flex flex-col">
+            {FAQ.map((f) => (
+              <details key={f.q} className="group border-t-[0.5px] border-black/15 py-5 last:border-b-[0.5px]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[19px] font-semibold">
+                  {f.q}
+                  <span className="text-[#6E6E73] transition-transform group-open:rotate-45" aria-hidden>+</span>
+                </summary>
+                <p className="m-0 mt-3 text-[#6E6E73]">{f.a}</p>
+              </details>
+            ))}
           </div>
         </div>
       </section>

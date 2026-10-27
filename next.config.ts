@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PRIVATE_PATHS } from "./src/lib/site";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -10,6 +11,12 @@ const nextConfig: NextConfig = {
       has: [{ type: "host", value: "www.notifiedlaw.com" }],
       destination: "https://notifiedlaw.com/:path*",
       permanent: true,
+    }];
+  },
+  async headers() {
+    return [{
+      source: `/:path(${PRIVATE_PATHS.map((p) => p.slice(1)).join("|")})/:rest*`,
+      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
     }];
   },
   turbopack: {

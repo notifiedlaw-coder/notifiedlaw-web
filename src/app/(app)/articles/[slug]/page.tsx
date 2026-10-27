@@ -1,18 +1,60 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Eyebrow, Page, cardCls } from "@/components/ui";
+import { JsonLd } from "@/components/json-ld";
 import { ARTICLES } from "@/lib/content";
+import { SITE, abs } from "@/lib/site";
 
 export function generateStaticParams() {
   return ARTICLES.map((a) => ({ slug: a.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const a = ARTICLES.find((x) => x.slug === slug);
+  if (!a) return {};
+  const url = `/articles/${a.slug}`;
+  return {
+    title: a.title,
+    description: a.summary,
+    alternates: { canonical: url },
+    openGraph: { type: "article", url, title: a.title, description: a.summary, publishedTime: new Date(a.date).toISOString(), section: a.area },
+  };
 }
 
 export default async function Page_({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const a = ARTICLES.find((x) => x.slug === slug);
   if (!a) notFound();
+  const url = abs(`/articles/${a.slug}`);
   return (
     <Page max={720}>
+      <JsonLd data={[
+        {
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: a.title,
+          description: a.summary,
+          articleSection: a.area,
+          datePublished: new Date(a.date).toISOString(),
+          dateModified: new Date(a.date).toISOString(),
+          inLanguage: "en-GH",
+          mainEntityOfPage: url,
+          image: abs(SITE.ogImage),
+          wordCount: a.body.join(" ").split(/\s+/).length,
+          author: { "@type": "Organization", name: "NotifiedLaw Editorial", url: SITE.url },
+          publisher: { "@id": abs("/#org") },
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: SITE.url },
+            { "@type": "ListItem", position: 2, name: "Articles", item: abs("/articles") },
+            { "@type": "ListItem", position: 3, name: a.title, item: url },
+          ],
+        },
+      ]} />
       <div>
         <Eyebrow color="#ff9f0a">{a.area}</Eyebrow>
         <h1 className="text-balance mt-1.5 text-[30px] font-bold leading-tight tracking-[-0.02em] md:text-4xl">{a.title}</h1>
