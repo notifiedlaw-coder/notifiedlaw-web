@@ -50,18 +50,18 @@ export default async function Home() {
                   <h3 className="m-0 text-[17px] font-semibold tracking-[-0.01em]">{sem.label}</h3>
                   <span className="text-[13px] text-muted">{sem.courses.length} {sem.courses.length === 1 ? "course" : "courses"}</span>
                 </div>
-                {/* Phones: swipeable row that bleeds to the screen edge. sm+: grid. */}
-                <div className="-mx-5 flex snap-x snap-mandatory scroll-pl-5 gap-3.5 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4">
+                {/* Phones: a stacked list so every course is in view. sm+: grid. */}
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
                   {sem.courses.map((c) => (
                     <Link
                       key={c.slug}
                       href={`/library/${c.slug}`}
-                      className="flex w-[72%] shrink-0 snap-start items-center gap-3 rounded-2xl bg-surface p-4 shadow-card transition-shadow hover:shadow-card-hover sm:w-auto"
+                      className="flex min-h-[64px] items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 shadow-card transition-shadow hover:shadow-card-hover active:opacity-70 sm:p-4"
                       // The course colour as a light wash over the card, matching its title colour in the Library.
                       style={{ ...link, backgroundImage: `linear-gradient(${c.color}1f, ${c.color}0a)` }}
                     >
                       <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <div className="min-h-[38px] text-[15px] font-semibold leading-tight">{c.title}</div>
+                        <div className="text-[15px] font-semibold leading-tight sm:min-h-[38px]">{c.title}</div>
                         <div className="text-xs text-muted">{c.topics.length} topics · {c.topics.filter((t) => t.ready).length} available</div>
                       </div>
                       <Chevron />
