@@ -36,6 +36,7 @@ function SidebarLink({ item, path, onNavigate, roomy }: { item: NavItem; path: s
   return (
     <Link
       href={item.href}
+      aria-current={on ? "page" : undefined}
       onClick={intercept(item.href, onNavigate)}
       className={`flex items-center rounded-md ${
         roomy ? "h-[42px] gap-3 rounded-[10px] px-3 text-[16px] font-semibold" : "h-8 gap-2.5 rounded-lg px-2.5 text-[14px] min-[1440px]:h-9 min-[1440px]:text-[15px] min-[1920px]:h-10 min-[1920px]:gap-3 min-[1920px]:text-[16px] min-[2560px]:h-11 min-[2560px]:text-[17px]"
@@ -46,7 +47,7 @@ function SidebarLink({ item, path, onNavigate, roomy }: { item: NavItem; path: s
       <span className="flex-1" style={{ color: on ? "#fff" : "var(--ink)" }}>{item.label}</span>
       {item.badge && <span className="text-xs opacity-65">{item.badge}</span>}
       {item.proLock && !pro && (
-        <Icon name="lock" size={11} className="opacity-55" />
+        <><Icon name="lock" size={11} className="opacity-55" /><span className="sr-only">Locked</span></>
       )}
     </Link>
   );
@@ -116,7 +117,7 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
       <div className={`px-5 pb-3 pt-5 ${roomy ? "text-xl" : "text-[19px] min-[1920px]:text-[22px]"}`}>
         <Wordmark />
       </div>
-      <nav data-drawer-scroll className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-2.5">
+      <nav aria-label="Primary" data-drawer-scroll className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-2.5">
         <div className="h-1.5" />
         {NAV_TOP.map((i) => (
           <SidebarLink key={i.href} item={i} path={path} onNavigate={onNavigate} roomy={roomy} />
@@ -154,7 +155,7 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
 
 function Sidebar({ path }: { path: string }) {
   return (
-    <aside className="hidden w-[248px] shrink-0 flex-col min-[1440px]:w-[272px] min-[1920px]:w-[304px] min-[2560px]:w-[336px] border-r border-edge/10 bg-sidebar md:flex">
+    <aside aria-label="Sidebar" className="hidden w-[248px] shrink-0 flex-col min-[1440px]:w-[272px] min-[1920px]:w-[304px] min-[2560px]:w-[336px] border-r border-edge/10 bg-sidebar md:flex">
       <SidebarBody path={path} />
     </aside>
   );
@@ -230,6 +231,7 @@ function Drawer({ path, onClose }: { path: string; onClose: () => void }) {
     <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
       <button
         aria-label="Close menu"
+        tabIndex={-1}
         onClick={() => close()}
         className={`absolute inset-0 cursor-default touch-none border-0 bg-black/40 transition-opacity duration-[250ms] ease-out motion-reduce:transition-none ${shown ? "opacity-100" : "opacity-0"}`}
       />
@@ -268,7 +270,7 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
       {deep && (
         <Link
           href={"/" + parts.slice(0, -1).join("/")}
-          className="-ml-3 flex size-11 shrink-0 items-center justify-center text-blue active:opacity-50"
+          className="-ml-3 flex size-11 shrink-0 items-center justify-center text-link active:opacity-50"
           aria-label="Back"
         >
           <Icon name="back" size={20} />
@@ -300,12 +302,12 @@ export function AppShell({ me, children }: { me: Me | null; children: React.Reac
     <PlanProvider me={me}>
     <div className="flex h-dvh overflow-hidden bg-surface text-[13px]">
       <Sidebar path={path} />
-      <main className="relative flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col">
         <Toolbar path={path} onMenu={() => setMenu(true)} />
-        <div className="nl-content min-h-0 flex-1 overflow-auto bg-canvas">
+        <main id="main" tabIndex={-1} className="nl-content min-h-0 flex-1 overflow-auto bg-canvas">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
       {menu && <Drawer path={path} onClose={closeMenu} />}
     </div>
     </PlanProvider>

@@ -51,12 +51,12 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
           <Link href="/" aria-label="NotifiedLaw home" className="w-fit text-[17px] font-semibold" style={{ color: "#fff", textDecoration: "none" }}>Notified<span className="font-normal text-amber-soft">Law</span></Link>
           <h1 className="text-balance text-[26px] font-bold leading-[1.05] tracking-[-0.04em] sm:text-3xl md:text-6xl md:tracking-[-0.045em]">Ghanaian law, made learnable.</h1>
           <ul className="hidden flex-col gap-2 text-[15px] text-white/80 md:flex">
-            {BULLETS.map((b) => <li key={b} className="flex items-center gap-2.5"><span className="size-1.5 rounded-full bg-amber-soft" />{b}</li>)}
+            {BULLETS.map((b) => <li key={b} className="flex items-center gap-2.5"><span aria-hidden className="size-1.5 rounded-full bg-amber-soft" />{b}</li>)}
           </ul>
         </div>
       </div>
-      <div className="relative flex items-start justify-center bg-surface px-5 py-6 sm:px-6 md:items-center md:py-10">
-        <Link href="/" className="absolute right-5 top-5 hidden text-sm font-medium md:block" style={{ color: "var(--color-blue)", textDecoration: "none" }}>← Back to home</Link>
+      <main id="main" tabIndex={-1} className="relative flex items-start justify-center bg-surface px-5 py-6 sm:px-6 md:items-center md:py-10">
+        <Link href="/" className="absolute right-5 top-5 hidden text-sm font-medium md:block" style={{ color: "var(--color-link)", textDecoration: "none" }}>← Back to home</Link>
         <div className="flex w-full max-w-[360px] flex-col gap-3">
           <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">{login ? "Sign in to NotifiedLaw" : "Create your account"}</h2>
           <p className="text-sm text-muted">Use your student email to get 7 days of Supreme Justice (Max) free.</p>
@@ -66,11 +66,11 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
           </button>
           <p className="text-center text-sm text-muted">
             {login ? "New here? " : "Already have an account? "}
-            <Link href={login ? "/signup" : "/login"} style={{ color: "var(--color-blue)" }}>{login ? "Create an account" : "Sign in"}</Link>
+            <Link href={login ? "/signup" : "/login"} style={{ color: "var(--color-link)" }}>{login ? "Create an account" : "Sign in"}</Link>
           </p>
-          <p className="text-center text-xs text-muted">By continuing you agree to the <Link href="/terms-of-service" style={{ color: "var(--color-blue)" }}>Terms</Link> and <Link href="/privacy" style={{ color: "var(--color-blue)" }}>Privacy Policy</Link>.</p>
+          <p className="text-center text-xs text-muted">By continuing you agree to the <Link href="/terms-of-service" style={{ color: "var(--color-link)" }}>Terms</Link> and <Link href="/privacy" style={{ color: "var(--color-link)" }}>Privacy Policy</Link>.</p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

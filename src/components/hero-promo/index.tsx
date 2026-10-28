@@ -92,7 +92,8 @@ export function HeroPromo({ ready = true, audioSrc = AUDIO_SRC }: { ready?: bool
   };
 
   return (
-    <div ref={boxRef} className="absolute inset-0 overflow-hidden bg-black" role="img" aria-label="NotifiedLaw product walkthrough: library, Notified AI, Hot Topics podcast and plans">
+    <div className="absolute inset-0 overflow-hidden bg-black">
+      <div ref={boxRef} className="absolute inset-0" role="img" aria-label="NotifiedLaw product walkthrough: library, Notified AI, Hot Topics podcast and plans">
       {box.w > 0 ? (
         <div style={{ position: "absolute", left: 0, top: 0, width: stage.w, height: stage.h, transform: `scale(${scale})`, transformOrigin: "0 0" }}>
           <Scene T={time} mode={mode} />
@@ -101,6 +102,7 @@ export function HeroPromo({ ready = true, audioSrc = AUDIO_SRC }: { ready?: bool
         // eslint-disable-next-line @next/next/no-img-element
         <img src="/landing/hero-poster.jpg" alt="" className="size-full object-cover" />
       )}
+      </div>
       <audio ref={audioRef} src={audioSrc} preload={audioSrc.startsWith("blob:") ? "auto" : "none"} muted={muted} />
       <div className="absolute bottom-3 right-3 flex gap-2 opacity-60 transition-opacity focus-within:opacity-100 hover:opacity-100">
         <button onClick={() => setWantPlay((v) => !v)} aria-label={wantPlay ? "Pause walkthrough" : "Play walkthrough"} className={btn}>

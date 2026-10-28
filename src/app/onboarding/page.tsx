@@ -4,7 +4,7 @@ import { profile } from "@/db/schema";
 import { getDb, getSession } from "@/lib/auth";
 import { Onboarding } from "./onboarding";
 
-export const metadata = { title: "Welcome" };
+export const metadata = { title: "Welcome", robots: { index: false, follow: false } };
 
 export default async function Page() {
   const session = await getSession();

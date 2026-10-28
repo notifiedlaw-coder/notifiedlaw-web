@@ -26,7 +26,7 @@ export default function Page_() {
         ))}
       </div>
       <div className={`${cardCls} flex flex-col items-center gap-2 px-6 py-12 text-center`}>
-        <span className="flex size-11 items-center justify-center rounded-xl bg-blue/10 text-blue"><Icon name="folder" size={20} /></span>
+        <span className="flex size-11 items-center justify-center rounded-xl bg-blue/10 text-link"><Icon name="folder" size={20} /></span>
         <div className="text-[15px] font-semibold">Coming soon</div>
         <div className="max-w-[420px] text-[13px] text-muted">Upload PDFs and Word documents and keep them organised in folders. This feature is on its way.</div>
       </div>

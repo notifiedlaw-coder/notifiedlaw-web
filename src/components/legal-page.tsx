@@ -10,9 +10,9 @@ export function LegalPage({ title, updated, intro, sections }: {
   title: string; updated: string; intro: string; sections: LegalSection[];
 }) {
   return (
-    <main className="min-h-screen bg-canvas px-[22px] py-12 text-ink">
+    <main id="main" tabIndex={-1} className="min-h-screen bg-canvas px-[22px] py-12 text-ink">
       <article className="mx-auto max-w-[720px]">
-        <Link href="/" className="text-sm font-semibold no-underline" style={{ color: "var(--color-blue)" }}>← {SITE.name}</Link>
+        <Link href="/" className="text-sm font-semibold no-underline" style={{ color: "var(--color-link)" }}>← {SITE.name}</Link>
         <h1 className="mb-1 mt-6 text-[40px] font-bold leading-[1.1] tracking-[-0.03em]">{title}</h1>
         <p className="mb-6 mt-0 text-sm text-muted">Last updated {updated}</p>
         <p className="text-[17px] leading-relaxed">{intro}</p>
@@ -25,7 +25,7 @@ export function LegalPage({ title, updated, intro, sections }: {
           </section>
         ))}
         <p className="mt-12 border-t-[0.5px] border-edge/15 pt-5 text-sm text-muted">
-          Questions? Email <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "var(--color-blue)" }}>{CONTACT_EMAIL}</a>.
+          Questions? Email <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: "var(--color-link)" }}>{CONTACT_EMAIL}</a>.
         </p>
       </article>
     </main>

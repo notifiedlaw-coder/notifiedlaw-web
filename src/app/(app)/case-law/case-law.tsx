@@ -32,7 +32,7 @@ export function CaseLaw({ cases: all }: { cases: CmsCase[] }) {
             {courts.length > 0 && <span className="mx-1 h-4 w-px bg-edge/10" />}
             {courts.length > 0 && ["All", ...courts].map((f) => <Chip key={f} on={court === f} onClick={() => setCourt(f)}>{f === "All" ? "All courts" : f}</Chip>)}
           </div>
-          <div className="text-xs text-muted">{cases.length} {cases.length === 1 ? "case" : "cases"}</div>
+          <div role="status" className="text-xs text-muted">{cases.length} {cases.length === 1 ? "case" : "cases"}</div>
           <div className="overflow-hidden rounded-xl bg-surface shadow-card">
             {cases.map((c) => (
               <Link key={c.id} href={`/case-law/${c.slug}`} className={row} style={{ textDecoration: "none", color: "inherit" }}>

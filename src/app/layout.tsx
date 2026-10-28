@@ -9,16 +9,18 @@ export const metadata: Metadata = {
   title: { default: `${SITE.name} — ${SITE.tagline}`, template: `%s · ${SITE.name}` },
   description: SITE.description,
   applicationName: SITE.name,
+  authors: [{ name: SITE.name, url: SITE.url }],
+  creator: SITE.name,
+  publisher: SITE.name,
+  formatDetection: { telephone: false },
   keywords: [
     "Ghana law", "LLB Ghana", "law notes Ghana", "Ghana case law", "Ghana statutes",
     "Bar Course Ghana", "law exam prep", "Hot Topics podcast", "law flashcards", "Notified AI",
   ],
-  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: SITE.name,
     locale: SITE.locale,
-    url: "/",
     title: `${SITE.name} — ${SITE.tagline}`,
     description: SITE.description,
     images: [{ url: SITE.ogImage, width: 1800, height: 1200, alt: "NotifiedLaw on Mac, Home screen" }],
@@ -46,6 +48,9 @@ const siteSchema = [
     logo: abs("/icon.svg"),
     description: SITE.description,
     address: { "@type": "PostalAddress", addressLocality: "Accra", addressCountry: "GH" },
+    areaServed: { "@type": "Country", name: "Ghana" },
+    contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: "notifiedlaw@gmail.com", availableLanguage: "English" },
+    knowsAbout: ["Ghanaian law", "Ghana case law", "LLB exam preparation", "Bar Course Ghana"],
   },
   {
     "@context": "https://schema.org",
@@ -54,6 +59,7 @@ const siteSchema = [
     url: SITE.url,
     name: SITE.name,
     inLanguage: "en-GH",
+    description: SITE.description,
     publisher: { "@id": abs("/#org") },
   },
 ];
@@ -73,12 +79,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="en-GH" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         {/* Apply the saved theme before paint to avoid a flash. */}
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("nl-theme");if(t!=="dark"&&t!=="system")t="light";document.documentElement.dataset.theme=t}catch(e){}` }} />
       </head>
       <body>
+        <a href="#main" className="skip-link">Skip to main content</a>
         <JsonLd data={siteSchema} />
         <CopyGuard />
         {children}

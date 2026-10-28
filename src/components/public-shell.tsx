@@ -10,7 +10,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-canvas text-ink">
       <SiteNav />
-      <main className="flex-1">{children}</main>
+      <main id="main" tabIndex={-1} className="flex-1">{children}</main>
       <footer className="px-[22px] pb-8 text-xs text-muted">
         <nav aria-label="Site" className="mx-auto flex max-w-[1024px] flex-wrap gap-x-5 gap-y-2 border-t-[0.5px] border-edge/15 py-[18px]">
           {FOOTER.map(([l, h]) => <Link key={l} href={h} className={linkCls}>{l}</Link>)}

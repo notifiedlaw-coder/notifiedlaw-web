@@ -12,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const page = (path: string, priority: number, changeFrequency: "weekly" | "monthly" | "yearly" = "monthly", lastModified = now) => ({ url: abs(path), lastModified, changeFrequency, priority });
   return [
     page("/", 1, "weekly"),
-    page("/signup", 0.6),
+    page("/signup", 0.6, "yearly"),
     page("/privacy", 0.3, "yearly"),
     page("/terms-of-service", 0.3, "yearly"),
     page("/library", 0.8, "weekly"),

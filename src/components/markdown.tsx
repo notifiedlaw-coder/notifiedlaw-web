@@ -22,7 +22,7 @@ function inline(text: string, key = ""): ReactNode[] {
     else if (m[4]) out.push(<em key={k}>{inline(t.slice(1, -1), k)}</em>);
     else {
       const [, label, href] = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(t)!;
-      out.push(<a key={k} href={safeHref(href)} style={{ color: "var(--color-blue)" }}>{inline(label, k)}</a>);
+      out.push(<a key={k} href={safeHref(href)} style={{ color: "var(--color-link)" }}>{inline(label, k)}</a>);
     }
     last = m.index + t.length;
   }
@@ -69,7 +69,8 @@ function List({ ordered, items, k }: { ordered: boolean; items: ListItem[]; k: s
   );
 }
 
-export function Markdown({ source }: { source: string }) {
+/** `from` is the heading level that "###" becomes, so the body nests under the page's own h1/h2. */
+export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 }) {
   const lines = source.replace(/\r\n/g, "\n").split("\n");
   const out: ReactNode[] = [];
   let i = 0;
@@ -90,7 +91,7 @@ export function Markdown({ source }: { source: string }) {
     if (h) {
       const level = h[1].length;
       const cls = ["", "mb-3 mt-8 text-[28px] font-bold", "mb-2.5 mt-7 text-[26px] font-bold", "mb-2 mt-6 text-[21px] font-bold", "mb-2 mt-5 text-[18px] font-bold"][level];
-      const Tag = (level >= 4 ? "h4" : "h3") as "h3";
+      const Tag = `h${level >= 4 ? from + 1 : from}` as "h3";
       out.push(<Tag key={k} className={`${cls} tracking-[-0.01em]`}>{inline(h[2], k)}</Tag>);
       i++;
       continue;

@@ -38,7 +38,7 @@ export function Articles({ list }: { list: ArticleRow[] }) {
                 <Chevron />
               </Link>
             ))}
-            {shown.length === 0 && <div className="p-6 text-center text-sm text-muted">No articles match “{q}”.</div>}
+            {shown.length === 0 && <div role="status" className="p-6 text-center text-sm text-muted">No articles match “{q}”.</div>}
           </div>
         </>
       )}

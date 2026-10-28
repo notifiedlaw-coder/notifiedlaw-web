@@ -19,6 +19,18 @@ const schema = [
   },
   {
     "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": abs("/#webpage"),
+    url: SITE.url,
+    name: `${SITE.name} — ${SITE.tagline}`,
+    description: SITE.description,
+    inLanguage: "en-GH",
+    isPartOf: { "@id": abs("/#website") },
+    about: { "@type": "Thing", name: "Ghanaian law education" },
+    primaryImageOfPage: abs(SITE.ogImage),
+  },
+  {
+    "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: SITE.name,
     url: SITE.url,
@@ -28,9 +40,11 @@ const schema = [
     audience: { "@type": "EducationalAudience", educationalRole: "student", audienceType: "Law students in Ghana" },
     image: abs(SITE.ogImage),
     offers: [
-      { "@type": "Offer", name: "Attorney", price: "0", priceCurrency: "GHS" },
-      { "@type": "Offer", name: "Senior Judicial (monthly)", price: "45", priceCurrency: "GHS" },
-      { "@type": "Offer", name: "Supreme Justice (monthly)", price: "85", priceCurrency: "GHS" },
+      { "@type": "Offer", name: "Attorney", price: "0", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
+      { "@type": "Offer", name: "Senior Judicial (monthly)", price: "45", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
+      { "@type": "Offer", name: "Senior Judicial (per semester)", price: "150", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
+      { "@type": "Offer", name: "Supreme Justice (monthly)", price: "85", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
+      { "@type": "Offer", name: "Supreme Justice (per semester)", price: "290", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
     ],
   },
 ];

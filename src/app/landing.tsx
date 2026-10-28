@@ -17,12 +17,12 @@ const PRICES = {
 const IMAGES = ["exam"].map((s) => `/landing/${s}.jpg`);
 
 const HIGHLIGHTS: { tag: string; color: string; title: string; body: string }[] = [
-  { tag: "Library", color: "#FF9500", title: "Every course. Every topic.", body: "Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline." },
-  { tag: "Case Law", color: "#0071E3", title: "The judgments, searchable.", body: "Find the ratio, the holding and the dissent without the 80-page scroll." },
+  { tag: "Library", color: "#A34D00", title: "Every course. Every topic.", body: "Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline." },
+  { tag: "Case Law", color: "#0066CC", title: "The judgments, searchable.", body: "Find the ratio, the holding and the dissent without the 80-page scroll." },
   { tag: "AI Assistant", color: "#5856D6", title: "Ask anything about Ghanaian law.", body: "Notified AI answers from Ghanaian law only and points you to the cases, Acts and notes behind each answer." },
-  { tag: "Articles", color: "#FF9F0A", title: "Plain-English explainers.", body: "Short pieces on the questions Ghanaian law students actually ask, linked to the cases and notes behind them." },
-  { tag: "Hot Topics", color: "#FF2D55", title: "A podcast on the law in the news.", body: "Each episode links back to the cases, Acts and notes you can study next." },
-  { tag: "Exam Prep", color: "#34C759", title: "Past questions, expertly marked.", body: "Answer timed questions and get written feedback from an expert marker." },
+  { tag: "Articles", color: "#8F5B00", title: "Plain-English explainers.", body: "Short pieces on the questions Ghanaian law students actually ask, linked to the cases and notes behind them." },
+  { tag: "Hot Topics", color: "#D3123F", title: "A podcast on the law in the news.", body: "Each episode links back to the cases, Acts and notes you can study next." },
+  { tag: "Exam Prep", color: "#1E7B34", title: "Past questions, expertly marked.", body: "Answer timed questions and get written feedback from an expert marker." },
 ];
 
 // Mobile: swipeable card rail that bleeds to the screen edges. md+: the normal grid.
@@ -46,7 +46,7 @@ function Tier({ name, color, price, per, blurb, items, cta, dark, ctaCls, badge 
   return (
     <div className={`${railItem} flex flex-col gap-3 rounded-[28px] p-6 md:gap-[18px] md:p-9 ${dark ? "bg-[#1D1D1F] text-[#F5F5F7]" : "bg-[#F5F5F7]"}`}>
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[21px] font-semibold" style={{ color }}>{name}</div>
+        <h3 className="m-0 text-[21px] font-semibold" style={{ color }}>{name}</h3>
         {badge && <div className="text-xs font-semibold text-[#FF9F0A]">{badge}</div>}
       </div>
       <div><span className="text-[32px] font-bold tracking-[-0.03em] md:text-[40px]">{price}</span>{per && <span className={`text-[15px] ${sub}`}> {per}</span>}</div>
@@ -66,10 +66,11 @@ export default function Landing() {
   const p = PRICES[billing];
 
   return (
-    <div className="bg-white text-[17px] leading-[1.47] tracking-[-0.022em] text-[#1D1D1F]" style={{ colorScheme: "light" }}>
+    <div className="nl-light bg-white text-[17px] leading-[1.47] tracking-[-0.022em] text-[#1D1D1F]" style={{ colorScheme: "light" }}>
       <LandingLoader images={IMAGES} audio={AUDIO_SRC} onReady={(url) => { setAudio(url); setReady(true); }} />
       <SiteNav />
 
+      <main id="main" tabIndex={-1}>
       <div className="mt-5 flex justify-center px-4">
         <a
           href="#pricing"
@@ -93,15 +94,15 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="features" className="bg-[#F5F5F7] px-[22px] py-24">
+      <section id="features" aria-labelledby="features-h" className="bg-[#F5F5F7] px-[22px] py-24">
         <div className="mx-auto flex max-w-[1024px] flex-col gap-10">
-          <h2 className={h2}>Get the highlights.</h2>
-          <div className={`${rail} md:grid-cols-2 lg:grid-cols-3`}>
+          <h2 id="features-h" className={h2}>Get the highlights.</h2>
+          <div tabIndex={0} role="region" aria-label="Product highlights" className={`${rail} md:grid-cols-2 lg:grid-cols-3`}>
             {HIGHLIGHTS.map((f) => (
               <div key={f.tag} className={`${railItem} flex flex-col overflow-hidden rounded-[28px] bg-white`}>
                 <div className="flex flex-col gap-2 px-6 pb-4 pt-6 md:px-8 md:pt-8">
                   <div className="text-sm font-semibold" style={{ color: f.color }}>{f.tag}</div>
-                  <div className="text-balance text-[24px] font-bold leading-[1.14] tracking-[-0.025em]">{f.title}</div>
+                  <h3 className="m-0 text-balance text-[24px] font-bold leading-[1.14] tracking-[-0.025em]">{f.title}</h3>
                   <div className="text-[#6E6E73]">{f.body}</div>
                 </div>
               </div>
@@ -110,11 +111,11 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="listen" className="bg-white px-[22px] py-[120px]">
+      <section id="listen" aria-labelledby="listen-h" className="bg-white px-[22px] py-[120px]">
         <div className="mx-auto grid max-w-[1024px] grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] items-center gap-14">
           <div className="flex flex-col gap-4">
-            <div className="text-[21px] font-semibold text-[#FF2D55]">Hot Topics Podcast</div>
-            <h2 className={`${h2} text-balance`}>The law behind the week.</h2>
+            <p className="m-0 text-[21px] font-semibold text-[#D3123F]">Hot Topics Podcast</p>
+            <h2 id="listen-h" className={`${h2} text-balance`}>The law behind the week.</h2>
             <p className="m-0 text-pretty text-[19px] text-[#6E6E73]">What people are talking about, and the law behind it. Each episode comes with a write-up on NotifiedLaw.</p>
           </div>
         </div>
@@ -122,35 +123,35 @@ export default function Landing() {
 
       <section id="exam" className="overflow-hidden bg-[#F5F5F7] px-[22px] pt-[120px]">
         <div className="mx-auto flex max-w-[1024px] flex-col items-center gap-4 text-center">
-          <div className="text-[21px] font-semibold text-[#34C759]">Exam Prep</div>
+          <p className="m-0 text-[21px] font-semibold text-[#1E7B34]">Exam Prep</p>
           <h2 className="m-0 max-w-[820px] text-balance text-[clamp(36px,5.5vw,64px)] font-bold leading-[1.05] tracking-[-0.04em]">Write the answer. Get expert marking.</h2>
           <p className="m-0 max-w-[600px] text-pretty text-[19px] text-[#6E6E73]">Timed past questions, marked by an expert with written feedback on what to fix — before your real examiner sees it.</p>
           <div className="mt-12 aspect-video w-full max-w-[900px] overflow-hidden rounded-t-[22px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.08)]"><Slot src="exam" label="Exam mode — expert marking" /></div>
         </div>
       </section>
 
-      <section id="pricing" className="bg-white px-[22px] py-[120px]">
+      <section id="pricing" aria-labelledby="pricing-h" className="bg-white px-[22px] py-[120px]">
         <div className="mx-auto flex max-w-[1024px] flex-col items-center gap-9">
           <div className="flex flex-col items-center gap-3 text-center">
-            <h2 className={h2}>Which plan is right for you?</h2>
+            <h2 id="pricing-h" className={h2}>Which plan is right for you?</h2>
             <p className="m-0 text-[19px] text-[#6E6E73]">Student pricing. Pay with MTN MoMo, Telecel Cash or AT Money.</p>
           </div>
-          <div className="flex rounded-full bg-[#E8E8ED] p-[3px]">
+          <div role="group" aria-label="Billing period" className="flex rounded-full bg-[#E8E8ED] p-[3px]">
             {([["month", "Monthly"], ["semester", "Per semester"]] as const).map(([k, l]) => (
               <button key={k} type="button" aria-pressed={billing === k} onClick={() => setBilling(k)} className={`h-[34px] rounded-full border-0 px-5 text-sm font-medium text-[#1D1D1F] ${billing === k ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)]" : "bg-transparent"}`}>{l}</button>
             ))}
           </div>
-          <div className={`${rail} w-[calc(100%+44px)] max-w-none md:w-full md:grid-cols-3`}>
-            <Tier name="Attorney" price="Free" blurb="Try NotifiedLaw with starter content." items={["First 2 topics of every course"]} cta="Start free" ctaCls="border border-[#0071E3] text-[#0071E3]! hover:text-[#0071E3]! hover:bg-[#0071E3]/5" />
-            <Tier name="Senior Judicial" color="#0071E3" price={p.pro} per={p.per} blurb="The full library." items={["All topics, at every level"]} cta="Choose Pro" ctaCls="bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]" />
+          <div tabIndex={0} role="region" aria-label="Plans and pricing" className={`${rail} w-[calc(100%+44px)] max-w-none md:w-full md:grid-cols-3`}>
+            <Tier name="Attorney" price="Free" blurb="Try NotifiedLaw with starter content." items={["First 2 topics of every course"]} cta="Start free" ctaCls="border border-[#0066CC] text-[#0066CC]! hover:text-[#0066CC]! hover:bg-[#0066CC]/5" />
+            <Tier name="Senior Judicial" color="#0066CC" price={p.pro} per={p.per} blurb="The full library." items={["All topics, at every level"]} cta="Choose Pro" ctaCls="bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]" />
             <Tier dark name="Supreme Justice" color="#BF5AF2" badge="Most complete" price={p.max} per={p.per} blurb="Everything, including Pre-Bar and the Bar Course." items={["Everything in Senior Judicial", "Pre-Bar and Bar Course notes", "Exam prep questions"]} cta="Choose Max" ctaCls="bg-[#F5F5F7] text-[#1D1D1F]! hover:text-[#1D1D1F]! hover:bg-white" />
           </div>
         </div>
       </section>
 
-      <section id="faq" className="bg-white px-[22px] py-[120px]">
+      <section id="faq" aria-labelledby="faq-h" className="bg-white px-[22px] py-[120px]">
         <div className="mx-auto flex max-w-[760px] flex-col gap-9">
-          <h2 className={h2}>Questions, answered.</h2>
+          <h2 id="faq-h" className={h2}>Questions, answered.</h2>
           <div className="flex flex-col">
             {FAQ.map((f) => (
               <details key={f.q} className="group border-t-[0.5px] border-black/15 py-5 last:border-b-[0.5px]">
@@ -175,6 +176,8 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      </main>
 
       <footer className="bg-[#F5F5F7] px-[22px] pb-8 text-xs text-[#6E6E73]">
         <nav aria-label="Site" className="mx-auto flex max-w-[1024px] flex-wrap gap-x-5 gap-y-2 border-t-[0.5px] border-black/15 py-[18px]">
