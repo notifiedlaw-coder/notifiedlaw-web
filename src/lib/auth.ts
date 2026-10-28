@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
@@ -19,6 +20,7 @@ export function getAuth() {
 
 /** The signed-in user for this request, or null. Cheap enough to call from layouts and pages. */
 export async function getSession() {
-  const { headers } = await import("next/headers");
-  return getAuth().api.getSession({ headers: await headers() });
+  // Reading headers first opts the caller into dynamic rendering before the Cloudflare env is touched.
+  const h = await headers();
+  return getAuth().api.getSession({ headers: h });
 }
