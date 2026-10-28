@@ -30,6 +30,16 @@ export const LEVELS: Level[] = ["100", "200", "300", "400", "pre-bar", "bar"];
 /** Pre-Bar and the Bar Course are included only with Supreme Justice (Max). */
 export const isMaxLevel = (l: Level) => l === "pre-bar" || l === "bar";
 
+/** How many topics of each course the Free plan opens. */
+export const FREE_TOPICS = 2;
+
+/** The plan topic `n` (1-based) needs when `plan` cannot read it, else null. The topic page enforces this on the server. */
+export function topicLock(plan: Plan, level: Level, n: number): "Pro" | "Pro Max" | null {
+  if (isMaxLevel(level) && plan !== "Pro Max") return "Pro Max";
+  if (plan === "Free" && n > FREE_TOPICS) return "Pro";
+  return null;
+}
+
 /** Initials for a course badge, e.g. "Ghana Legal System" -> "GLS". */
 export const abbr = (title: string) => title.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w)).map((w) => w[0]).join("").toUpperCase().slice(0, 3) || "?";
 

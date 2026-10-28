@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Btn, Chevron, Empty, LevelSelect, Page, Title } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { usePlan, useStudyLevel } from "@/components/plan";
-import { abbr, bySemester, isMaxLevel, LEVEL_LABEL, type Course, type Level, type TopicInfo } from "@/lib/data";
+import { abbr, bySemester, FREE_TOPICS, isMaxLevel, LEVEL_LABEL, type Course, type Level, type TopicInfo } from "@/lib/data";
 
 export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial (Pro)" }: { slug: string; i: number; topic: TopicInfo; locked: boolean; lockLabel?: string }) {
   const body = (
@@ -25,7 +25,7 @@ export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial 
       {body}
       {locked ? (
         <span className="flex items-center gap-1.5 text-xs text-faint"><Icon name="lock" size={12} />{lockLabel}</span>
-      ) : i < 2 ? (
+      ) : i < FREE_TOPICS ? (
         <span className="rounded-[5px] bg-green/15 px-[7px] py-0.5 text-[11px] font-semibold text-[#248A3D]">FREE</span>
       ) : null}
       <Chevron />
@@ -73,7 +73,7 @@ export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
             </Link>
             <div className="overflow-hidden rounded-xl bg-surface shadow-card">
               {c.topics.map((t, i) => (
-                <TopicRow key={t.title + i} slug={c.slug} i={i} topic={t} locked={maxOnly || (!pro && i >= 2)} lockLabel={maxOnly ? "Supreme Justice (Max)" : undefined} />
+                <TopicRow key={t.title + i} slug={c.slug} i={i} topic={t} locked={maxOnly || (!pro && i >= FREE_TOPICS)} lockLabel={maxOnly ? "Supreme Justice (Max)" : undefined} />
               ))}
               {c.topics.length === 0 && <div className="px-4 py-3.5 text-[13px] text-muted">Topics will appear here once they are added.</div>}
             </div>

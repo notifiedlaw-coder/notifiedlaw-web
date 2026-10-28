@@ -2,15 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { usePlan } from "@/components/plan";
 import { Btn, Gate } from "@/components/ui";
 import { Markdown, splitChapters } from "@/components/markdown";
 
 const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
 
 /** A topic written in Notion (Markdown). Each "##" heading starts a chapter. */
-export function Reader({ course, slug, n, title, maxOnly = false, body }: { course: string; slug: string; n: number; title: string; maxOnly?: boolean; body: string }) {
-  const { max } = usePlan();
+export function Reader({ course, slug, n, title, lock = null, body }: { course: string; slug: string; n: number; title: string; lock?: "Pro" | "Pro Max" | null; body: string }) {
   const [cur, setCur] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -26,7 +24,8 @@ export function Reader({ course, slug, n, title, maxOnly = false, body }: { cour
 
   return (
     <div className="relative flex h-full">
-      {maxOnly && !max && <Gate title="Pre-Bar and Bar Course come with Supreme Justice (Max)" body="Upgrade to read every note." cta="Unlock with Supreme Justice (Max)" color="#AF52DE" />}
+      {lock === "Pro Max" && <Gate title="Pre-Bar and Bar Course come with Supreme Justice (Max)" body="Upgrade to read every note." cta="Unlock with Supreme Justice (Max)" color="#AF52DE" />}
+      {lock === "Pro" && <Gate title="This topic comes with Senior Judicial (Pro)" body="The first two topics of every course are free. Upgrade to read the rest." cta="Unlock with Senior Judicial (Pro)" />}
       <div ref={scroller} className="min-w-0 flex-1 overflow-auto bg-surface">
         <article className="mx-auto max-w-[720px] px-5 py-8 md:px-8 md:py-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>
           <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
