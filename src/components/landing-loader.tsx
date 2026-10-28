@@ -16,6 +16,13 @@ export function LandingLoader({ images, audio, onReady }: { images: string[]; au
   const [gone, setGone] = useState(false);
 
   useEffect(() => {
+    // Crawlers and automated reviewers (e.g. Google's OAuth verification) should see the page, not a loading screen.
+    if (navigator.webdriver || /bot|crawl|spider|google|headless|lighthouse/i.test(navigator.userAgent)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only check, runs once on mount
+      setGone(true);
+      onReady(null);
+      return;
+    }
     let cancelled = false;
     let blobUrl: string | null = null;
     let handed = false;
