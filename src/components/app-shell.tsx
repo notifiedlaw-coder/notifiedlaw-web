@@ -147,10 +147,6 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
             {profile?.university ? (UNI_SHORT[profile.university] ?? profile.university) + " · " : ""}{PLAN_NAMES[plan].replace(/^.*\((.*)\)$/, "$1")}
           </span>
         </span>
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0 text-faint" aria-hidden>
-          <circle cx="8" cy="8" r="2.2" />
-          <path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4 5 11M11 5l1.4-1.4" />
-        </svg>
       </Link>
     </>
   );
