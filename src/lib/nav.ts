@@ -27,7 +27,7 @@ export const NAV_RESEARCH: NavItem[] = [
 
 export function titleFor(pathname: string): { title: string; sub: string } {
   const map: [string, string, string][] = [
-    ["/dashboard", "Home", "Monday, 26 October"],
+    ["/dashboard", "Home", ""],
     ["/ai", "Notified AI", "Ghanaian law only"],
     ["/hot-topics", "Hot Topics Podcast", "Latest in Accra, with the law behind it"],
     ["/articles", "Articles", "Explainers on Ghanaian law"],

@@ -197,72 +197,66 @@ function Drawer({ path, onClose }: { path: string; onClose: () => void }) {
   );
 }
 
+/**
+ * Top bar. Phones follow the iOS navigation bar: translucent, a 44 pt row, the title centred, a back
+ * chevron when you are inside a section and the menu on the right. From md up it is a left-aligned
+ * title with the plan controls on the right.
+ */
 function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
   const { plan, credits } = usePlan();
   const { title, sub } = titleFor(path);
   const parts = path.split("/").filter(Boolean);
   const deep = parts.length > 1;
-  const atHome = path === "/dashboard";
+  const planLabel = PLAN_NAMES[plan];
+  const pill = "hidden h-7 shrink-0 items-center whitespace-nowrap rounded-full bg-fill px-3 text-[13px] font-medium min-[1440px]:h-8 min-[1920px]:h-9 min-[1920px]:px-4 min-[1920px]:text-sm min-[2560px]:h-10 min-[2560px]:text-[15px]";
   return (
-    <header className="flex h-[52px] shrink-0 items-center gap-3 border-b border-edge/10 bg-surface/90 px-4 backdrop-blur md:px-5 min-[1440px]:h-14 min-[1440px]:gap-3.5 min-[1440px]:px-6 min-[1920px]:h-16 min-[1920px]:gap-4 min-[1920px]:px-8 min-[2560px]:h-[72px] min-[2560px]:px-10">
-      {deep && (
-        <Link
-          href={"/" + parts.slice(0, -1).join("/")}
-          className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-md text-blue hover:bg-edge/5 md:hidden"
-          aria-label="Back"
-        >
-          <Icon name="back" size={18} />
-        </Link>
-      )}
-      {!atHome && (
-        <Link
-          href="/dashboard"
-          className={`${deep ? "" : "-ml-2 "}flex size-9 shrink-0 items-center justify-center rounded-md text-blue hover:bg-edge/5 md:hidden`}
-          aria-label="Home"
-        >
-          <Icon name="home" size={18} />
-        </Link>
-      )}
-      <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-[15px] font-semibold min-[1440px]:text-[17px] min-[1920px]:text-[20px] min-[2560px]:text-[22px]">{title}</span>
-        {sub && <span className="truncate text-[11px] text-muted min-[1440px]:text-xs min-[1920px]:text-[13px] min-[2560px]:text-sm">{sub}</span>}
+    <header className="grid h-[calc(2.75rem+env(safe-area-inset-top))] shrink-0 grid-cols-[44px_1fr_44px] items-center border-b-[0.5px] border-edge/20 bg-surface/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 md:flex md:h-[52px] md:gap-3 md:px-5 md:pt-0 min-[1440px]:h-14 min-[1440px]:gap-3.5 min-[1440px]:px-6 min-[1920px]:h-16 min-[1920px]:gap-4 min-[1920px]:px-8 min-[2560px]:h-[72px] min-[2560px]:px-10">
+      <div className="flex justify-start md:hidden">
+        {deep && (
+          <Link
+            href={"/" + parts.slice(0, -1).join("/")}
+            className="flex size-11 items-center justify-center text-blue active:opacity-50"
+            aria-label="Back"
+          >
+            <Icon name="back" size={20} />
+          </Link>
+        )}
       </div>
-      <div className="flex-1" />
-      <div className="hidden sm:block"><ThemeToggle /></div>
-      <Link
-        href="/plans#credits"
-        title={`${CREDIT_NAME}: buy more`}
-        className="hidden h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-xl bg-fill px-2.5 text-xs font-semibold tabular-nums sm:flex min-[1440px]:h-7 min-[1440px]:text-[13px] min-[1920px]:h-8 min-[1920px]:px-3.5 min-[1920px]:text-sm min-[2560px]:h-9 min-[2560px]:text-[15px]"
-        style={{ textDecoration: "none", color: "inherit" }}
-      >
-        <Icon name="sparkle" size={11} />
-        {credits} credits
-      </Link>
-      <Link
-        href="/plans"
-        title="Plans"
-        className="flex h-6 shrink-0 items-center whitespace-nowrap rounded-xl bg-fill px-2.5 text-xs font-semibold min-[1440px]:h-7 min-[1440px]:text-[13px] min-[1920px]:h-8 min-[1920px]:px-3.5 min-[1920px]:text-sm min-[2560px]:h-9 min-[2560px]:text-[15px]"
-        style={{ textDecoration: "none", color: "inherit" }}
-      >
-        <span className="md:hidden"><span className={plan === "Pro Max" ? "nl-shimmer" : undefined}>{PLAN_NAMES[plan].replace(/^.*\((.*)\)$/, "$1")}</span></span>
-        <span className="hidden md:inline"><span className={plan === "Pro Max" ? "nl-shimmer" : undefined}>{PLAN_NAMES[plan]}</span></span>
-      </Link>
-      {plan !== "Pro Max" && (
+      <div className="flex min-w-0 flex-col text-center leading-tight md:flex-none md:text-left">
+        <span className="truncate text-[17px] font-semibold tracking-[-0.01em] min-[1440px]:text-[18px] min-[1920px]:text-[20px] min-[2560px]:text-[22px]">{title}</span>
+        {sub && <span className="hidden truncate text-xs text-muted md:block min-[1440px]:text-[13px] min-[1920px]:text-sm min-[2560px]:text-[15px]">{sub}</span>}
+      </div>
+      <div className="flex items-center justify-end gap-2 md:ml-auto min-[1920px]:gap-3">
+        <div className="hidden sm:block"><ThemeToggle /></div>
         <Link
-          href="/plans"
-          className="hidden h-7 items-center rounded-[7px] bg-blue px-3.5 text-[13px] font-medium sm:flex min-[1440px]:h-8 min-[1440px]:text-sm min-[1920px]:h-9 min-[1920px]:px-4 min-[1920px]:text-[15px] min-[2560px]:h-10 min-[2560px]:text-base"
-          style={{ textDecoration: "none", color: "#fff" }}
+          href="/plans#credits"
+          title={`${CREDIT_NAME}: buy more`}
+          className={`${pill} tabular-nums md:flex`}
+          style={{ textDecoration: "none", color: "inherit" }}
         >
-          Upgrade
+          <span className="mr-1 inline-flex"><Icon name="sparkle" size={11} /></span>
+          {credits} credits
         </Link>
-      )}
-      <button
-        onClick={onMenu}
-        aria-label="Open menu"
-        className="-mr-1.5 flex size-9 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-ink hover:bg-edge/5 md:hidden"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-      </button>
+        <Link href="/plans" title="Plans" className={`${pill} md:flex`} style={{ textDecoration: "none", color: "inherit" }}>
+          <span className={plan === "Pro Max" ? "nl-shimmer" : undefined}>{planLabel}</span>
+        </Link>
+        {plan !== "Pro Max" && (
+          <Link
+            href="/plans"
+            className="hidden h-7 items-center rounded-full bg-blue px-4 text-[13px] font-medium md:flex min-[1440px]:h-8 min-[1920px]:h-9 min-[1920px]:px-5 min-[1920px]:text-sm min-[2560px]:h-10 min-[2560px]:text-[15px]"
+            style={{ textDecoration: "none", color: "#fff" }}
+          >
+            Upgrade
+          </Link>
+        )}
+        <button
+          onClick={onMenu}
+          aria-label="Open menu"
+          className="flex size-11 shrink-0 items-center justify-center border-0 bg-transparent text-ink active:opacity-50 md:hidden"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        </button>
+      </div>
     </header>
   );
 }
