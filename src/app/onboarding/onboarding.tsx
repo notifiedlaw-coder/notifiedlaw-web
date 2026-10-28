@@ -50,12 +50,12 @@ export function Onboarding({ defaults }: { defaults: { first: string; middle: st
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-canvas px-5 py-10">
-      <div className="flex w-full max-w-[560px] flex-col gap-6 rounded-3xl bg-surface p-8 shadow-card">
+    <div className="flex min-h-dvh items-center justify-center bg-canvas px-3 py-3 sm:px-5 sm:py-10">
+      <div className="flex w-full max-w-[560px] flex-col gap-4 rounded-3xl bg-surface p-5 sm:gap-6 sm:p-8 shadow-card">
         <div className="flex gap-1.5">{STEPS.map((_, i) => <div key={i} className="h-1 flex-1 rounded-sm" style={{ background: i <= step ? "#007AFF" : "var(--track)" }} />)}</div>
-        <div className="min-h-[5.5rem]">
+        <div className="min-h-[4.5rem] sm:min-h-[5.5rem]">
           <div className="text-xs font-semibold text-muted">Step {step + 1} of {STEPS.length}</div>
-          <h1 className="mt-1 text-[28px] font-bold tracking-[-0.02em]">{step === 2 && f.status ? FOLLOW_UP[f.status] : STEPS[step][0]}</h1>
+          <h1 className="mt-0.5 text-2xl font-bold sm:mt-1 sm:text-[28px] tracking-[-0.02em]">{step === 2 && f.status ? FOLLOW_UP[f.status] : STEPS[step][0]}</h1>
           <p className="mt-1 text-sm text-muted">{STEPS[step][1]}</p>
         </div>
         {/* Every step shares one grid cell, so the card keeps the height of the tallest step. */}

@@ -19,22 +19,21 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   };
   return (
     <div className="grid min-h-dvh md:grid-cols-[1.1fr_1fr]">
-      <div className="relative flex min-h-[34dvh] flex-col justify-end overflow-hidden bg-ink-dark p-6 text-white sm:min-h-[40dvh] sm:p-8 md:min-h-dvh md:p-14">
+      <div className="relative flex flex-col justify-end overflow-hidden bg-ink-dark px-5 py-5 text-white sm:px-8 md:min-h-dvh md:p-14">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/photos/balme-library.jpg)" }} />
-        <Link href="/" className="absolute left-6 top-5 z-10 text-sm font-medium md:hidden" style={{ color: "#fff", textDecoration: "none" }}>← Home</Link>
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(28,28,30,0.2) 0%, rgba(28,28,30,0.75) 45%, rgba(28,28,30,0.97) 100%)" }} />
-        <div className="relative flex flex-col gap-4">
+        <div className="relative flex flex-col gap-2 md:gap-4">
           <Link href="/" aria-label="NotifiedLaw home" className="w-fit text-[17px] font-semibold" style={{ color: "#fff", textDecoration: "none" }}>Notified<span className="font-normal text-amber-soft">Law</span></Link>
-          <h1 className="text-balance text-[40px] font-bold leading-[1.02] tracking-[-0.045em] md:text-6xl">Ghanaian law, made learnable.</h1>
-          <ul className="flex flex-col gap-2 text-[15px] text-white/80">
+          <h1 className="text-balance text-[26px] font-bold leading-[1.05] tracking-[-0.04em] sm:text-3xl md:text-6xl md:tracking-[-0.045em]">Ghanaian law, made learnable.</h1>
+          <ul className="hidden flex-col gap-2 text-[15px] text-white/80 md:flex">
             {BULLETS.map((b) => <li key={b} className="flex items-center gap-2.5"><span className="size-1.5 rounded-full bg-amber-soft" />{b}</li>)}
           </ul>
         </div>
       </div>
-      <div className="relative flex items-center justify-center bg-surface px-6 py-10">
+      <div className="relative flex items-start justify-center bg-surface px-5 py-6 sm:px-6 md:items-center md:py-10">
         <Link href="/" className="absolute right-5 top-5 hidden text-sm font-medium md:block" style={{ color: "var(--color-blue)", textDecoration: "none" }}>← Back to home</Link>
         <div className="flex w-full max-w-[360px] flex-col gap-3">
-          <h2 className="text-2xl font-bold tracking-[-0.02em]">{login ? "Sign in to NotifiedLaw" : "Create your account"}</h2>
+          <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">{login ? "Sign in to NotifiedLaw" : "Create your account"}</h2>
           <p className="text-sm text-muted">Use your student email to get 7 days of Supreme Justice (Max) free.</p>
           <button type="button" onClick={google} disabled={busy} className={`${btn} mt-2 cursor-pointer border-0 bg-surface shadow-[0_0_0_0.5px_var(--hairline)] disabled:opacity-60`} style={{ color: "var(--ink)" }}>{busy ? "Redirecting to Google…" : "Continue with Google"}</button>
           <p className="text-center text-sm text-muted">
