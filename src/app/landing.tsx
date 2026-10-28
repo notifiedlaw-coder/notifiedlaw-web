@@ -255,7 +255,7 @@ export default function Landing() {
         <div className="mx-auto flex max-w-[1024px] flex-wrap justify-between gap-x-6 gap-y-3 border-t-[0.5px] border-black/15 pt-[18px]">
           <span>Copyright © 2026 NotifiedLaw. All rights reserved.</span>
           <div className="flex flex-wrap gap-5">
-            {["Privacy", "Terms", "Support"].map((l) => <a key={l} href="#" className="text-[#424245]! no-underline hover:text-[#424245]! hover:underline">{l}</a>)}
+            {[["Privacy", "/privacy"], ["Terms", "/terms-of-service"], ["Support", "mailto:support@notifiedlaw.com"]].map(([l, h]) => <a key={l} href={h} className="text-[#424245]! no-underline hover:text-[#424245]! hover:underline">{l}</a>)}
             <span>Accra, Ghana</span>
           </div>
         </div>

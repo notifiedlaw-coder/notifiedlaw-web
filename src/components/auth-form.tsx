@@ -33,7 +33,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
             {login ? "New here? " : "Already have an account? "}
             <Link href={login ? "/signup" : "/login"} style={{ color: "var(--color-blue)" }}>{login ? "Create an account" : "Sign in"}</Link>
           </p>
-          <p className="text-center text-xs text-muted">By continuing you agree to the Terms and Privacy Policy.</p>
+          <p className="text-center text-xs text-muted">By continuing you agree to the <Link href="/terms-of-service" style={{ color: "var(--color-blue)" }}>Terms</Link> and <Link href="/privacy" style={{ color: "var(--color-blue)" }}>Privacy Policy</Link>.</p>
         </div>
       </div>
     </div>

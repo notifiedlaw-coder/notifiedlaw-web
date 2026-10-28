@@ -16,6 +16,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: abs("/"), lastModified: now, changeFrequency: "weekly", priority: 1 },
     { url: abs("/signup"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
+    { url: abs("/privacy"), lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: abs("/terms-of-service"), lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: abs("/library"), lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     ...Object.values(COURSES).flat().map((c) => ({
       url: abs(`/library/${c.slug}`), lastModified: now, changeFrequency: "monthly" as const, priority: 0.6,
