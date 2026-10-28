@@ -36,10 +36,11 @@ const outfit = (
 // Poses and outfit ride inside LiveMascot so they breathe and lean with her.
 export function LawyerMascot() {
   const shown = useMediaQuery("(min-width: 721px)");
+  if (!shown) return null;
 
   return (
-    <div data-mascot-slot className="fixed bottom-4 right-4 z-40 hidden min-[721px]:block" style={{ width: SIZE, height: SIZE }}>
-      <LiveMascot directions={DIRECTIONS} reactions={REACTIONS} size={SIZE} label="NotifiedLaw mascot" active={shown} overlay={outfit} />
+    <div data-mascot-slot className="fixed bottom-4 right-4 z-40" style={{ width: SIZE, height: SIZE }}>
+      <LiveMascot directions={DIRECTIONS} reactions={REACTIONS} size={SIZE} label="NotifiedLaw mascot" overlay={outfit} />
     </div>
   );
 }
