@@ -40,7 +40,7 @@ export function LibraryView() {
         right={<LevelSelect value={level} onChange={setLevel} />}
       />
       {!pro && (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl bg-surface px-4 py-3 shadow-card">
+        <div className="hidden flex-wrap items-center gap-3 rounded-xl bg-surface px-4 py-3 shadow-card md:flex">
           <Icon name="lock" size={14} />
           <div className="min-w-0 flex-1 text-[13px]">
             <b>You’re on Attorney (Free).</b>{" "}
