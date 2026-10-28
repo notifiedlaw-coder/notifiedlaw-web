@@ -8,6 +8,7 @@ import { Btn } from "@/components/ui";
 import { CREDIT_PACKS, NETWORKS, PRICES } from "@/lib/content";
 import { CREDIT_NAME, PLAN_NAMES, isPlan, type Plan } from "@/lib/data";
 import { DEMO_BILLING } from "@/lib/site";
+import { normalizePhone } from "@/lib/profile";
 
 // Demo flow only. Real payments will go through a Worker calling a MoMo/card provider,
 // with the subscription written to D1 on webhook confirmation.
@@ -23,11 +24,14 @@ export function Checkout() {
   const { setPlan, addCredits } = usePlan();
   const [net, setNet] = useState(0);
   const [phone, setPhone] = useState("24 555 0123");
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const momo = normalizePhone(phone);
   const [stage, setStage] = useState<"form" | "wait" | "done">("form");
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const pay = () => {
+    if (!momo) { setPhoneTouched(true); return; }
     setStage("wait");
     timer.current = setTimeout(() => {
       if (pack) addCredits(pack.credits);
@@ -67,12 +71,12 @@ export function Checkout() {
           <label htmlFor="momo-phone" className="text-xs font-semibold text-muted">Phone number</label>
           <div className="flex h-10 items-center gap-2 rounded-[10px] bg-surface px-3 shadow-[0_0_0_0.5px_var(--hairline)]">
             <span className="text-sm text-muted">+233</span>
-            <input id="momo-phone" type="tel" autoComplete="tel-national" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" className="flex-1 bg-transparent text-sm outline-none" />
+            <input id="momo-phone" type="tel" autoComplete="tel-national" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d\s]/g, ""))} onBlur={() => setPhoneTouched(true)} maxLength={13} aria-invalid={phoneTouched && !momo} aria-describedby="momo-hint" inputMode="tel" className="flex-1 bg-transparent text-sm outline-none" />
           </div>
-          <p className="text-xs text-muted">You’ll get a prompt on this number to approve the payment.</p>
+          <p id="momo-hint" className={`text-xs ${phoneTouched && !momo ? "text-red" : "text-muted"}`} role={phoneTouched && !momo ? "alert" : undefined}>{phoneTouched && !momo ? "Enter a 9-digit Ghana mobile number, like 24 123 4567." : "You’ll get a prompt on this number to approve the payment."}</p>
         </div>
         {DEMO_BILLING ? (
-          <Btn onClick={pay} className="h-11 text-[15px]">Pay {price}</Btn>
+          <Btn onClick={pay} disabled={!momo} className="h-11 text-[15px]">Pay {price}</Btn>
         ) : (
           <p className="m-0 rounded-xl bg-fill px-4 py-3 text-sm text-muted">Payments are not open yet, so your plan has not changed. We will announce it when they are.</p>
         )}

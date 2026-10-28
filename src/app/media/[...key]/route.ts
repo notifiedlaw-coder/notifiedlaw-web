@@ -7,7 +7,7 @@ const TYPES: Record<string, string> = { mp4: "video/mp4", webm: "video/webm", mp
 export async function GET(request: Request, { params }: { params: Promise<{ key: string[] }> }) {
   const key = (await params).key.join("/");
   const type = TYPES[key.split(".").pop() ?? ""];
-  if (!type || key.includes("..")) return new Response("Not found", { status: 404 });
+  if (!type || key.length > 300 || key.includes("..") || /[\\\x00-\x1f]/.test(key)) return new Response("Not found", { status: 404 });
 
   const { env } = getCloudflareContext();
   const bucket = env.VIDEOS;

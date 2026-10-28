@@ -154,6 +154,8 @@ export function SearchField({ value, onChange, placeholder }: { value: string; o
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
+        maxLength={100}
+        autoComplete="off"
         className="min-w-0 flex-1 bg-transparent text-sm outline-none"
       />
     </div>

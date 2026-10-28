@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { UNIVERSITIES } from "@/lib/content";
-import { GENDERS, GOALS, MIN_AGE, latestDob, type ProfileInput } from "@/lib/profile";
+import { GENDERS, GOALS, MIN_DOB, profileErrors, type ProfileInput } from "@/lib/profile";
 
 const STEPS = [
   ["Tell us about you", "Use your name exactly as it appears on your government-issued ID."],
@@ -24,8 +24,12 @@ export function Onboarding({ defaults }: { defaults: { first: string; middle: st
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const today = new Date().toISOString().slice(0, 10);
-  const dobError = me.dob && me.dob > latestDob() ? `You must be at least ${MIN_AGE} to sign up.` : "";
-  const valid = step !== 0 || (me.first.trim() && me.last.trim() && me.dob && !dobError && me.gender);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const errors = profileErrors({ firstName: me.first, middleName: me.middle, lastName: me.last, dob: me.dob, gender: me.gender, phone: me.phone, university: UNIVERSITIES[uni].name, level: level as ProfileInput["level"] });
+  const blur = (k: string) => () => setTouched((t) => ({ ...t, [k]: true }));
+  const err = (k: keyof typeof errors) => (touched[k] && errors[k] ? <span className="font-normal text-red" role="alert">{errors[k]}</span> : null);
+  const bad = (k: keyof typeof errors) => !!(touched[k] && errors[k]);
+  const valid = step !== 0 || !(errors.firstName || errors.middleName || errors.lastName || errors.dob || errors.gender || errors.phone);
   const pill = (on: boolean) => ({ background: on ? "rgba(0,122,255,0.08)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #007AFF" : "0 0 0 0.5px var(--hairline)" });
 
   const finish = async () => {
@@ -53,15 +57,16 @@ export function Onboarding({ defaults }: { defaults: { first: string; middle: st
         {step === 0 && (
           <div className="flex flex-col gap-3.5">
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">First name<input value={me.first} onChange={set("first")} autoComplete="given-name" className={field} /></label>
-              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Last name<input value={me.last} onChange={set("last")} autoComplete="family-name" className={field} /></label>
+              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">First name<input value={me.first} onChange={set("first")} onBlur={blur("firstName")} maxLength={80} required aria-invalid={bad("firstName")} autoComplete="given-name" className={field} />{err("firstName")}</label>
+              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Last name<input value={me.last} onChange={set("last")} onBlur={blur("lastName")} maxLength={80} required aria-invalid={bad("lastName")} autoComplete="family-name" className={field} />{err("lastName")}</label>
             </div>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Middle name(s) <span className="font-normal">(optional)</span><input value={me.middle} onChange={set("middle")} autoComplete="additional-name" className={field} /></label>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Date of birth<input type="date" value={me.dob} max={today} onChange={set("dob")} autoComplete="bday" className={field} />{dobError && <span className="font-normal text-red">{dobError}</span>}</label>
-            <div className="flex flex-col gap-1 text-xs font-semibold text-muted">Gender
+            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Middle name(s) <span className="font-normal">(optional)</span><input value={me.middle} onChange={set("middle")} onBlur={blur("middleName")} maxLength={120} aria-invalid={bad("middleName")} autoComplete="additional-name" className={field} />{err("middleName")}</label>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Date of birth<input type="date" value={me.dob} min={MIN_DOB} max={today} onChange={set("dob")} onBlur={blur("dob")} required aria-invalid={bad("dob")} autoComplete="bday" className={field} />{err("dob")}</label>
+            <div className="flex flex-col gap-1 text-xs font-semibold text-muted" onBlur={blur("gender")}>Gender
               <div className="flex flex-wrap gap-2">{GENDERS.map((g) => <button key={g} type="button" aria-pressed={me.gender === g} onClick={() => setMe((m) => ({ ...m, gender: g }))} className="rounded-full px-4 py-2 text-sm font-medium text-ink" style={pill(me.gender === g)}>{g}</button>)}</div>
+              {err("gender")}
             </div>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Phone number <span className="font-normal">(optional, for MoMo payments)</span><input type="tel" value={me.phone} onChange={set("phone")} placeholder="024 000 0000" autoComplete="tel" className={field} /></label>
+            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Phone number <span className="font-normal">(optional, for MoMo payments)</span><input type="tel" inputMode="tel" value={me.phone} onChange={set("phone")} onBlur={blur("phone")} maxLength={30} aria-invalid={bad("phone")} placeholder="024 000 0000" autoComplete="tel" className={field} />{err("phone")}</label>
           </div>
         )}
         {step === 1 && <div className="grid gap-2 sm:grid-cols-2">{UNIVERSITIES.map((u, i) => <button key={u.name} onClick={() => setUni(i)} className="rounded-xl px-3.5 py-3 text-left" style={pill(i === uni)}><div className="text-sm font-semibold">{u.name}</div><div className="text-xs text-muted">{u.city}</div></button>)}</div>}
