@@ -29,6 +29,13 @@
       "when": 1793205926991,
       "tag": "0003_profile_status",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793207004697,
+      "tag": "0004_quotes",
+      "breakpoints": true
     }
   ]
 }

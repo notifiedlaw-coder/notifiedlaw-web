@@ -96,3 +96,13 @@ export const cmsEntry = sqliteTable("cms_entry", {
   notionEditedAt: text("notion_edited_at"),
   syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [index("cms_entry_kind_published").on(t.kind, t.published), index("cms_entry_parent").on(t.parentId)]);
+
+// Law quotes shown on the dashboard. Add or retire rows in D1; only active = 1 rows are shown, one picked at random.
+export const quote = sqliteTable("quote", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  text: text("text").notNull(),
+  author: text("author").notNull(),
+  source: text("source"), // case, book or speech the words come from
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});

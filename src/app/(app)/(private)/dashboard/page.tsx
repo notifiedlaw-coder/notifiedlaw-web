@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { Empty } from "@/components/ui";
 import { getDb, getSession } from "@/lib/auth";
 import { getCourses } from "@/lib/cms";
+import { randomQuote } from "@/lib/quotes";
 import { profile } from "@/db/schema";
 import { abbr, bySemester, LEVEL_LABEL, type Level } from "@/lib/data";
 
@@ -18,7 +19,7 @@ export default async function Home() {
   if (session && !p) redirect("/onboarding");
   const first = p?.firstName || session?.user.name.trim().split(/\s+/)[0] || "there";
   const level = (p?.level ?? "200") as Level;
-  const courses = (await getCourses())[level];
+  const [courses, quote] = await Promise.all([getCourses().then((c) => c[level]), randomQuote()]);
   const date = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Accra" }).format(new Date());
 
   return (
@@ -26,6 +27,12 @@ export default async function Home() {
       <header>
         <div className="text-[13px] font-semibold uppercase tracking-[0.04em] text-muted">{date}</div>
         <h1 className="mt-1 text-[34px] font-bold leading-tight tracking-[-0.03em] md:text-5xl">Akwaaba, {first}</h1>
+        {quote && (
+          <figure className="m-0 mt-4 max-w-[640px] border-l-[3px] border-amber pl-4">
+            <blockquote className="m-0 text-[17px] leading-snug text-ink">“{quote.text}”</blockquote>
+            <figcaption className="mt-1.5 text-[13px] text-muted">{quote.author}{quote.source ? `, ${quote.source}` : ""}</figcaption>
+          </figure>
+        )}
       </header>
 
       <section className="flex flex-col gap-3.5">
