@@ -15,13 +15,15 @@ export function Page({ children, max = 960 }: { children: React.ReactNode; max?:
   );
 }
 
+/**
+ * Intro line and actions for a page. The page name itself lives in the top bar, so the heading here is
+ * visually hidden: it stays for screen readers and search engines, which need one h1 per page.
+ */
 export function Title({ title, sub, right }: { title: string; sub?: string; right?: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-5">
-      <div>
-        <h1 className="text-[30px] font-bold tracking-[-0.02em]">{title}</h1>
-        {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
-      </div>
+    <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
+      <h1 className="sr-only">{title}</h1>
+      {sub && <p className="m-0 min-w-0 flex-1 text-sm text-muted">{sub}</p>}
       {right}
     </div>
   );
