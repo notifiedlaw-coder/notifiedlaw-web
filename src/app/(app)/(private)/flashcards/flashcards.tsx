@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { usePlan } from "@/components/plan";
+import { usePlan, useStudyLevel } from "@/components/plan";
 import { LevelSelect } from "@/components/ui";
-import { DEMO_USER, FLASHCARDS, LEVEL_LABEL, type Level } from "@/lib/data";
+import { FLASHCARDS, LEVEL_LABEL, type Level } from "@/lib/data";
 
 const GRADES = [
   ["Again", "< 1 min", "#FFF1F0"],
@@ -15,7 +15,7 @@ const GRADES = [
 
 export function Flashcards() {
   const { pro } = usePlan();
-  const [level, setLevel] = useState<Level>(DEMO_USER.level);
+  const [level, setLevel] = useStudyLevel();
   const [course, setCourse] = useState("All");
   const [i, setI] = useState(0);
   const [flipped, setFlipped] = useState(false);

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { UNIVERSITIES } from "@/lib/content";
+import { GENDERS, GOALS, MIN_AGE, latestDob, type ProfileInput } from "@/lib/profile";
 
 const STEPS = [
   ["Tell us about you", "Use your name exactly as it appears on your government-issued ID."],
@@ -10,25 +11,35 @@ const STEPS = [
   ["Which level are you in?", "We’ll open the right courses first."],
   ["What do you want to use first?", "Pick as many as you like."],
 ] as const;
-const GENDERS = ["Female", "Male", "Non-binary", "Prefer not to say"];
-const MIN_AGE = 16;
 const field = "h-11 rounded-[10px] bg-fill px-3.5 text-[15px] outline-none";
-const GOALS = ["AI summaries", "Flashcards", "Podcasts", "Past questions", "Case law"];
 
-export function Onboarding() {
+export function Onboarding({ defaults }: { defaults: { first: string; middle: string; last: string } }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [me, setMe] = useState({ first: "", middle: "", last: "", dob: "", gender: "", phone: "" });
+  const [me, setMe] = useState({ ...defaults, dob: "", gender: "", phone: "" });
   const set = (k: keyof typeof me) => (e: React.ChangeEvent<HTMLInputElement>) => setMe((m) => ({ ...m, [k]: e.target.value }));
   const [uni, setUni] = useState(0);
   const [level, setLevel] = useState("200");
   const [goals, setGoals] = useState<string[]>(["AI summaries", "Flashcards"]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const today = new Date().toISOString().slice(0, 10);
-  // Born on or before this date means MIN_AGE today; comparing ISO dates avoids leap-year rounding.
-  const latestDob = `${Number(today.slice(0, 4)) - MIN_AGE}${today.slice(4)}`;
-  const dobError = me.dob && me.dob > latestDob ? `You must be at least ${MIN_AGE} to sign up.` : "";
+  const dobError = me.dob && me.dob > latestDob() ? `You must be at least ${MIN_AGE} to sign up.` : "";
   const valid = step !== 0 || (me.first.trim() && me.last.trim() && me.dob && !dobError && me.gender);
   const pill = (on: boolean) => ({ background: on ? "rgba(0,122,255,0.08)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #007AFF" : "0 0 0 0.5px var(--hairline)" });
+
+  const finish = async () => {
+    setSaving(true);
+    setError("");
+    const body: ProfileInput = {
+      firstName: me.first, middleName: me.middle, lastName: me.last, dob: me.dob, gender: me.gender, phone: me.phone,
+      university: UNIVERSITIES[uni].name, level: level as ProfileInput["level"], goals,
+    };
+    const res = await fetch("/api/profile", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    if (res?.ok) { router.push("/dashboard"); return; }
+    setSaving(false);
+    setError(((await res?.json().catch(() => null)) as { error?: string } | null)?.error ?? "Could not save. Check your connection and try again.");
+  };
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-canvas px-5 py-10">
@@ -56,9 +67,10 @@ export function Onboarding() {
         {step === 1 && <div className="grid gap-2 sm:grid-cols-2">{UNIVERSITIES.map((u, i) => <button key={u.name} onClick={() => setUni(i)} className="rounded-xl px-3.5 py-3 text-left" style={pill(i === uni)}><div className="text-sm font-semibold">{u.name}</div><div className="text-xs text-muted">{u.city}</div></button>)}</div>}
         {step === 2 && <div className="grid grid-cols-3 gap-2">{[["100", "Year 1"], ["200", "Year 2"], ["300", "Year 3"], ["400", "Year 4"], ["pre-bar", "Before Law School"], ["bar", "Ghana School of Law"]].map(([n, y]) => <button key={n} onClick={() => setLevel(n)} className="rounded-xl py-5 text-center" style={pill(n === level)}><div className="text-3xl font-bold">{n === "pre-bar" ? "Pre-Bar" : n === "bar" ? "Bar" : n}</div><div className="text-xs text-muted">{y}</div></button>)}</div>}
         {step === 3 && <div className="flex flex-wrap gap-2">{GOALS.map((g) => <button key={g} onClick={() => setGoals((a) => a.includes(g) ? a.filter((x) => x !== g) : [...a, g])} className="rounded-full px-4 py-2 text-sm font-medium" style={pill(goals.includes(g))}>{g}</button>)}</div>}
+        {error && <p className="m-0 text-sm text-red">{error}</p>}
         <div className="flex justify-between">
           <button onClick={() => setStep((s) => Math.max(0, s - 1))} className="h-10 rounded-[10px] px-4 text-sm text-muted" style={{ visibility: step ? "visible" : "hidden" }}>Back</button>
-          <button disabled={!valid} onClick={() => (step < STEPS.length - 1 ? setStep(step + 1) : router.push("/dashboard"))} className="h-10 rounded-[10px] bg-blue px-6 text-sm font-semibold text-white disabled:opacity-40">{step < STEPS.length - 1 ? "Continue" : "Start studying"}</button>
+          <button disabled={!valid || saving} onClick={() => (step < STEPS.length - 1 ? setStep(step + 1) : void finish())} className="h-10 rounded-[10px] bg-blue px-6 text-sm font-semibold text-white disabled:opacity-40">{step < STEPS.length - 1 ? "Continue" : saving ? "Saving…" : "Start studying"}</button>
         </div>
       </div>
     </div>

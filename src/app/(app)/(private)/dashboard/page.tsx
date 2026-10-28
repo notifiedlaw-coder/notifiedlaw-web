@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { ShowIfFree, ShowUnlessMax } from "@/components/plan";
-import { getSession } from "@/lib/auth";
-import { abbr, COURSES, DEMO_USER, QUOTE } from "@/lib/data";
+import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { getDb, getSession } from "@/lib/auth";
+import { profile } from "@/db/schema";
+import { abbr, COURSES, LEVEL_LABEL, QUOTE, type Level } from "@/lib/data";
 
 export const metadata = { title: "Home" };
 
@@ -29,8 +32,12 @@ const link = { textDecoration: "none", color: "inherit" } as const;
 
 export default async function Home() {
   const session = await getSession();
-  const first = session?.user.name.trim().split(/\s+/)[0] || "there";
-  const courses = COURSES[DEMO_USER.level];
+  const [p] = session ? await getDb().select().from(profile).where(eq(profile.userId, session.user.id)) : [];
+  // New sign-ins have no profile yet; send them through onboarding first.
+  if (session && !p) redirect("/onboarding");
+  const first = p?.firstName || session?.user.name.trim().split(/\s+/)[0] || "there";
+  const level = (p?.level ?? "200") as Level;
+  const courses = COURSES[level];
 
   // One list on phones (iOS-style grouped rows), three tiles from sm up.
   const today = [
@@ -139,7 +146,7 @@ export default async function Home() {
         <Heading
           right={<Link href="/library" className="text-[13px]">See all levels</Link>}
         >
-          Level {DEMO_USER.level} courses
+          {LEVEL_LABEL[level]} courses
         </Heading>
         {/* Phones: swipeable row that bleeds to the screen edge. sm+: grid. */}
         <div className="-mx-4 flex snap-x snap-mandatory scroll-pl-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4">

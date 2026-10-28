@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { usePlan } from "@/components/plan";
+import { usePlan, useStudyLevel } from "@/components/plan";
 import { Btn, Gate, Initials, LevelSelect } from "@/components/ui";
 import { LB_NAMES } from "@/lib/content";
-import { DEMO_USER, LEVEL_LABEL, type Level } from "@/lib/data";
+import { LEVEL_LABEL, type Level } from "@/lib/data";
 
 const COLORS = ["#FF9500", "#34C759", "#AF52DE", "#30B0C7", "#FF3B30", "#5856D6", "#A2845E", "#007AFF"];
 const OFFSET: Record<Level, number> = { "100": 7, "200": 0, "300": 11, "400": 4, "pre-bar": 9, bar: 2 };
@@ -14,8 +13,8 @@ const COUNTS: Record<Level, number> = { "100": 214, "200": 186, "300": 152, "400
 const MEDALS = ["#FF9F0A", "#8E8E93", "#A2845E"];
 
 export function Leaderboard() {
-  const { pro } = usePlan();
-  const [level, setLevel] = useState<Level>(DEMO_USER.level);
+  const { pro, profile } = usePlan();
+  const [level, setLevel] = useStudyLevel();
   const off = OFFSET[level];
   const people = Array.from({ length: 10 }, (_, i) => {
     const sec = 222 + i * 19 + ((off * 7) % 23);
@@ -27,7 +26,7 @@ export function Leaderboard() {
       time: `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`,
     };
   });
-  const mine = level === DEMO_USER.level;
+  const mine = level === (profile?.level ?? "200");
   const podium = [1, 0, 2].map((i) => ({ ...people[i], medal: MEDALS[i], big: i === 0 }));
 
   return (

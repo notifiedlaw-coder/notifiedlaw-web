@@ -24,3 +24,13 @@ export async function getSession() {
   const h = await headers();
   return getAuth().api.getSession({ headers: h });
 }
+
+export function getDb() {
+  return drizzle(getCloudflareContext().env.DB, { schema });
+}
+
+/** For route handlers: the signed-in user's id from the request cookies, or null. */
+export async function userIdFrom(req: Request) {
+  const s = await getAuth().api.getSession({ headers: req.headers });
+  return s?.user.id ?? null;
+}

@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { usePlan } from "@/components/plan";
 import { useTheme, type Theme } from "@/components/theme";
 import { Eyebrow, Initials, LevelSelect, Page, Segmented } from "@/components/ui";
 import { useUser } from "@/components/user";
 import { authClient } from "@/lib/auth-client";
-import { CREDIT_NAME, DEMO_USER, PLAN_NAMES, type Level, type Plan } from "@/lib/data";
+import { CREDIT_NAME, PLAN_NAMES, type Plan } from "@/lib/data";
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="flex flex-col gap-1.5"><Eyebrow>{title}</Eyebrow><div className="overflow-hidden rounded-xl bg-surface shadow-card">{children}</div></section>
@@ -17,10 +16,9 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
 );
 
 export function Settings() {
-  const { plan, setPlan, credits, allowance, extra } = usePlan();
+  const { plan, setPlan, credits, allowance, extra, profile, setLevel } = usePlan();
   const { theme, setTheme } = useTheme();
   const user = useUser();
-  const [level, setLevel] = useState<Level>(DEMO_USER.level);
 
   return (
     <Page max={640}>
@@ -29,8 +27,8 @@ export function Settings() {
         <div><div className="text-xl font-bold">{user.name}</div><div className="text-[13px] text-muted">{user.email}</div></div>
       </div>
       <Group title="Studies">
-        <Row label="University">University of Ghana</Row>
-        <Row label="Level"><LevelSelect value={level} onChange={setLevel} /></Row>
+        <Row label="University">{profile?.university ?? "—"}</Row>
+        <Row label="Level"><LevelSelect value={profile?.level ?? "200"} onChange={setLevel} /></Row>
       </Group>
       <Group title="Subscription">
         <Row label="Current plan">{PLAN_NAMES[plan]}</Row>

@@ -46,3 +46,28 @@ export const verification = sqliteTable("verification", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
 });
+
+// What onboarding collects. One row per user; its absence means onboarding is not done.
+export const profile = sqliteTable("profile", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  firstName: text("first_name").notNull(),
+  middleName: text("middle_name"),
+  lastName: text("last_name").notNull(),
+  dob: text("dob").notNull(), // ISO date, YYYY-MM-DD
+  gender: text("gender").notNull(),
+  phone: text("phone"),
+  university: text("university").notNull(),
+  level: text("level").notNull(),
+  goals: text("goals").notNull().default("[]"), // JSON array of goal labels
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+// The user's plan and Notify Credits. No row yet means Free with an empty balance.
+export const subscription = sqliteTable("subscription", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  plan: text("plan").notNull().default("Free"),
+  creditsUsed: integer("credits_used").notNull().default(0),
+  creditsExtra: integer("credits_extra").notNull().default(0),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

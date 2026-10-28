@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { Btn, Chevron, LevelSelect, Page, Title } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { usePlan } from "@/components/plan";
-import { abbr, COURSES, DEMO_USER, isMaxLevel, LEVEL_LABEL, TOTAL_TOPICS, type Level } from "@/lib/data";
+import { usePlan, useStudyLevel } from "@/components/plan";
+import { abbr, COURSES, isMaxLevel, LEVEL_LABEL, TOTAL_TOPICS } from "@/lib/data";
 
 export function TopicRow({ slug, i, title, color, locked, lockLabel = "Senior Judicial (Pro)" }: { slug: string; i: number; title: string; color: string; locked: boolean; lockLabel?: string }) {
   return (
@@ -30,7 +29,7 @@ export function TopicRow({ slug, i, title, color, locked, lockLabel = "Senior Ju
 }
 
 export function LibraryView() {
-  const [level, setLevel] = useState<Level>(DEMO_USER.level);
+  const [level, setLevel] = useStudyLevel();
   const { pro, max } = usePlan();
   const maxOnly = isMaxLevel(level) && !max;
   return (
