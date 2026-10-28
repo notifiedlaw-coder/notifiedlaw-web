@@ -58,7 +58,7 @@ export function Onboarding() {
         {step === 3 && <div className="flex flex-wrap gap-2">{GOALS.map((g) => <button key={g} onClick={() => setGoals((a) => a.includes(g) ? a.filter((x) => x !== g) : [...a, g])} className="rounded-full px-4 py-2 text-sm font-medium" style={pill(goals.includes(g))}>{g}</button>)}</div>}
         <div className="flex justify-between">
           <button onClick={() => setStep((s) => Math.max(0, s - 1))} className="h-10 rounded-[10px] px-4 text-sm text-muted" style={{ visibility: step ? "visible" : "hidden" }}>Back</button>
-          <button disabled={!valid} onClick={() => (step < STEPS.length - 1 ? setStep(step + 1) : router.push("/home"))} className="h-10 rounded-[10px] bg-blue px-6 text-sm font-semibold text-white disabled:opacity-40">{step < STEPS.length - 1 ? "Continue" : "Start studying"}</button>
+          <button disabled={!valid} onClick={() => (step < STEPS.length - 1 ? setStep(step + 1) : router.push("/dashboard"))} className="h-10 rounded-[10px] bg-blue px-6 text-sm font-semibold text-white disabled:opacity-40">{step < STEPS.length - 1 ? "Continue" : "Start studying"}</button>
         </div>
       </div>
     </div>

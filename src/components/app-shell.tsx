@@ -199,7 +199,7 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
   const { title, sub } = titleFor(path);
   const parts = path.split("/").filter(Boolean);
   const deep = parts.length > 1;
-  const atHome = path === "/home";
+  const atHome = path === "/dashboard";
   return (
     <header className="flex h-[52px] shrink-0 items-center gap-3 border-b border-edge/10 bg-surface/90 px-4 backdrop-blur md:px-5 min-[1440px]:h-14 min-[1440px]:gap-3.5 min-[1440px]:px-6 min-[1920px]:h-16 min-[1920px]:gap-4 min-[1920px]:px-8 min-[2560px]:h-[72px] min-[2560px]:px-10">
       {deep && (
@@ -213,7 +213,7 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
       )}
       {!atHome && (
         <Link
-          href="/home"
+          href="/dashboard"
           className={`${deep ? "" : "-ml-2 "}flex size-9 shrink-0 items-center justify-center rounded-md text-blue hover:bg-edge/5 md:hidden`}
           aria-label="Home"
         >

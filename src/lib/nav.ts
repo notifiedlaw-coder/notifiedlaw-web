@@ -7,7 +7,7 @@ export type NavItem = {
 };
 
 export const NAV_TOP: NavItem[] = [
-  { href: "/home", label: "Home", icon: "home" },
+  { href: "/dashboard", label: "Home", icon: "home" },
   { href: "/ai", label: "Notified AI", icon: "sparkle" },
   { href: "/hot-topics", label: "Hot Topics", icon: "headphones" },
 ];
@@ -27,7 +27,7 @@ export const NAV_RESEARCH: NavItem[] = [
 
 export function titleFor(pathname: string): { title: string; sub: string } {
   const map: [string, string, string][] = [
-    ["/home", "Home", "Monday, 26 October"],
+    ["/dashboard", "Home", "Monday, 26 October"],
     ["/ai", "Notified AI", "Ghanaian law only"],
     ["/hot-topics", "Hot Topics Podcast", "Latest in Accra, with the law behind it"],
     ["/articles", "Articles", "Explainers on Ghanaian law"],

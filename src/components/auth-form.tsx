@@ -5,7 +5,7 @@ const btn = "flex h-11 items-center justify-center rounded-[10px] text-[15px] fo
 
 export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const login = mode === "login";
-  const next = login ? "/home" : "/onboarding";
+  const next = login ? "/dashboard" : "/onboarding";
   return (
     <div className="grid min-h-dvh md:grid-cols-[1.1fr_1fr]">
       <div className="relative flex min-h-[34dvh] flex-col justify-end overflow-hidden bg-ink-dark p-6 text-white sm:min-h-[40dvh] sm:p-8 md:min-h-dvh md:p-14">
