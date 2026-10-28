@@ -37,7 +37,7 @@ const link = "text-[#0066CC] no-underline hover:underline";
 
 function Slot({ src, label }: { src: string; label: string }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={`/landing/${src}.jpg`} alt={label} loading="lazy" className="size-full object-cover" />;
+  return <img src={`/landing/${src}.jpg`} alt={label} loading="lazy" decoding="async" className="size-full object-cover" />;
 }
 
 function Tier({ name, color, price, per, blurb, items, cta, dark, ctaCls, badge }: {
@@ -206,7 +206,7 @@ export default function Landing() {
           </div>
           <div className="flex rounded-full bg-[#E8E8ED] p-[3px]">
             {([["month", "Monthly"], ["semester", "Per semester"]] as const).map(([k, l]) => (
-              <button key={k} onClick={() => setBilling(k)} className={`h-[34px] rounded-full border-0 px-5 text-sm font-medium text-[#1D1D1F] ${billing === k ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)]" : "bg-transparent"}`}>{l}</button>
+              <button key={k} type="button" aria-pressed={billing === k} onClick={() => setBilling(k)} className={`h-[34px] rounded-full border-0 px-5 text-sm font-medium text-[#1D1D1F] ${billing === k ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)]" : "bg-transparent"}`}>{l}</button>
             ))}
           </div>
           <div className={`${rail} w-[calc(100%+44px)] max-w-none md:w-full md:grid-cols-3`}>

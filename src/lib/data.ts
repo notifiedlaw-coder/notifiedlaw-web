@@ -9,6 +9,9 @@ export const LEVEL_SHORT: Record<Level, string> = {
   "100": "100", "200": "200", "300": "300", "400": "400", "pre-bar": "Pre-Bar", bar: "Bar Course",
 };
 export type Plan = "Free" | "Pro" | "Pro Max";
+export const PLANS: readonly Plan[] = ["Free", "Pro", "Pro Max"];
+/** Narrows untrusted input (a URL parameter, a stored value) to a known plan. */
+export const isPlan = (v: unknown): v is Plan => PLANS.includes(v as Plan);
 
 export const PLAN_NAMES: Record<Plan, string> = {
   Free: "Attorney (Free)",

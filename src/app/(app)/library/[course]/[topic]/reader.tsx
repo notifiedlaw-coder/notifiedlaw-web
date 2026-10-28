@@ -16,16 +16,7 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
   const [done, setDone] = useState(0);
   const [picks, setPicks] = useState<Record<string, number>>({});
   const [tab, setTab] = useState<"Summary" | "Ask AI">("Summary");
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0.34);
-  const [speed, setSpeed] = useState(1);
   const scroller = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!playing) return;
-    const t = setInterval(() => setProgress((p) => (p >= 1 ? 0 : p + 0.002 * speed)), 250);
-    return () => clearInterval(t);
-  }, [playing, speed]);
 
   const total = CHAPTERS.length;
   const ch = CHAPTERS[cur];
@@ -43,11 +34,9 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
       go(cur + 1);
     } else setDone(total);
   };
-  const elapsed = Math.floor(progress * 1104);
-  const caption = PODCAST_CAPTIONS[Math.min(3, Math.floor(progress * 4))];
 
   return (
-    <div className="relative flex h-[calc(100dvh-52px)]">
+    <div className="relative flex h-full">
       {maxOnly && !max && <Gate title="Pre-Bar and Bar Course come with Supreme Justice (Max)" body="Upgrade to read every note and use the full set of AI tools." cta="Unlock with Supreme Justice (Max)" color="#AF52DE" />}
       <div className="flex min-w-0 flex-1 flex-col">
         <div ref={scroller} className="flex-1 overflow-auto bg-surface">
@@ -66,7 +55,7 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
                   <button key={c.title} onClick={() => !locked && go(i)} disabled={locked}
                     className="flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3.5 text-left"
                     style={{ background: isCur ? "#007AFF" : isDone ? "rgba(52,199,89,0.1)" : "var(--fill)", color: isCur ? "#fff" : "var(--ink)", opacity: locked ? 0.6 : 1, cursor: locked ? "not-allowed" : "pointer" }}>
-                    <span className="flex size-6 items-center justify-center rounded-full text-xs font-bold" style={{ background: isCur ? "#fff" : isDone ? "#34C759" : "var(--surface)", color: isCur ? "var(--ink)" : isDone ? "#fff" : "rgba(60,60,67,0.6)" }}>
+                    <span className="flex size-6 items-center justify-center rounded-full text-xs font-bold" style={{ background: isCur ? "#fff" : isDone ? "#34C759" : "var(--surface)", color: isCur ? "#1d1d1f" : isDone ? "#fff" : "var(--muted)" }}>
                       {isDone ? <Icon name="check" size={12} /> : locked ? <Icon name="lock" size={12} /> : i + 1}
                     </span>
                     <span className="flex flex-col"><span className="text-[11px] font-bold opacity-75">CHAPTER {i + 1}</span><span className="text-[13px] font-semibold">{c.title}</span></span>
@@ -77,7 +66,7 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
             {cur === 0 && (
               <figure className="mb-2" style={{ fontFamily: "var(--font-sans)" }}>
                 <div className="h-[200px] overflow-hidden rounded-[14px] bg-cover bg-center sm:h-[260px] md:h-[340px]"
-                  style={{ backgroundImage: "url(https://commons.wikimedia.org/wiki/Special:FilePath/Supreme_Court%2C_Accra_(IMG_20230201_140723_1).jpg?width=1600)", backgroundColor: "#1C1C1E" }} />
+                  style={{ backgroundImage: "url(/photos/supreme-court-accra.jpg)", backgroundColor: "#1C1C1E" }} />
                 <figcaption className="mt-2 text-xs text-muted">The Supreme Court of Ghana, Accra. It has exclusive original jurisdiction under Article 130.</figcaption>
               </figure>
             )}
@@ -140,7 +129,7 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
                   <Btn href="/library">Back to library</Btn>
                 ) : (
                   <button onClick={next} disabled={!passed} className="flex h-9 items-center gap-1.5 rounded-[9px] px-4 text-[13px] font-semibold"
-                    style={{ background: passed ? "#007AFF" : "var(--fill)", color: passed ? "#fff" : "rgba(60,60,67,0.55)", cursor: passed ? "pointer" : "not-allowed" }}>
+                    style={{ background: passed ? "#007AFF" : "var(--fill)", color: passed ? "#fff" : "var(--faint)", cursor: passed ? "pointer" : "not-allowed" }}>
                     {!passed && <Icon name="lock" size={13} />}
                     {last ? "Finish topic" : `Continue to Chapter ${cur + 2}`}
                   </button>
@@ -150,26 +139,7 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
           </article>
         </div>
 
-        <div className="relative flex shrink-0 items-center gap-3 border-t border-edge/10 bg-surface px-4 py-2.5">
-          <div className="hidden size-11 shrink-0 rounded-[9px] bg-gradient-to-br from-amber to-[#C93400] sm:block" />
-          <div className="hidden w-[210px] shrink-0 leading-tight lg:block">
-            <div className="text-[13px] font-semibold">Who guards the Constitution?</div>
-            <div className="text-xs text-muted">AI podcast · Akua &amp; Kwame</div>
-          </div>
-          <button onClick={() => setPlaying((p) => !p)} aria-label={playing ? "Pause" : "Play"} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-strong text-strong-fg">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">{playing ? <><rect x="3.5" y="2.5" width="3" height="11" rx="1" /><rect x="9.5" y="2.5" width="3" height="11" rx="1" /></> : <path d="M4.5 2.8v10.4a.6.6 0 0 0 .9.5l8.2-5.2a.6.6 0 0 0 0-1L5.4 2.3a.6.6 0 0 0-.9.5z" />}</svg>
-          </button>
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <div className="truncate text-xs italic text-ink/80">{caption}</div>
-            <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-muted">
-              <span>{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}</span>
-              <div className="h-1 flex-1 rounded-sm bg-track"><div className="h-full rounded-sm bg-amber" style={{ width: `${progress * 100}%` }} /></div>
-              <span>18:24</span>
-            </div>
-          </div>
-          <button onClick={() => setSpeed((s) => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length])} className="h-7 rounded-md bg-fill px-2 text-xs font-semibold tabular-nums">{speed}×</button>
-          {!max && <Link href="/plans" className="flex items-center gap-1 rounded-md bg-amber/15 px-2 py-1 text-[10px] font-bold text-[#C93400]" style={{ textDecoration: "none" }}><Icon name="lock" size={11} />SUPREME JUSTICE</Link>}
-        </div>
+        <PodcastBar max={max} />
       </div>
 
       <aside className="relative hidden w-[320px] shrink-0 flex-col border-l border-edge/10 bg-panel xl:flex">
@@ -199,7 +169,7 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
             <div className="flex-1 overflow-auto px-4 pb-3 text-[13px]"><div className="max-w-[260px] rounded-2xl bg-fill px-3.5 py-2.5 leading-normal">Ask me anything about this note. I’ll answer from Ghanaian law and point you to the source.</div></div>
             <div className="border-t border-edge/[0.08] px-3.5 pb-3.5 pt-2.5">
               <div className="flex items-center gap-2 rounded-full bg-fill py-1 pl-3.5 pr-1">
-                <input placeholder="Ask about this note…" className="flex-1 bg-transparent text-[13px] outline-none" />
+                <input placeholder="Ask about this note…" aria-label="Ask about this note" className="flex-1 bg-transparent text-[13px] outline-none" />
                 <span className="flex size-[26px] items-center justify-center rounded-full bg-blue text-white"><Icon name="back" size={12} className="rotate-90" /></span>
               </div>
             </div>
@@ -207,6 +177,45 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
           </div>
         )}
       </aside>
+    </div>
+  );
+}
+
+/** The note's AI podcast. Its own component, so the playback clock re-renders only this bar, not the note. */
+function PodcastBar({ max }: { max: boolean }) {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0.34);
+  const [speed, setSpeed] = useState(1);
+
+  useEffect(() => {
+    if (!playing) return;
+    const t = setInterval(() => setProgress((p) => (p >= 1 ? 0 : p + 0.002 * speed)), 250);
+    return () => clearInterval(t);
+  }, [playing, speed]);
+
+  const elapsed = Math.floor(progress * 1104);
+  const caption = PODCAST_CAPTIONS[Math.min(3, Math.floor(progress * 4))];
+
+  return (
+    <div className="relative flex shrink-0 items-center gap-3 border-t border-edge/10 bg-surface px-4 py-2.5">
+      <div className="hidden size-11 shrink-0 rounded-[9px] bg-gradient-to-br from-amber to-[#C93400] sm:block" />
+      <div className="hidden w-[210px] shrink-0 leading-tight lg:block">
+        <div className="text-[13px] font-semibold">Who guards the Constitution?</div>
+        <div className="text-xs text-muted">AI podcast · Akua &amp; Kwame</div>
+      </div>
+      <button onClick={() => setPlaying((p) => !p)} aria-label={playing ? "Pause" : "Play"} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-strong text-strong-fg">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden>{playing ? <><rect x="3.5" y="2.5" width="3" height="11" rx="1" /><rect x="9.5" y="2.5" width="3" height="11" rx="1" /></> : <path d="M4.5 2.8v10.4a.6.6 0 0 0 .9.5l8.2-5.2a.6.6 0 0 0 0-1L5.4 2.3a.6.6 0 0 0-.9.5z" />}</svg>
+      </button>
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="truncate text-xs italic text-ink/80">{caption}</div>
+        <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-muted">
+          <span>{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}</span>
+          <div className="h-1 flex-1 rounded-sm bg-track"><div className="h-full rounded-sm bg-amber" style={{ width: `${progress * 100}%` }} /></div>
+          <span>18:24</span>
+        </div>
+      </div>
+      <button onClick={() => setSpeed((s) => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length])} aria-label={`Playback speed ${speed}×`} className="h-7 rounded-md bg-fill px-2 text-xs font-semibold tabular-nums">{speed}×</button>
+      {!max && <Link href="/plans" className="flex items-center gap-1 rounded-md bg-amber/15 px-2 py-1 text-[10px] font-bold text-[#C93400]" style={{ textDecoration: "none" }}><Icon name="lock" size={11} />SUPREME JUSTICE</Link>}
     </div>
   );
 }

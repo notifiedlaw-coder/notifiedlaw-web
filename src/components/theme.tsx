@@ -15,6 +15,7 @@ export function useTheme() {
   useEffect(() => {
     try {
       const v = localStorage.getItem(KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read once on mount
       if (v === "light" || v === "dark" || v === "system") setThemeState(v);
     } catch {}
   }, []);

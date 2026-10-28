@@ -48,7 +48,7 @@ export default function Home() {
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage:
-              "url(https://commons.wikimedia.org/wiki/Special:FilePath/Supreme_Court%2C_Accra_(IMG_20230201_140723_1).jpg?width=1600)",
+              "url(/photos/supreme-court-accra.jpg)",
           }}
         />
         <div

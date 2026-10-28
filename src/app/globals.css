@@ -23,6 +23,8 @@
   --color-blue-press: #0062cc;
   --color-amber: #ff9500;
   --color-amber-soft: #ff9f0a;
+  /* Backdrop for white text over photos, shown while the photo loads or if it fails. */
+  --color-ink-dark: #1c1c1e;
   --color-green: #34c759;
   --color-red: #ff3b30;
   --color-purple: #af52de;

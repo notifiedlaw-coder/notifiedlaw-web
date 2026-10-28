@@ -1,0 +1,3 @@
+Self-hosted copies (resized) of Wikimedia Commons photos; check each file page for licence and attribution terms.
+supreme-court-accra.jpg  https://commons.wikimedia.org/wiki/File:Supreme_Court,_Accra_(IMG_20230201_140723_1).jpg
+balme-library.jpg        https://commons.wikimedia.org/wiki/File:Balme_Library_at_University_of_Ghana_-_Legon.jpg

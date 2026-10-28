@@ -27,7 +27,7 @@ export function Title({ title, sub, right }: { title: string; sub?: string; righ
   );
 }
 
-export function Eyebrow({ children, color = "rgba(60,60,67,0.55)" }: { children: React.ReactNode; color?: string }) {
+export function Eyebrow({ children, color = "var(--faint)" }: { children: React.ReactNode; color?: string }) {
   return (
     <div className="text-[11px] font-bold uppercase tracking-[0.05em]" style={{ color }}>
       {children}
@@ -43,6 +43,8 @@ export function Segmented<T extends string>({
       {options.map((o) => (
         <button
           key={o}
+          type="button"
+          aria-pressed={o === value}
           onClick={() => onChange(o)}
           className={`h-8 flex-1 whitespace-nowrap rounded-md px-2.5 text-[13px] sm:h-7 sm:px-3 font-medium ${
             o === value ? "bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.12)]" : "text-ink/80"
@@ -82,6 +84,8 @@ export function LevelSelect({ value, onChange }: { value: Level; onChange: (v: L
 export function Chip({ on, children, onClick }: { on?: boolean; children: React.ReactNode; onClick?: () => void }) {
   return (
     <button
+      type="button"
+      aria-pressed={on}
       onClick={onClick}
       className={`h-[26px] rounded-full px-3 text-xs font-medium ${on ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}
     >
@@ -147,6 +151,7 @@ export function SearchField({ value, onChange, placeholder }: { value: string; o
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         className="min-w-0 flex-1 bg-transparent text-sm outline-none"
       />
     </div>
@@ -165,7 +170,7 @@ export function Initials({ name, color, size = 28 }: { name: string; color: stri
 }
 
 export const Chevron = () => (
-  <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="rgba(60,60,67,0.3)" strokeWidth="2.2" strokeLinecap="round">
+  <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="shrink-0 text-faint opacity-60" aria-hidden>
     <path d="m6 3 5 5-5 5" />
   </svg>
 );

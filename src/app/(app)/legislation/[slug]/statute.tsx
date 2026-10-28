@@ -23,7 +23,7 @@ export function Statute() {
   };
 
   return (
-    <div className="relative flex h-[calc(100dvh-52px)]">
+    <div className="relative flex h-full">
       <nav className="hidden w-[220px] shrink-0 flex-col gap-0.5 overflow-auto border-r border-edge/10 bg-panel p-3 lg:flex">
         <div className="px-2 pb-1 text-[11px] font-semibold text-faint">Jump to section</div>
         {ACT29.map((s) => (
@@ -62,7 +62,7 @@ export function Statute() {
         </div>
         <div className="border-t border-edge/[0.08] p-3">
           <div className="flex items-center gap-2 rounded-full bg-fill py-1 pl-3.5 pr-1">
-            <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask(draft)} placeholder="Ask about any section…" className="flex-1 bg-transparent text-[13px] outline-none" />
+            <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && ask(draft)} aria-label="Ask about any section" placeholder="Ask about any section…" className="flex-1 bg-transparent text-[13px] outline-none" />
             <button onClick={() => ask(draft)} className="flex size-[26px] items-center justify-center rounded-full bg-blue text-white" aria-label="Send"><Icon name="back" size={12} className="rotate-90" /></button>
           </div>
         </div>

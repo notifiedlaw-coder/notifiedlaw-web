@@ -50,7 +50,8 @@ export function Flashcards() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return;
+      // Leave keys alone in form controls: arrows change the level picker, Space types in a field.
+      if (e.target instanceof HTMLElement && e.target.closest("input, select, textarea, [contenteditable='true']")) return;
       if (e.code === "Space") {
         e.preventDefault();
         if (!finished) setFlipped((f) => !f);
@@ -58,7 +59,7 @@ export function Flashcards() {
       else if (e.code === "ArrowLeft") go(i - 1);
     };
     // Keyup too, so a focused button is not also "clicked" by Space.
-    const onUp = (e: KeyboardEvent) => e.code === "Space" && e.preventDefault();
+    const onUp = (e: KeyboardEvent) => e.code === "Space" && !(e.target instanceof HTMLElement && e.target.closest("input, select, textarea")) && e.preventDefault();
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onUp);
     return () => {
@@ -85,7 +86,7 @@ export function Flashcards() {
       </div>
       <div className="scroll-row flex flex-wrap gap-2">
         {courses.map((c) => (
-          <button key={c} onClick={() => pickCourse(c)}
+          <button key={c} aria-pressed={c === course} onClick={() => pickCourse(c)}
             className={`h-[26px] rounded-full px-3 text-xs font-medium ${c === course ? "bg-strong text-strong-fg" : "bg-surface shadow-[0_0_0_0.5px_var(--hairline)]"}`}>
             {c === "All" ? "All courses" : c}
           </button>
@@ -107,17 +108,21 @@ export function Flashcards() {
         </div>
       ) : (
         <>
-          <div role="button" tabIndex={0} onClick={() => setFlipped((f) => !f)}
+          <div role="button" tabIndex={0} aria-label={flipped ? "Show question" : "Reveal answer"} onClick={() => setFlipped((f) => !f)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setFlipped((f) => !f); } }}
             className="flex min-h-[280px] cursor-pointer flex-col items-center justify-center gap-4 rounded-[20px] bg-surface p-6 sm:min-h-[320px] sm:p-8 text-center shadow-card transition-shadow hover:shadow-card-hover">
             <div className="text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: flipped ? "#34C759" : "#AF52DE" }}>{flipped ? "Answer" : "Question"} · {card[2]}</div>
-            <div className="text-pretty max-w-[560px] text-2xl font-semibold leading-snug tracking-[-0.01em]">{card[flipped ? 1 : 0]}</div>
+            <div aria-live="polite" className="text-pretty max-w-[560px] text-2xl font-semibold leading-snug tracking-[-0.01em]">{card[flipped ? 1 : 0]}</div>
             {!flipped && <div className="text-xs text-muted"><span className="sm:hidden">Tap to reveal</span><span className="hidden sm:inline">Click or press Space to reveal</span></div>}
           </div>
           {flipped && (
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {GRADES.map(([l, t, bg]) => (
-                <button key={l} onClick={() => grade(l)} className="flex flex-col items-center gap-0.5 rounded-xl bg-surface py-3 shadow-[0_0_0_0.5px_var(--hairline)]" style={graded[i] === l ? { background: bg, color: "#1d1d1f" } : undefined} onMouseEnter={(e) => (e.currentTarget.style.background = bg)} onMouseLeave={(e) => (e.currentTarget.style.background = graded[i] === l ? bg : "var(--surface)")}>
-                  <span className="text-sm font-semibold">{l}</span><span className="text-[11px] text-muted">{t}</span>
+                <button key={l} onClick={() => grade(l)} aria-pressed={graded[i] === l}
+                  // The pastel tints are light in both themes, so the text turns dark whenever one shows.
+                  className="group flex flex-col items-center gap-0.5 rounded-xl bg-surface py-3 shadow-[0_0_0_0.5px_var(--hairline)] hover:bg-[var(--g)] hover:text-[#1d1d1f] aria-pressed:bg-[var(--g)] aria-pressed:text-[#1d1d1f]"
+                  style={{ "--g": bg } as React.CSSProperties}>
+                  <span className="text-sm font-semibold">{l}</span><span className="text-[11px] text-muted group-hover:text-[rgba(60,60,67,0.6)] group-aria-pressed:text-[rgba(60,60,67,0.6)]">{t}</span>
                 </button>
               ))}
             </div>

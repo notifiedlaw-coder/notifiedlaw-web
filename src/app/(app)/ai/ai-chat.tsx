@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { usePlan } from "@/components/plan";
 import { Badge, Gate, Segmented } from "@/components/ui";
@@ -41,6 +41,15 @@ export function AiChat() {
   const [msgs, setMsgs] = useState<Msg[]>(SEED);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
+  const end = useRef<HTMLDivElement>(null);
+  const reply = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(reply.current), []);
+  // Keep the newest message in view as the conversation grows (not on first load, which opens at the top).
+  const grown = useRef(false);
+  useEffect(() => {
+    if (!grown.current) { grown.current = true; return; }
+    end.current?.scrollIntoView({ block: "end", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [msgs.length, thinking]);
 
   // Canned reply for now; swap for a Workers AI call from a route handler.
   const ask = (text: string) => {
@@ -49,7 +58,7 @@ export function AiChat() {
     setDraft("");
     setThinking(true);
     setMsgs((m) => [...m, { role: "user", text }]);
-    setTimeout(() => {
+    reply.current = setTimeout(() => {
       setMsgs((m) => [...m, REPLY[mode]]);
       setThinking(false);
     }, 900);
@@ -98,14 +107,15 @@ export function AiChat() {
                 )}
               </div>
             ))}
-            {thinking && <div className="text-xs text-muted">Notified AI is checking the sources…</div>}
+            <div role="status" className="text-xs text-muted">{thinking ? "Notified AI is checking the sources…" : ""}</div>
+            <div ref={end} />
           </div>
         </div>
         <div className="border-t border-edge/[0.08] bg-surface/80 px-5 pb-4 pt-3">
           <div className="mx-auto flex max-w-[720px] flex-col gap-2">
             <div className="scroll-row flex flex-wrap gap-2">{SUGG.map((s) => <button key={s} onClick={() => ask(s)} className="rounded-full bg-fill px-3 py-1 text-xs hover:bg-track">{s}</button>)}</div>
             <div className="flex items-center gap-2 rounded-2xl bg-surface p-2 pl-4 shadow-[0_0_0_0.5px_var(--hairline)]">
-              <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask(draft)} placeholder="Ask about any case, article or statute…" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+              <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && ask(draft)} placeholder="Ask about any case, article or statute…" aria-label="Message Notified AI" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
               <button onClick={() => ask(draft)} aria-label="Send" className="flex size-8 items-center justify-center rounded-full bg-blue text-white"><Icon name="back" size={14} className="rotate-90" /></button>
             </div>
             <p className="text-[11px] text-muted">Always open the cited source before relying on it in an exam or assignment.</p>

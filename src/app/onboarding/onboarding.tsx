@@ -24,8 +24,9 @@ export function Onboarding() {
   const [level, setLevel] = useState("200");
   const [goals, setGoals] = useState<string[]>(["AI summaries", "Flashcards"]);
   const today = new Date().toISOString().slice(0, 10);
-  const age = me.dob ? Math.floor((Date.now() - new Date(me.dob).getTime()) / 31557600000) : 0;
-  const dobError = me.dob && (me.dob > today || age < MIN_AGE) ? `You must be at least ${MIN_AGE} to sign up.` : "";
+  // Born on or before this date means MIN_AGE today; comparing ISO dates avoids leap-year rounding.
+  const latestDob = `${Number(today.slice(0, 4)) - MIN_AGE}${today.slice(4)}`;
+  const dobError = me.dob && me.dob > latestDob ? `You must be at least ${MIN_AGE} to sign up.` : "";
   const valid = step !== 0 || (me.first.trim() && me.last.trim() && me.dob && !dobError && me.gender);
   const pill = (on: boolean) => ({ background: on ? "rgba(0,122,255,0.08)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #007AFF" : "0 0 0 0.5px var(--hairline)" });
 
@@ -47,7 +48,7 @@ export function Onboarding() {
             <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Middle name(s) <span className="font-normal">(optional)</span><input value={me.middle} onChange={set("middle")} autoComplete="additional-name" className={field} /></label>
             <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Date of birth<input type="date" value={me.dob} max={today} onChange={set("dob")} autoComplete="bday" className={field} />{dobError && <span className="font-normal text-red">{dobError}</span>}</label>
             <div className="flex flex-col gap-1 text-xs font-semibold text-muted">Gender
-              <div className="flex flex-wrap gap-2">{GENDERS.map((g) => <button key={g} type="button" onClick={() => setMe((m) => ({ ...m, gender: g }))} className="rounded-full px-4 py-2 text-sm font-medium text-ink" style={pill(me.gender === g)}>{g}</button>)}</div>
+              <div className="flex flex-wrap gap-2">{GENDERS.map((g) => <button key={g} type="button" aria-pressed={me.gender === g} onClick={() => setMe((m) => ({ ...m, gender: g }))} className="rounded-full px-4 py-2 text-sm font-medium text-ink" style={pill(me.gender === g)}>{g}</button>)}</div>
             </div>
             <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Phone number <span className="font-normal">(optional, for MoMo payments)</span><input type="tel" value={me.phone} onChange={set("phone")} placeholder="024 000 0000" autoComplete="tel" className={field} /></label>
           </div>

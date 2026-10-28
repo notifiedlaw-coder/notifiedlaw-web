@@ -33,7 +33,7 @@ export function CaseBrief() {
   const head = "text-[11px] font-bold uppercase tracking-[0.05em] text-faint";
 
   return (
-    <div className="relative flex h-[calc(100dvh-52px)]">
+    <div className="relative flex h-full">
       <div ref={scroller} className="min-w-0 flex-1 overflow-auto">
         <div className="mx-auto flex max-w-[760px] flex-col gap-5 px-5 pb-12 pt-7 md:px-8">
           <div>
@@ -53,7 +53,7 @@ export function CaseBrief() {
           {find !== null && (
             <div className="flex h-9 items-center gap-2 rounded-[10px] bg-surface px-3 shadow-[0_0_0_0.5px_var(--hairline)]">
               <Icon name="search" size={14} className="text-faint" />
-              <input autoFocus value={find} onChange={(e) => setFind(e.target.value)} placeholder="Find a word or phrase in the judgment" className="flex-1 bg-transparent text-sm outline-none" />
+              <input autoFocus value={find} onChange={(e) => setFind(e.target.value)} placeholder="Find a word or phrase in the judgment" aria-label="Find in judgment" className="flex-1 bg-transparent text-sm outline-none" />
               <span className="text-xs text-muted">{find ? `${C.paras.filter((p) => p.toLowerCase().includes(find.toLowerCase())).length} paragraphs` : ""}</span>
             </div>
           )}
@@ -132,7 +132,7 @@ export function CaseBrief() {
             </div>
             <div className="border-t border-edge/[0.08] p-3">
               <div className="flex items-center gap-2 rounded-full bg-fill py-1 pl-3.5 pr-1">
-                <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask(draft)} placeholder="Ask about this case…" className="flex-1 bg-transparent text-[13px] outline-none" />
+                <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && ask(draft)} aria-label="Ask about this case" placeholder="Ask about this case…" className="flex-1 bg-transparent text-[13px] outline-none" />
                 <button onClick={() => ask(draft)} className="flex size-[26px] items-center justify-center rounded-full bg-blue text-white" aria-label="Send"><Icon name="back" size={12} className="rotate-90" /></button>
               </div>
             </div>

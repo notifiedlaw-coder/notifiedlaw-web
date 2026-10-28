@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     url: "/",
     title: `${SITE.name} — ${SITE.tagline}`,
     description: SITE.description,
-    images: [{ url: SITE.ogImage, width: 3840, height: 2560, alt: "NotifiedLaw on Mac, Home screen" }],
+    images: [{ url: SITE.ogImage, width: 1800, height: 1200, alt: "NotifiedLaw on Mac, Home screen" }],
   },
   twitter: {
     card: "summary_large_image",

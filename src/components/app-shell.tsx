@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CREDIT_NAME, DEMO_USER, PLAN_NAMES } from "@/lib/data";
 import { PlanProvider, usePlan } from "./plan";
@@ -116,7 +116,7 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
             {DEMO_USER.uniShort} · {PLAN_NAMES[plan].replace(/^.*\((.*)\)$/, "$1")}
           </span>
         </span>
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="rgba(60,60,67,0.55)" strokeWidth="1.5" strokeLinecap="round" className="shrink-0">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0 text-faint" aria-hidden>
           <circle cx="8" cy="8" r="2.2" />
           <path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4 5 11M11 5l1.4-1.4" />
         </svg>
@@ -143,21 +143,32 @@ const DRAWER_MS = 250;
 function Drawer({ path, onClose }: { path: string; onClose: () => void }) {
   const router = useRouter();
   const [shown, setShown] = useState(false);
+  const closeBtn = useRef<HTMLButtonElement>(null);
+  const closing = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // A second tap while the drawer is already sliding away is ignored, so it never navigates twice.
   const close = useCallback((href?: string) => {
+    if (closing.current) return;
     setShown(false);
-    setTimeout(() => {
+    closing.current = setTimeout(() => {
       onClose();
       if (href) router.push(href);
     }, DRAWER_MS);
   }, [onClose, router]);
 
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    closeBtn.current?.focus({ preventScroll: true });
     const raf = requestAnimationFrame(() => setShown(true));
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
     document.addEventListener("keydown", onKey);
-    return () => { cancelAnimationFrame(raf); document.removeEventListener("keydown", onKey); };
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", onKey);
+      opener?.focus?.({ preventScroll: true });
+    };
   }, [close]);
+  useEffect(() => () => clearTimeout(closing.current), []);
 
   return (
     <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
@@ -170,6 +181,7 @@ function Drawer({ path, onClose }: { path: string; onClose: () => void }) {
         className={`relative ml-auto flex h-full w-[min(300px,85vw)] flex-col bg-sidebar shadow-2xl transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform motion-reduce:transition-none ${shown ? "translate-x-0" : "translate-x-full"}`}
       >
         <button
+          ref={closeBtn}
           onClick={() => close()}
           aria-label="Close menu"
           className="absolute right-3 top-4 flex size-8 items-center justify-center rounded-md border-0 bg-transparent text-muted hover:bg-edge/5"
@@ -255,6 +267,7 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const [menu, setMenu] = useState(false);
+  const closeMenu = useCallback(() => setMenu(false), []);
   return (
     <PlanProvider>
     <div className="flex h-dvh overflow-hidden bg-surface text-[13px]">
@@ -265,7 +278,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
-      {menu && <Drawer path={path} onClose={() => setMenu(false)} />}
+      {menu && <Drawer path={path} onClose={closeMenu} />}
     </div>
     </PlanProvider>
   );

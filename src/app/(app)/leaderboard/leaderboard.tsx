@@ -31,7 +31,7 @@ export function Leaderboard() {
   const podium = [1, 0, 2].map((i) => ({ ...people[i], medal: MEDALS[i], big: i === 0 }));
 
   return (
-    <div className="relative min-h-[calc(100dvh-52px)]">
+    <div className="relative min-h-full">
       <div className="mx-auto flex max-w-[1040px] flex-col gap-6 px-5 pb-12 pt-8 md:px-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

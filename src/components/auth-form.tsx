@@ -9,7 +9,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <div className="grid min-h-dvh md:grid-cols-[1.1fr_1fr]">
       <div className="relative flex min-h-[34dvh] flex-col justify-end overflow-hidden bg-ink-dark p-6 text-white sm:min-h-[40dvh] sm:p-8 md:min-h-dvh md:p-14">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(https://commons.wikimedia.org/wiki/Special:FilePath/Balme_Library_at_University_of_Ghana_-_Legon.jpg?width=1600)" }} />
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/photos/balme-library.jpg)" }} />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(28,28,30,0.2) 0%, rgba(28,28,30,0.75) 45%, rgba(28,28,30,0.97) 100%)" }} />
         <div className="relative flex flex-col gap-4">
           <div className="text-[17px] font-semibold">Notified<span className="font-normal text-amber-soft">Law</span></div>

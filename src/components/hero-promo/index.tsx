@@ -66,10 +66,23 @@ export function HeroPromo() {
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    if (!playing || time >= AUDIO_END) { if (!a.paused) a.pause(); return; }
+    // Muted, the voice-over stays paused: nothing is downloaded or decoded until someone turns it on,
+    // and it then seeks to the current frame.
+    if (!playing || muted || time >= AUDIO_END) { if (!a.paused) a.pause(); return; }
     if (Math.abs(a.currentTime - time) > 0.3) a.currentTime = time;
     if (a.paused) void a.play().catch(() => {});
-  }, [time, playing]);
+  }, [time, playing, muted]);
+
+  // Start sound inside the click itself: Safari only allows audible playback from a user gesture.
+  const unmuteToggle = () => {
+    const a = audioRef.current;
+    if (muted && a && playing && time < AUDIO_END) {
+      a.muted = false;
+      a.currentTime = time;
+      void a.play().catch(() => {});
+    }
+    setMuted(!muted);
+  };
 
   return (
     <div ref={boxRef} className="absolute inset-0 overflow-hidden bg-black" role="img" aria-label="NotifiedLaw product walkthrough: library, Notified AI, Hot Topics podcast and plans">
@@ -81,14 +94,14 @@ export function HeroPromo() {
         // eslint-disable-next-line @next/next/no-img-element
         <img src="/landing/hero-poster.jpg" alt="" className="size-full object-cover" />
       )}
-      <audio ref={audioRef} src={AUDIO_SRC} preload="metadata" muted={muted} />
+      <audio ref={audioRef} src={AUDIO_SRC} preload="none" muted={muted} />
       <div className="absolute bottom-3 right-3 flex gap-2 opacity-60 transition-opacity focus-within:opacity-100 hover:opacity-100">
         <button onClick={() => setWantPlay((v) => !v)} aria-label={wantPlay ? "Pause walkthrough" : "Play walkthrough"} className={btn}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden>
             {wantPlay ? <><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></> : <path d="M8 5v14l11-7z" />}
           </svg>
         </button>
-        <button onClick={() => setMuted((v) => !v)} aria-label={muted ? "Unmute voice-over" : "Mute voice-over"} className={btn}>
+        <button onClick={unmuteToggle} aria-label={muted ? "Unmute voice-over" : "Mute voice-over"} className={btn}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden>
             <path d="M4 9v6h4l5 4V5L8 9z" />
             {muted

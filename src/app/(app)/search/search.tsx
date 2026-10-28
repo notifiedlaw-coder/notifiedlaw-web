@@ -29,7 +29,7 @@ export function Search() {
     <div className="mx-auto flex max-w-[760px] flex-col gap-5 px-5 pb-12 pt-8">
       <div className="flex h-11 items-center gap-2.5 rounded-xl bg-surface px-4 shadow-[0_0_0_0.5px_var(--hairline)]">
         <Icon name="search" size={16} className="text-faint" />
-        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search cases, articles, topics" className="flex-1 bg-transparent text-[15px] outline-none" />
+        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search cases, articles, topics" aria-label="Search cases, articles, topics" className="flex-1 bg-transparent text-[15px] outline-none" />
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Segmented options={["Titles", "Passages"] as const} value={mode} onChange={setMode} labels={{ Titles: "Titles & topics", Passages: "Inside judgments" }} />

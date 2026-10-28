@@ -22,8 +22,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
     etag: obj.httpEtag,
   });
   let status = 200;
-  if (hasRange && obj.range && "offset" in obj.range) {
-    const { offset = 0, length = obj.size - offset } = obj.range;
+  if (hasRange && obj.range) {
+    // R2 reports a "bytes=-N" request as a suffix, not an offset; without this it went out as a 200
+    // whose content-length claimed the whole file.
+    const r = obj.range as { offset?: number; length?: number; suffix?: number };
+    const suffix = r.suffix !== undefined ? Math.min(r.suffix, obj.size) : undefined;
+    const offset = suffix !== undefined ? obj.size - suffix : (r.offset ?? 0);
+    const length = suffix ?? r.length ?? obj.size - offset;
     headers.set("content-range", `bytes ${offset}-${offset + length - 1}/${obj.size}`);
     headers.set("content-length", String(length));
     status = 206;

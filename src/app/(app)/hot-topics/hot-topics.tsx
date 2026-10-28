@@ -18,14 +18,18 @@ export function HotTopics() {
   const ep = EPISODES[sel];
   const total = ep.mins * 60;
 
+  // Playback stops by itself at the end; Play from there starts the episode again.
+  const ended = progress >= 1;
+  const live = playing && !ended;
   useEffect(() => {
-    if (!playing) return;
+    if (!live) return;
     const t = setInterval(() => setProgress((p) => Math.min(1, p + (0.25 * speed) / total)), 250);
     return () => clearInterval(t);
-  }, [playing, speed, total]);
-  useEffect(() => {
-    if (progress >= 1) setPlaying(false);
-  }, [progress]);
+  }, [live, speed, total]);
+  const toggle = () => {
+    if (ended) setProgress(0);
+    setPlaying(!live);
+  };
 
   const pick = (i: number) => {
     setSel(i);
@@ -40,7 +44,7 @@ export function HotTopics() {
       <section className="relative overflow-hidden rounded-2xl bg-ink-dark p-6 text-white md:p-8">
         <div
           className="absolute inset-0 bg-cover bg-center opacity-40"
-          style={{ backgroundImage: "url(https://commons.wikimedia.org/wiki/Special:FilePath/Supreme_Court%2C_Accra_(IMG_20230201_140723_1).jpg?width=1600)" }}
+          style={{ backgroundImage: "url(/photos/supreme-court-accra.jpg)" }}
         />
         <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(28,28,30,0.95) 0%, rgba(28,28,30,0.75) 100%)" }} />
         <div className="relative flex flex-col gap-4">
@@ -49,11 +53,11 @@ export function HotTopics() {
           <p className="max-w-[640px] text-[15px] leading-snug text-white/75">{ep.blurb}</p>
           <div className="mt-1 flex items-center gap-3.5">
             <button
-              onClick={() => setPlaying((p) => !p)}
-              aria-label={playing ? "Pause" : "Play"}
+              onClick={toggle}
+              aria-label={live ? "Pause" : "Play"}
               className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-[#1d1d1f]"
             >
-              {playing ? (
+              {live ? (
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1" /><rect x="9.5" y="2" width="3.5" height="12" rx="1" /></svg>
               ) : (
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z" /></svg>
@@ -73,7 +77,7 @@ export function HotTopics() {
             <button
               onClick={() => setSpeed((s) => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length])}
               className="h-7 w-12 rounded-full bg-white/15 text-xs font-semibold tabular-nums"
-              aria-label="Playback speed"
+              aria-label={`Playback speed ${speed}×`}
             >
               {speed}×
             </button>
@@ -121,6 +125,7 @@ export function HotTopics() {
             <button
               key={e.n}
               onClick={() => pick(i)}
+              aria-current={i === sel ? "true" : undefined}
               className={`flex w-full items-center gap-3.5 border-t border-edge/[0.06] px-4 py-3 text-left first:border-0 hover:bg-hover ${i === sel ? "bg-hover" : ""}`}
             >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold" style={{ background: i === sel ? "#ff9f0a" : "var(--fill)", color: i === sel ? "#fff" : "var(--ink)" }}>
