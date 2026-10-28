@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb, userIdFrom } from "@/lib/auth";
 import { profile, uniEmail, uniEmailRequest } from "@/db/schema";
 import { clientIp, limited, limitedBy } from "@/lib/rate-limit";
@@ -49,7 +50,8 @@ export async function POST(req: Request) {
   };
   // Replacing the row also retires any earlier link.
   await db.insert(uniEmailRequest).values({ userId: id, ...row }).onConflictDoUpdate({ target: uniEmailRequest.userId, set: row });
-  const link = `${new URL(req.url).origin}/verify-uni?token=${token}`;
+  // The configured origin, never the request's: a link built from Host could point the token somewhere else.
+  const link = `${new URL(getCloudflareContext().env.BETTER_AUTH_URL).origin}/verify-uni?token=${token}`;
   if (process.env.NODE_ENV !== "production") console.info(`[uni-email] verification link for ${checked.email}: ${link}`);
   try {
     await sendEmail({ to: checked.email, ...uniEmailMessage(link, p.university, LINK_MINUTES) });
