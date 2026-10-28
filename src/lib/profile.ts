@@ -2,7 +2,7 @@ import { UNIVERSITIES } from "@/lib/content";
 import { isPlan, type Level, type Plan } from "@/lib/data";
 
 export const GENDERS = ["Female", "Male", "Non-binary", "Prefer not to say"] as const;
-export const GOALS = ["AI summaries", "Flashcards", "Podcasts", "Past questions", "Case law"] as const;
+export const GOALS = ["Course notes", "Podcasts", "Past questions", "Case law", "Articles"] as const;
 export const LEVELS: readonly Level[] = ["100", "200", "300", "400", "pre-bar", "bar"];
 export const MIN_AGE = 16;
 

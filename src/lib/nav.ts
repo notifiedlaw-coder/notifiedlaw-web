@@ -8,37 +8,27 @@ export type NavItem = {
 
 export const NAV_TOP: NavItem[] = [
   { href: "/dashboard", label: "Home", icon: "home" },
-  { href: "/ai", label: "Notified AI", icon: "sparkle" },
   { href: "/hot-topics", label: "Hot Topics", icon: "headphones" },
 ];
 
 export const NAV_STUDY: NavItem[] = [
   { href: "/library", label: "Library", icon: "book" },
-  { href: "/flashcards", label: "Flashcards", icon: "cards" },
   { href: "/exam-prep", label: "Exam Prep", icon: "check" },
-  { href: "/leaderboard", label: "Leaderboard", icon: "trophy", proLock: true },
 ];
 
 export const NAV_RESEARCH: NavItem[] = [
   { href: "/case-law", label: "Case Law", icon: "scales" },
   { href: "/articles", label: "Articles", icon: "doc" },
-  { href: "/files", label: "My Files", icon: "folder" },
 ];
 
 export function titleFor(pathname: string): { title: string; sub: string } {
   const map: [string, string, string][] = [
     ["/dashboard", "Home", ""],
-    ["/ai", "Notified AI", "Ghanaian law only"],
     ["/hot-topics", "Hot Topics Podcast", "Latest in Accra, with the law behind it"],
     ["/articles", "Articles", "Explainers on Ghanaian law"],
-    ["/library", "Library", "Level 200 · Constitutional Law II and more"],
-    ["/flashcards", "Flashcards", "Pick a level and review"],
-    ["/exam-prep", "Exam Prep", "Practice and past papers"],
-    ["/leaderboard", "Leaderboard", "Weekly quiz"],
-    ["/case-law", "Case Law", "Ghana Supreme Court and Court of Appeal"],
-    ["/legislation", "Legislation", "Constitution, Acts and Decrees"],
-    ["/files", "My Files", "Your uploaded notes"],
-    ["/search", "Search", "Cases, articles, topics"],
+    ["/library", "Library", "Course notes by level"],
+    ["/exam-prep", "Exam Prep", "Mock questions"],
+    ["/case-law", "Case Law", "Case briefs"],
     ["/settings", "Settings", "Profile and preferences"],
     ["/plans", "Plans", "Choose how you study"],
     ["/checkout", "Checkout", "Mobile money"],

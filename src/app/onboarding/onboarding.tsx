@@ -20,7 +20,7 @@ export function Onboarding({ defaults }: { defaults: { first: string; middle: st
   const set = (k: keyof typeof me) => (e: React.ChangeEvent<HTMLInputElement>) => setMe((m) => ({ ...m, [k]: e.target.value }));
   const [uni, setUni] = useState(0);
   const [level, setLevel] = useState("200");
-  const [goals, setGoals] = useState<string[]>(["AI summaries", "Flashcards"]);
+  const [goals, setGoals] = useState<string[]>(["Course notes", "Past questions"]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const today = new Date().toISOString().slice(0, 10);

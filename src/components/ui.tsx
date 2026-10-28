@@ -176,3 +176,13 @@ export const Chevron = () => (
     <path d="m6 3 5 5-5 5" />
   </svg>
 );
+
+/** Shown where a page has no published content yet. */
+export function Empty({ title, children }: { title: string; children?: React.ReactNode }) {
+  return (
+    <div className={`${cardCls} flex flex-col items-center gap-1.5 px-6 py-12 text-center`}>
+      <div className="text-[15px] font-semibold">{title}</div>
+      {children && <div className="max-w-[420px] text-[13px] text-muted">{children}</div>}
+    </div>
+  );
+}

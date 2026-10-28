@@ -3,23 +3,14 @@ import { notFound } from "next/navigation";
 import { Markdown } from "@/components/markdown";
 import { Page as Shell } from "@/components/ui";
 import { getCaseBriefs } from "@/lib/cms";
-import { EDUSEI } from "@/lib/content";
-import { CaseBrief } from "./case-brief";
 
-// Case briefs can come from Notion (D1); the built-in Edusei brief is still served from code.
+// Case briefs come from Notion (D1), so this page is rendered on request.
 export const dynamic = "force-dynamic";
 
 const find = async (slug: string) => (await getCaseBriefs()).find((c) => c.slug === slug);
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  if (slug === EDUSEI.slug) {
-    return {
-      title: `${EDUSEI.title} case brief`,
-      description: `Case brief for ${EDUSEI.title} ${EDUSEI.cite}: facts, issues, holding and ratio, with later treatment.`,
-      alternates: { canonical: `/case-law/${EDUSEI.slug}` },
-    };
-  }
   const c = await find(slug);
   if (!c) return {};
   return { title: `${c.title} case brief`, description: `Case brief for ${c.title} ${c.cite}.`, alternates: { canonical: `/case-law/${c.slug}` } };
@@ -27,7 +18,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  if (slug === EDUSEI.slug) return <CaseBrief />;
   const c = await find(slug);
   if (!c) notFound();
   return (

@@ -3,7 +3,7 @@ export const SITE = {
   url: "https://notifiedlaw.com",
   tagline: "The Law at Your Fingertips",
   description:
-    "Notes, podcasts, flashcards and expertly marked exam prep for every Ghanaian law course, from Level 100 to the Bar Course.",
+    "Notes, podcasts and exam prep for every Ghanaian law course, from Level 100 to the Bar Course.",
   locale: "en_GH",
   ogImage: "/landing/hero.jpg",
 } as const;
@@ -18,14 +18,13 @@ export const abs = (path = "/") => new URL(path, SITE.url).toString();
 
 /** Routes behind the app shell that hold per-user state. Kept out of search and AI indexes. */
 export const PRIVATE_PATHS = [
-  "/dashboard", "/settings", "/files", "/ai", "/checkout", "/onboarding", "/flashcards",
-  "/exam-prep", "/leaderboard", "/search", "/hot-topics", "/plans", "/login",
+  "/dashboard", "/settings", "/checkout", "/onboarding", "/exam-prep", "/hot-topics", "/plans", "/login",
 ] as const;
 
 export const FAQ = [
   {
     q: "What is NotifiedLaw?",
-    a: "NotifiedLaw is a study platform for Ghanaian law students. It offers course notes, case law briefs, statutes, AI flashcards, a Hot Topics podcast and expertly marked exam practice for every law course from Level 100 to the Bar Course.",
+    a: "NotifiedLaw is a study platform for Ghanaian law students. It offers course notes, case law briefs, articles, a Hot Topics podcast and expertly marked exam practice for every law course from Level 100 to the Bar Course.",
   },
   {
     q: "Which courses and levels does NotifiedLaw cover?",
@@ -38,10 +37,6 @@ export const FAQ = [
   {
     q: "Can I pay with mobile money?",
     a: "Yes. NotifiedLaw accepts MTN MoMo, Telecel Cash and AT Money.",
-  },
-  {
-    q: "What is Notified AI?",
-    a: "Notified AI is a tutor that answers questions in plain English, grounded in NotifiedLaw course material, and cites the relevant cases and statutes.",
   },
   {
     q: "Is there a free trial for law students?",

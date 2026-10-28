@@ -42,7 +42,7 @@ export function Checkout() {
         <div className="flex size-16 items-center justify-center rounded-full text-3xl text-white" style={{ background: stage === "done" ? "#34C759" : "#FF9500" }}>{stage === "done" ? "✓" : "…"}</div>
         <h1 className="text-2xl font-bold" aria-live="polite">{stage === "done" ? (pack ? `${pack.credits} ${CREDIT_NAME} added` : `You’re on ${PLAN_NAMES[target]}`) : "Approve the prompt on your phone"}</h1>
         <p className="text-sm text-muted">{stage === "done" ? (pack ? "Your credits are ready in Notified AI." : "Everything is unlocked. Happy studying.") : `We sent a ${NETWORKS[net].label} request to +233 ${phone}.`}</p>
-        {stage === "done" && <Btn href={pack ? "/ai" : "/dashboard"}>{pack ? "Open Notified AI" : "Go to Home"}</Btn>}
+        {stage === "done" && <Btn href="/dashboard">Go to Home</Btn>}
       </div>
     );
 

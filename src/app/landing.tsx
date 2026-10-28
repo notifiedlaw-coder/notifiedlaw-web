@@ -2,32 +2,26 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { EPISODES, PODCAST } from "@/lib/content";
 import { AUDIO_SRC, HeroPromo } from "@/components/hero-promo";
 import { LandingLoader } from "@/components/landing-loader";
 import { FAQ } from "@/lib/site";
 
 const LOGIN = "/login";
 const SIGNUP = "/signup";
-const SUGGESTIONS = ["Quiz me on Tuffuor v A-G", "Outline an answer on negligence", "What is an allodial title?"];
 const PRICES = {
   month: { pro: "GH₵45", max: "GH₵85", per: "/ month" },
   semester: { pro: "GH₵150", max: "GH₵290", per: "/ semester" },
 };
 // Everything the loader waits for (the hero poster is only a fallback, so it is left out).
-const IMAGES = ["library", "flashcards", "case-law", "exam", "podcast-art"].map((s) => `/landing/${s}.jpg`);
-const NAV = [["Overview", "#features"], ["Notified AI", "#ai"], ["Hot Topics", "#listen"], ["Exam Prep", "#exam"], ["Pricing", "#pricing"]];
+const IMAGES = ["library", "case-law", "exam"].map((s) => `/landing/${s}.jpg`);
+const NAV = [["Overview", "#features"], ["Hot Topics", "#listen"], ["Exam Prep", "#exam"], ["Pricing", "#pricing"]];
 
 const HIGHLIGHTS: { tag: string; color: string; title: string; body: string; slot?: string; alt?: string }[] = [
   { tag: "Library", color: "#FF9500", title: "Every course. Every topic.", body: "Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline.", slot: "library", alt: "Reader view — Judicial Review note" },
-  { tag: "Flashcards", color: "#34C759", title: "Finish a note. Get the deck.", body: "AI turns every note into cards you can flip on the go.", slot: "flashcards", alt: "Flashcard — Tuffuor v A-G" },
   { tag: "Case Law", color: "#0071E3", title: "The judgments, searchable.", body: "Find the ratio, the holding and the dissent without the 80-page scroll.", slot: "case-law", alt: "Case Law search results" },
-  { tag: "Legislation", color: "#34C759", title: "Every Act, with its status.", body: "The Constitution and Acts of Parliament, marked in force, amended or repealed, with original and current text." },
   { tag: "Articles", color: "#FF9F0A", title: "Plain-English explainers.", body: "Short pieces on the questions Ghanaian law students actually ask, linked to the cases and notes behind them." },
   { tag: "Hot Topics", color: "#FF2D55", title: "A podcast on the law in the news.", body: "Each episode links back to the cases, Acts and notes you can study next." },
   { tag: "Exam Prep", color: "#34C759", title: "Past questions, expertly marked.", body: "Answer timed questions and get written feedback from an expert marker." },
-  { tag: "My Files", color: "#5E5CE6", title: "Your own materials, in one place.", body: "Keep lecture slides and your own notes next to the library." },
-  { tag: "Leaderboard", color: "#FF9500", title: "Study streaks, with company.", body: "See how you rank against coursemates and keep the habit going." },
 ];
 
 // Mobile: swipeable card rail that bleeds to the screen edges. md+: the normal grid.
@@ -66,7 +60,6 @@ function Tier({ name, color, price, per, blurb, items, cta, dark, ctaCls, badge 
 
 export default function Landing() {
   const [billing, setBilling] = useState<"month" | "semester">("month");
-  const [playing, setPlaying] = useState(false);
   const [menu, setMenu] = useState(false);
   const [ready, setReady] = useState(false);
   const [audio, setAudio] = useState<string | null>(null);
@@ -148,49 +141,12 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="ai" className="bg-black px-[22px] py-[120px] text-[#F5F5F7]">
-        <div className="mx-auto flex max-w-[1024px] flex-col items-center gap-[18px] text-center">
-          <div className="text-[21px] font-semibold text-[#BF5AF2]">Notified AI</div>
-          <h2 className="m-0 max-w-[860px] text-balance text-[clamp(40px,6.5vw,80px)] font-bold leading-[1.04] tracking-[-0.045em]">A tutor that has read every note.</h2>
-          <p className="m-0 max-w-[620px] text-pretty text-[21px] text-[#A1A1A6]">Ask in plain English. Get answers grounded in your course material, with the cases cited.</p>
-          <div className="mt-10 flex w-full max-w-[720px] flex-col gap-4 rounded-3xl bg-[#1C1C1E] p-7 text-left">
-            <div className="max-w-[80%] self-end rounded-[20px_20px_6px_20px] bg-[#0A84FF] px-4 py-2.5 text-white">Explain stare decisis simply.</div>
-            <div className="max-w-[88%] self-start rounded-[20px_20px_20px_6px] bg-[#2C2C2E] px-[18px] py-3.5 leading-[1.5]">Courts follow earlier decisions on the same point of law. In Ghana, the Supreme Court binds every lower court, but under Article 129(3) it may depart from its own past decisions.</div>
-            <div className="flex flex-wrap gap-2 pt-1.5">
-              {SUGGESTIONS.map((s) => <span key={s} className="rounded-full border-[0.5px] border-white/15 bg-white/10 px-3.5 py-2 text-sm">{s}</span>)}
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section id="listen" className="bg-white px-[22px] py-[120px]">
         <div className="mx-auto grid max-w-[1024px] grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] items-center gap-14">
           <div className="flex flex-col gap-4">
             <div className="text-[21px] font-semibold text-[#FF2D55]">Hot Topics Podcast</div>
             <h2 className={`${h2} text-balance`}>The law behind the week.</h2>
-            <p className="m-0 text-pretty text-[19px] text-[#6E6E73]">{PODCAST.tagline}</p>
-          </div>
-          <div className="flex flex-col gap-5 rounded-[28px] bg-[#F5F5F7] p-7">
-            <div className="flex items-center gap-4">
-              <div className="size-[88px] shrink-0 overflow-hidden rounded-[14px]"><Slot src="podcast-art" label="Art" /></div>
-              <div className="min-w-0">
-                <div className="text-[13px] font-semibold uppercase tracking-[0.04em] text-[#6E6E73]">Latest · Episode {EPISODES[0].n} · {EPISODES[0].area}</div>
-                <div className="mt-0.5 text-[19px] font-semibold leading-tight">{EPISODES[0].title}</div>
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <div className="h-1 overflow-hidden rounded-sm bg-black/10"><div className="h-full w-[38%] bg-[#1D1D1F]" /></div>
-              <div className="flex justify-between text-xs tabular-nums text-[#6E6E73]"><span>6:30</span><span>−{EPISODES[0].mins - 6}:30</span></div>
-            </div>
-            <div className="flex items-center justify-center gap-9">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#1D1D1F" aria-hidden><path d="M11 6v12L3 12zM20 6v12l-8-6z" /></svg>
-              <button onClick={() => setPlaying((v) => !v)} aria-label={playing ? "Pause" : "Play"} className="flex size-14 items-center justify-center rounded-full border-0 bg-[#1D1D1F]">
-                {playing
-                  ? <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
-                  : <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>}
-              </button>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#1D1D1F" aria-hidden><path d="M13 6v12l8-6zM4 6v12l8-6z" /></svg>
-            </div>
+            <p className="m-0 text-pretty text-[19px] text-[#6E6E73]">What people are talking about, and the law behind it. Each episode comes with a write-up on NotifiedLaw.</p>
           </div>
         </div>
       </section>
@@ -216,9 +172,9 @@ export default function Landing() {
             ))}
           </div>
           <div className={`${rail} w-[calc(100%+44px)] max-w-none md:w-full md:grid-cols-3`}>
-            <Tier name="Attorney" price="Free" blurb="Try NotifiedLaw with starter content." items={["First 2 topics of every course", "Starter flashcard decks"]} cta="Start free" ctaCls="border border-[#0071E3] text-[#0071E3]! hover:text-[#0071E3]! hover:bg-[#0071E3]/5" />
-            <Tier name="Senior Judicial" color="#0071E3" price={p.pro} per={p.per} blurb="The full library, with AI to help it stick." items={["All topics, at every level", "AI summaries for every note", "Unlimited AI flashcards"]} cta="Choose Pro" ctaCls="bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]" />
-            <Tier dark name="Supreme Justice" color="#BF5AF2" badge="Most complete" price={p.max} per={p.per} blurb="Everything, plus AI that listens, talks and tutors." items={["Everything in Senior Judicial", "AI podcast of any note", "Personal AI tutor, unlimited", "Exam mode with expert marking"]} cta="Choose Max" ctaCls="bg-[#F5F5F7] text-[#1D1D1F]! hover:text-[#1D1D1F]! hover:bg-white" />
+            <Tier name="Attorney" price="Free" blurb="Try NotifiedLaw with starter content." items={["First 2 topics of every course"]} cta="Start free" ctaCls="border border-[#0071E3] text-[#0071E3]! hover:text-[#0071E3]! hover:bg-[#0071E3]/5" />
+            <Tier name="Senior Judicial" color="#0071E3" price={p.pro} per={p.per} blurb="The full library." items={["All topics, at every level"]} cta="Choose Pro" ctaCls="bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]" />
+            <Tier dark name="Supreme Justice" color="#BF5AF2" badge="Most complete" price={p.max} per={p.per} blurb="Everything, including Pre-Bar and the Bar Course." items={["Everything in Senior Judicial", "Pre-Bar and Bar Course notes", "Exam prep questions"]} cta="Choose Max" ctaCls="bg-[#F5F5F7] text-[#1D1D1F]! hover:text-[#1D1D1F]! hover:bg-white" />
           </div>
         </div>
       </section>

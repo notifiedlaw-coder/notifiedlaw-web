@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
-const BULLETS = ["Notes for every Level", "Listen to any note as a podcast", "Revise with flashcards and a personal AI tutor"];
+const BULLETS = ["Notes for every Level", "Hot Topics podcast write-ups", "Case briefs, articles and exam prep"];
 const btn = "flex h-11 items-center justify-center rounded-[10px] text-[15px] font-medium";
 
 export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
