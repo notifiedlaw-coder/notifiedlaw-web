@@ -149,7 +149,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="faq" aria-labelledby="faq-h" className="bg-white px-[22px] py-[120px]">
+      <section id="faq" aria-labelledby="faq-h" className="bg-white px-[22px] pb-[120px] pt-6">
         <div className="mx-auto flex max-w-[760px] flex-col gap-9">
           <h2 id="faq-h" className={h2}>Questions, answered.</h2>
           <div className="flex flex-col">
