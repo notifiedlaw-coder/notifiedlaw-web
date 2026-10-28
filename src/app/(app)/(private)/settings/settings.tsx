@@ -7,6 +7,7 @@ import { Eyebrow, Initials, LevelSelect, Page, Segmented } from "@/components/ui
 import { DEMO_BILLING } from "@/lib/site";
 import { useUser } from "@/components/user";
 import { authClient } from "@/lib/auth-client";
+import { ProfileForm } from "./profile-form";
 import { CREDIT_NAME, PLAN_NAMES, type Plan } from "@/lib/data";
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -31,6 +32,7 @@ export function Settings() {
         <Row label="University">{profile?.university ?? "—"}</Row>
         <Row label="Level"><LevelSelect value={profile?.level ?? "200"} onChange={setLevel} /></Row>
       </Group>
+      {profile && <ProfileForm profile={profile} />}
       <Group title="Subscription">
         <Row label="Current plan">{PLAN_NAMES[plan]}</Row>
         <Row label={CREDIT_NAME}>{credits} available{allowance > 0 ? ` · ${allowance} monthly` : ""}{extra > 0 ? ` · ${extra} extra` : ""}</Row>

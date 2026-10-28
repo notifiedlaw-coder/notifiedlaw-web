@@ -13,8 +13,10 @@ type Ctx = {
   /** Onboarding answers; null for guests, before they load, or if onboarding is not done. */
   profile: Profile | null;
   setLevel: (l: Level) => void;
+  /** Replaces the cached profile after it was saved from Settings. */
+  setProfile: (p: Profile) => void;
 };
-const PlanCtx = createContext<Ctx>({ plan: "Free", setPlan: () => {}, pro: false, max: false, credits: 0, allowance: 0, extra: 0, spend: () => false, addCredits: () => {}, profile: null, setLevel: () => {} });
+const PlanCtx = createContext<Ctx>({ plan: "Free", setPlan: () => {}, pro: false, max: false, credits: 0, allowance: 0, extra: 0, spend: () => false, addCredits: () => {}, profile: null, setLevel: () => {}, setProfile: () => {} });
 
 type Me = { subscription: { plan: string; creditsUsed: number; creditsExtra: number }; profile: Profile | null };
 
@@ -58,6 +60,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, plan: p }));
     send("/api/subscription", "PUT", { plan: p });
   }, []);
+  const setProfile = useCallback((profile: Profile) => setState((s) => ({ ...s, profile })), []);
   const setLevel = useCallback((level: Level) => {
     setState((s) => (s.profile ? { ...s, profile: { ...s.profile, level } } : s));
     send("/api/profile", "PATCH", { level });
@@ -65,8 +68,8 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 
   // Memoised so the many consumers only re-render when the plan or balance actually changes.
   const value = useMemo(
-    () => ({ plan, setPlan, pro: plan !== "Free", max: plan === "Pro Max", credits, allowance, extra, spend, addCredits, profile, setLevel }),
-    [plan, setPlan, credits, allowance, extra, spend, addCredits, profile, setLevel],
+    () => ({ plan, setPlan, pro: plan !== "Free", max: plan === "Pro Max", credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile }),
+    [plan, setPlan, credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile],
   );
   return <PlanCtx.Provider value={value}>{children}</PlanCtx.Provider>;
 }
