@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { PLAN_CREDITS, isPlan, type Level, type Plan } from "@/lib/data";
 import type { Profile } from "@/lib/profile";
+import { DEMO_BILLING } from "@/lib/site";
 
 type Ctx = {
   plan: Plan; setPlan: (p: Plan) => void; pro: boolean; max: boolean;
@@ -44,14 +45,16 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     const fromMonthly = Math.min(monthly, n);
     const next = { used: used + fromMonthly, extra: extra - (n - fromMonthly) };
     setState((s) => ({ ...s, ...next }));
-    send("/api/subscription", "PUT", { creditsUsed: next.used, creditsExtra: next.extra });
+    if (DEMO_BILLING) send("/api/subscription", "PUT", { creditsUsed: next.used, creditsExtra: next.extra });
     return true;
   }, [credits, monthly, used, extra]);
   const addCredits = useCallback((n: number) => {
+    if (!DEMO_BILLING) return; // production balances come from the server
     setState((s) => ({ ...s, extra: s.extra + n }));
     send("/api/subscription", "PUT", { creditsExtra: extra + n });
   }, [extra]);
   const setPlan = useCallback((p: Plan) => {
+    if (!DEMO_BILLING) return; // production plans come from the database
     setState((s) => ({ ...s, plan: p }));
     send("/api/subscription", "PUT", { plan: p });
   }, []);

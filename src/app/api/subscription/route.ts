@@ -1,10 +1,12 @@
 import { getDb, userIdFrom } from "@/lib/auth";
 import { subscription } from "@/db/schema";
+import { DEMO_BILLING } from "@/lib/site";
 import { parseSubscription } from "@/lib/profile";
 
-// Demo: until real payments exist, the client reports plan changes and credit spend and the server
-// stores them. Once checkout is real, plan changes must come from the payment webhook, not this route.
+// Development only: lets the demo checkout and the settings preview write a plan. Production never trusts
+// the client for this; plan changes there must come from the payment webhook.
 export async function PUT(req: Request) {
+  if (!DEMO_BILLING) return Response.json({ error: "forbidden" }, { status: 403 });
   const id = await userIdFrom(req);
   if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
   const s = parseSubscription(await req.json().catch(() => null));

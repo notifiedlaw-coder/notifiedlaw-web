@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePlan } from "@/components/plan";
 import { useTheme, type Theme } from "@/components/theme";
 import { Eyebrow, Initials, LevelSelect, Page, Segmented } from "@/components/ui";
+import { DEMO_BILLING } from "@/lib/site";
 import { useUser } from "@/components/user";
 import { authClient } from "@/lib/auth-client";
 import { CREDIT_NAME, PLAN_NAMES, type Plan } from "@/lib/data";
@@ -40,9 +41,11 @@ export function Settings() {
       <Group title="Appearance">
         <Row label="Theme"><Segmented options={["system", "light", "dark"] as readonly Theme[]} value={theme} onChange={setTheme} labels={{ system: "System", light: "Light", dark: "Dark" }} /></Row>
       </Group>
-      <Group title="Demo">
-        <Row label="Preview as plan"><Segmented options={["Free", "Pro", "Pro Max"] as readonly Plan[]} value={plan} onChange={setPlan} /></Row>
-      </Group>
+      {DEMO_BILLING && (
+        <Group title="Demo">
+          <Row label="Preview as plan"><Segmented options={["Free", "Pro", "Pro Max"] as readonly Plan[]} value={plan} onChange={setPlan} /></Row>
+        </Group>
+      )}
       <button onClick={() => authClient.signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } })} className="cursor-pointer rounded-xl border-0 bg-surface py-3 text-center text-sm font-medium text-red shadow-card" style={{ color: "#FF3B30" }}>Sign Out</button>
     </Page>
   );

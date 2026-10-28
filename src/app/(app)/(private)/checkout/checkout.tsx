@@ -7,6 +7,7 @@ import { usePlan } from "@/components/plan";
 import { Btn } from "@/components/ui";
 import { CREDIT_PACKS, NETWORKS, PRICES } from "@/lib/content";
 import { CREDIT_NAME, PLAN_NAMES, isPlan, type Plan } from "@/lib/data";
+import { DEMO_BILLING } from "@/lib/site";
 
 // Demo flow only. Real payments will go through a Worker calling a MoMo/card provider,
 // with the subscription written to D1 on webhook confirmation.
@@ -70,7 +71,11 @@ export function Checkout() {
           </div>
           <p className="text-xs text-muted">You’ll get a prompt on this number to approve the payment.</p>
         </div>
-        <Btn onClick={pay} className="h-11 text-[15px]">Pay {price}</Btn>
+        {DEMO_BILLING ? (
+          <Btn onClick={pay} className="h-11 text-[15px]">Pay {price}</Btn>
+        ) : (
+          <p className="m-0 rounded-xl bg-fill px-4 py-3 text-sm text-muted">Payments are not open yet, so your plan has not changed. We will announce it when they are.</p>
+        )}
       </section>
       <aside className="h-fit rounded-2xl bg-surface p-5 shadow-card">
         <div className="text-xs font-semibold text-muted">Order summary</div>

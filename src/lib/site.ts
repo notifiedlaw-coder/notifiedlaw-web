@@ -8,6 +8,12 @@ export const SITE = {
   ogImage: "/landing/hero.jpg",
 } as const;
 
+/**
+ * Demo billing: lets the client change its own plan and credits. Development only. In production the plan
+ * and credit balance are decided by the server and database, never by the browser.
+ */
+export const DEMO_BILLING = process.env.NODE_ENV !== "production";
+
 export const abs = (path = "/") => new URL(path, SITE.url).toString();
 
 /** Routes behind the app shell that hold per-user state. Kept out of search and AI indexes. */
