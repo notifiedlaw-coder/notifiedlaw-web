@@ -33,6 +33,8 @@ export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial 
   );
 }
 
+const SEMESTER_COLOR: Record<string, string> = { "1": "#007AFF", "2": "#AF52DE" };
+
 export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
   const [level, setLevel] = useStudyLevel();
   const { pro, max } = usePlan();
@@ -62,9 +64,16 @@ export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
         </div>
       )}
       {courses[level].length === 0 && <Empty title={`No courses for ${LEVEL_LABEL[level]} yet`}>Courses are added from the NotifiedLaw content database and appear here once they are published.</Empty>}
-      {bySemester(courses[level]).map((sem) => (
-        <div key={sem.semester} className="flex flex-col gap-4">
-          <h2 className="px-1 text-[13px] font-bold uppercase tracking-[0.05em] text-muted">{sem.label}</h2>
+      {bySemester(courses[level]).map((sem, n) => (
+        <div key={sem.semester} className={`flex flex-col gap-4 ${n ? "mt-8" : ""}`}>
+          {/* Pinned while its courses scroll past, so it is always clear which semester you are in. */}
+          <div className="sticky top-0 z-10 -mx-5 flex items-center gap-3 bg-canvas/90 px-5 py-3 backdrop-blur-md md:-mx-10 md:px-10">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl text-[17px] font-bold text-white" style={{ background: SEMESTER_COLOR[sem.semester] ?? "#8E8E93" }}>{sem.semester}</span>
+            <div className="flex flex-col leading-tight">
+              <h2 className="m-0 text-[20px] font-bold tracking-[-0.01em]">{sem.label}</h2>
+              <span className="text-[13px] text-muted">{sem.courses.length} {sem.courses.length === 1 ? "course" : "courses"}</span>
+            </div>
+          </div>
           {sem.courses.map((c) => (
           <section key={c.slug} className="flex flex-col gap-2">
             <Link href={`/library/${c.slug}`} className="flex items-center gap-2.5 px-1" style={{ textDecoration: "none", color: "inherit" }}>
