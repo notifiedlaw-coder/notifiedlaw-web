@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Btn, Chevron, Empty, LevelSelect, Page, Title } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { usePlan, useStudyLevel } from "@/components/plan";
-import { abbr, bySemester, FREE_TOPICS, isMaxLevel, LEVEL_LABEL, type Course, type Level, type TopicInfo } from "@/lib/data";
+import { bySemester, FREE_TOPICS, isMaxLevel, LEVEL_LABEL, type Course, type Level, type TopicInfo } from "@/lib/data";
 
 export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial (Pro)" }: { slug: string; i: number; topic: TopicInfo; locked: boolean; lockLabel?: string }) {
   const body = (
@@ -32,8 +32,6 @@ export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial 
     </Link>
   );
 }
-
-const SEMESTER_COLOR: Record<string, string> = { "1": "#007AFF", "2": "#AF52DE" };
 
 export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
   const [level, setLevel] = useStudyLevel();
@@ -67,18 +65,15 @@ export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
       {bySemester(courses[level]).map((sem, n) => (
         <div key={sem.semester} className={`flex flex-col gap-4 ${n ? "mt-8" : ""}`}>
           {/* Pinned while its courses scroll past, so it is always clear which semester you are in. */}
-          <div className="sticky top-0 z-10 -mx-5 flex items-center gap-3 bg-canvas/90 px-5 py-3 backdrop-blur-md md:-mx-10 md:px-10">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl text-[17px] font-bold text-white" style={{ background: SEMESTER_COLOR[sem.semester] ?? "#8E8E93" }}>{sem.semester}</span>
-            <div className="flex flex-col leading-tight">
-              <h2 className="m-0 text-[20px] font-bold tracking-[-0.01em]">{sem.label}</h2>
-              <span className="text-[13px] text-muted">{sem.courses.length} {sem.courses.length === 1 ? "course" : "courses"}</span>
-            </div>
+          <div className="sticky top-0 z-10 -mx-5 flex items-baseline justify-between gap-3 border-b-[0.5px] border-edge/15 bg-canvas/85 px-5 py-3 backdrop-blur-xl backdrop-saturate-150 md:-mx-10 md:px-10">
+            <h2 className="m-0 text-[22px] font-bold tracking-[-0.02em]">{sem.label}</h2>
+            <span className="text-[13px] text-muted">{sem.courses.length} {sem.courses.length === 1 ? "course" : "courses"}</span>
           </div>
           {sem.courses.map((c) => (
           <section key={c.slug} className="flex flex-col gap-2">
-            <Link href={`/library/${c.slug}`} className="flex items-center gap-2.5 px-1" style={{ textDecoration: "none", color: "inherit" }}>
-              <span className="flex size-7 items-center justify-center rounded-lg text-[11px] font-bold text-white" style={{ background: c.color }}>{abbr(c.title)}</span>
-              <span className="text-[17px] font-semibold">{c.title}</span>
+            <Link href={`/library/${c.slug}`} className="flex items-center gap-1.5 self-start px-1 hover:opacity-70" style={{ textDecoration: "none", color: "inherit" }}>
+              <span className="text-[17px] font-semibold tracking-[-0.01em]">{c.title}</span>
+              <Chevron />
             </Link>
             <div className="overflow-hidden rounded-xl bg-surface shadow-card">
               {c.topics.map((t, i) => (
