@@ -89,7 +89,7 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
           Search cases, articles, topics
         </Link>
       </div>
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-auto px-2.5">
+      <nav data-drawer-scroll className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-2.5">
         <div className="h-1.5" />
         {NAV_TOP.map((i) => (
           <SidebarLink key={i.href} item={i} path={path} onNavigate={onNavigate} roomy={roomy} />
@@ -173,15 +173,45 @@ function Drawer({ path, onClose }: { path: string; onClose: () => void }) {
   }, [close]);
   useEffect(() => () => clearTimeout(closing.current), []);
 
+  // Scroll lock while the menu is open: the page behind must not scroll, rubber-band or pull-to-refresh.
+  // Only the menu list scrolls, and at its ends the gesture is swallowed instead of chaining to the page.
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = document.documentElement;
+    const prev = root.style.overscrollBehavior;
+    root.style.overscrollBehavior = "none";
+    document.body.style.overflow = "hidden";
+    const el = panel.current?.parentElement;
+    let y0 = 0;
+    const start = (e: TouchEvent) => { y0 = e.touches[0].clientY; };
+    const move = (e: TouchEvent) => {
+      const list = (e.target as HTMLElement).closest<HTMLElement>("[data-drawer-scroll]");
+      if (!list) { e.preventDefault(); return; }
+      const dy = e.touches[0].clientY - y0; // > 0: finger moving down, content scrolls toward the top
+      const atTop = list.scrollTop <= 0;
+      const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 1;
+      if ((dy > 0 && atTop) || (dy < 0 && atBottom)) e.preventDefault();
+    };
+    el?.addEventListener("touchstart", start, { passive: true });
+    el?.addEventListener("touchmove", move, { passive: false });
+    return () => {
+      root.style.overscrollBehavior = prev;
+      document.body.style.overflow = "";
+      el?.removeEventListener("touchstart", start);
+      el?.removeEventListener("touchmove", move);
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
       <button
         aria-label="Close menu"
         onClick={() => close()}
-        className={`absolute inset-0 cursor-default border-0 bg-black/40 transition-opacity duration-[250ms] ease-out motion-reduce:transition-none ${shown ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 cursor-default touch-none border-0 bg-black/40 transition-opacity duration-[250ms] ease-out motion-reduce:transition-none ${shown ? "opacity-100" : "opacity-0"}`}
       />
       <div
-        className={`relative ml-auto flex h-full w-[min(300px,85vw)] flex-col bg-sidebar shadow-2xl transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform motion-reduce:transition-none ${shown ? "translate-x-0" : "translate-x-full"}`}
+        ref={panel}
+        className={`relative ml-auto flex h-full w-[min(300px,85vw)] overscroll-none flex-col bg-sidebar shadow-2xl transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform motion-reduce:transition-none ${shown ? "translate-x-0" : "translate-x-full"}`}
       >
         <button
           ref={closeBtn}
@@ -198,47 +228,49 @@ function Drawer({ path, onClose }: { path: string; onClose: () => void }) {
 }
 
 /**
- * Top bar. Phones follow the iOS navigation bar: translucent, a 44 pt row, the title centred, a back
- * chevron when you are inside a section and the menu on the right. From md up it is a left-aligned
- * title with the plan controls on the right.
+ * Top bar. A translucent 56 px bar on phones with the page name on the left (after a back chevron inside
+ * a section), the plan on the right and the menu button last. From md up the plan controls sit in a row
+ * with the theme toggle, credits and Upgrade.
  */
 function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
   const { plan, credits } = usePlan();
   const { title, sub } = titleFor(path);
   const parts = path.split("/").filter(Boolean);
   const deep = parts.length > 1;
-  const planLabel = PLAN_NAMES[plan];
-  const pill = "hidden h-7 shrink-0 items-center whitespace-nowrap rounded-full bg-fill px-3 text-[13px] font-medium min-[1440px]:h-8 min-[1920px]:h-9 min-[1920px]:px-4 min-[1920px]:text-sm min-[2560px]:h-10 min-[2560px]:text-[15px]";
+  const full = PLAN_NAMES[plan];
+  const short = full.replace(/^.*\((.*)\)$/, "$1");
+  const shimmer = plan === "Pro Max" ? "nl-shimmer" : undefined;
+  const pill = "flex h-8 shrink-0 items-center whitespace-nowrap rounded-full bg-fill px-3.5 text-[13px] font-semibold md:h-7 md:px-3 md:font-medium min-[1440px]:h-8 min-[1920px]:h-9 min-[1920px]:px-4 min-[1920px]:text-sm min-[2560px]:h-10 min-[2560px]:text-[15px]";
   return (
-    <header className="grid h-[calc(2.75rem+env(safe-area-inset-top))] shrink-0 grid-cols-[44px_1fr_44px] items-center border-b-[0.5px] border-edge/20 bg-surface/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 md:flex md:h-[52px] md:gap-3 md:px-5 md:pt-0 min-[1440px]:h-14 min-[1440px]:gap-3.5 min-[1440px]:px-6 min-[1920px]:h-16 min-[1920px]:gap-4 min-[1920px]:px-8 min-[2560px]:h-[72px] min-[2560px]:px-10">
-      <div className="flex justify-start md:hidden">
-        {deep && (
-          <Link
-            href={"/" + parts.slice(0, -1).join("/")}
-            className="flex size-11 items-center justify-center text-blue active:opacity-50"
-            aria-label="Back"
-          >
-            <Icon name="back" size={20} />
-          </Link>
-        )}
-      </div>
-      <div className="flex min-w-0 flex-col text-center leading-tight md:flex-none md:text-left">
-        <span className="truncate text-[17px] font-semibold tracking-[-0.01em] min-[1440px]:text-[18px] min-[1920px]:text-[20px] min-[2560px]:text-[22px]">{title}</span>
+    <header className="flex h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 items-center gap-2 border-b-[0.5px] border-edge/20 bg-surface/80 pl-4 pr-1 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 md:h-[52px] md:gap-3 md:px-5 md:pt-0 min-[1440px]:h-14 min-[1440px]:gap-3.5 min-[1440px]:px-6 min-[1920px]:h-16 min-[1920px]:gap-4 min-[1920px]:px-8 min-[2560px]:h-[72px] min-[2560px]:px-10">
+      {deep && (
+        <Link
+          href={"/" + parts.slice(0, -1).join("/")}
+          className="-ml-3 flex size-11 shrink-0 items-center justify-center text-blue active:opacity-50 md:hidden"
+          aria-label="Back"
+        >
+          <Icon name="back" size={20} />
+        </Link>
+      )}
+      <div className={`flex min-w-0 flex-col leading-tight ${deep ? "-ml-1.5 md:ml-0" : ""}`}>
+        <span className="truncate text-[20px] font-bold tracking-[-0.02em] md:text-[17px] md:font-semibold md:tracking-[-0.01em] min-[1440px]:text-[18px] min-[1920px]:text-[20px] min-[2560px]:text-[22px]">{title}</span>
         {sub && <span className="hidden truncate text-xs text-muted md:block min-[1440px]:text-[13px] min-[1920px]:text-sm min-[2560px]:text-[15px]">{sub}</span>}
       </div>
-      <div className="flex items-center justify-end gap-2 md:ml-auto min-[1920px]:gap-3">
+      <div className="ml-auto flex items-center gap-2 min-[1920px]:gap-3">
         <div className="hidden sm:block"><ThemeToggle /></div>
         <Link
           href="/plans#credits"
           title={`${CREDIT_NAME}: buy more`}
-          className={`${pill} tabular-nums md:flex`}
+          className={`${pill} hidden tabular-nums md:flex`}
           style={{ textDecoration: "none", color: "inherit" }}
         >
           <span className="mr-1 inline-flex"><Icon name="sparkle" size={11} /></span>
           {credits} credits
         </Link>
-        <Link href="/plans" title="Plans" className={`${pill} md:flex`} style={{ textDecoration: "none", color: "inherit" }}>
-          <span className={plan === "Pro Max" ? "nl-shimmer" : undefined}>{planLabel}</span>
+        <Link href="/plans" title="Plans" className={pill} style={{ textDecoration: "none", color: "inherit" }}>
+          {/* Hide/show on the wrapper: the shimmer's own display would override a hidden class on the same element. */}
+          <span className="md:hidden"><span className={shimmer}>{short}</span></span>
+          <span className="hidden md:inline"><span className={shimmer}>{full}</span></span>
         </Link>
         {plan !== "Pro Max" && (
           <Link
