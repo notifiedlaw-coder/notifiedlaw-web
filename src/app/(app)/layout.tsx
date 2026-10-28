@@ -1,13 +1,5 @@
-import { Suspense } from "react";
-import { AppShell } from "@/components/app-shell";
-import { SessionUser } from "@/components/user";
+import { AppFrame } from "@/components/app-frame";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionUser>
-      <Suspense>
-        <AppShell>{children}</AppShell>
-      </Suspense>
-    </SessionUser>
-  );
+  return <AppFrame>{children}</AppFrame>;
 }
