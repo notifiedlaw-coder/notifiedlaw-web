@@ -57,7 +57,10 @@ export function HeroPromo({ ready = true, audioSrc = AUDIO_SRC }: { ready?: bool
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      setTime((t) => { const n = t + dt; return n >= DURATION ? n - DURATION : n; });
+      const a = audioRef.current;
+      // While the voice-over is audibly playing it is the clock, so the visuals follow it and it is never seeked.
+      if (a && !a.paused && !a.muted && !a.ended && a.readyState >= 3) setTime(a.currentTime);
+      else setTime((t) => { const n = t + dt; return n >= DURATION ? n - DURATION : n; });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -70,8 +73,11 @@ export function HeroPromo({ ready = true, audioSrc = AUDIO_SRC }: { ready?: bool
     // Muted, the voice-over stays paused; turned on, it seeks to the current frame. The landing loader has
     // usually fetched it already and passes it in as a blob URL.
     if (!playing || muted || time >= AUDIO_END) { if (!a.paused) a.pause(); return; }
-    if (Math.abs(a.currentTime - time) > 0.3) a.currentTime = time;
-    if (a.paused) void a.play().catch(() => {});
+    // Only seek when starting or after a loop/jump; small drift is absorbed by the clock following the audio.
+    if (a.paused) {
+      if (Math.abs(a.currentTime - time) > 0.3) a.currentTime = time;
+      void a.play().catch(() => {});
+    } else if (Math.abs(a.currentTime - time) > 1.5) a.currentTime = time;
   }, [time, playing, muted]);
 
   // Start sound inside the click itself: Safari only allows audible playback from a user gesture.
