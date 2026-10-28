@@ -8,27 +8,35 @@ export type NavItem = {
 
 export const NAV_TOP: NavItem[] = [
   { href: "/dashboard", label: "Home", icon: "home" },
+  { href: "/ai", label: "Notified AI", icon: "sparkle" },
   { href: "/hot-topics", label: "Hot Topics", icon: "headphones" },
 ];
 
 export const NAV_STUDY: NavItem[] = [
   { href: "/library", label: "Library", icon: "book" },
+  { href: "/flashcards", label: "Flashcards", icon: "cards" },
   { href: "/exam-prep", label: "Exam Prep", icon: "check" },
+  { href: "/leaderboard", label: "Leaderboard", icon: "trophy", proLock: true },
 ];
 
 export const NAV_RESEARCH: NavItem[] = [
   { href: "/case-law", label: "Case Law", icon: "scales" },
   { href: "/articles", label: "Articles", icon: "doc" },
+  { href: "/files", label: "My Files", icon: "folder" },
 ];
 
 export function titleFor(pathname: string): { title: string; sub: string } {
   const map: [string, string, string][] = [
     ["/dashboard", "Home", ""],
+    ["/ai", "Notified AI", "Ghanaian law only"],
     ["/hot-topics", "Hot Topics Podcast", "Latest in Accra, with the law behind it"],
     ["/articles", "Articles", "Explainers on Ghanaian law"],
     ["/library", "Library", "Course notes by level"],
+    ["/flashcards", "Flashcards", "Review key points by course"],
     ["/exam-prep", "Exam Prep", "Mock questions"],
+    ["/leaderboard", "Leaderboard", "Weekly quiz"],
     ["/case-law", "Case Law", "Case briefs"],
+    ["/files", "My Files", "Your uploaded notes"],
     ["/settings", "Settings", "Profile and preferences"],
     ["/plans", "Plans", "Choose how you study"],
     ["/checkout", "Checkout", "Mobile money"],
