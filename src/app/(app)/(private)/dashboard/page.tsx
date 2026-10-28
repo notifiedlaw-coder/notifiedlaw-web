@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Empty } from "@/components/ui";
+import { Chevron, Empty } from "@/components/ui";
 import { getDb, getSession } from "@/lib/auth";
 import { getCourses } from "@/lib/cms";
 import { dailyQuote } from "@/lib/quotes";
 import { profile } from "@/db/schema";
-import { abbr, bySemester, LEVEL_LABEL, type Level } from "@/lib/data";
+import { bySemester, LEVEL_LABEL, type Level } from "@/lib/data";
 
 export const metadata = { title: "Home" };
 
@@ -46,22 +46,24 @@ export default async function Home() {
           <div className="flex flex-col gap-7">
             {bySemester(courses).map((sem) => (
               <div key={sem.semester} className="flex flex-col gap-3">
-                <h3 className="text-[13px] font-bold uppercase tracking-[0.05em] text-muted">{sem.label}</h3>
+                <div className="flex items-baseline justify-between gap-3 border-b-[0.5px] border-edge/15 pb-2">
+                  <h3 className="m-0 text-[17px] font-semibold tracking-[-0.01em]">{sem.label}</h3>
+                  <span className="text-[13px] text-muted">{sem.courses.length} {sem.courses.length === 1 ? "course" : "courses"}</span>
+                </div>
                 {/* Phones: swipeable row that bleeds to the screen edge. sm+: grid. */}
                 <div className="-mx-5 flex snap-x snap-mandatory scroll-pl-5 gap-3.5 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4">
                   {sem.courses.map((c) => (
                     <Link
                       key={c.slug}
                       href={`/library/${c.slug}`}
-                      className="flex w-[72%] shrink-0 snap-start flex-col gap-3 overflow-hidden rounded-2xl bg-surface px-4 pb-4 shadow-card transition-shadow hover:shadow-card-hover sm:w-auto"
+                      className="flex w-[72%] shrink-0 snap-start items-center gap-3 rounded-2xl bg-surface p-4 shadow-card transition-shadow hover:shadow-card-hover sm:w-auto"
                       style={link}
                     >
-                      <div className="-mx-4 h-[72px]" style={{ background: `linear-gradient(135deg, ${c.color}33, ${c.color}0d)` }} />
-                      <div className="relative -mt-9 flex size-11 items-center justify-center rounded-xl border-[3px] border-surface text-[15px] font-bold text-white" style={{ background: c.color }}>
-                        {abbr(c.title)}
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <div className="min-h-[38px] text-[15px] font-semibold leading-tight">{c.title}</div>
+                        <div className="text-xs text-muted">{c.topics.length} topics · {c.topics.filter((t) => t.ready).length} available</div>
                       </div>
-                      <div className="min-h-[38px] text-[15px] font-semibold leading-tight">{c.title}</div>
-                      <div className="text-xs text-muted">{c.topics.length} topics · {c.topics.filter((t) => t.ready).length} available</div>
+                      <Chevron />
                     </Link>
                   ))}
                 </div>
