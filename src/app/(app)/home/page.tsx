@@ -41,6 +41,17 @@ export default function Home() {
       <header>
         <div className="text-[13px] font-semibold uppercase tracking-[0.04em] text-muted">Monday, 26 October</div>
         <h1 className="mt-1 text-[34px] font-bold leading-tight tracking-[-0.03em] md:text-5xl">Akwaaba, {DEMO_USER.first}</h1>
+        <figure className="m-0 mt-4 flex max-w-[560px] gap-3">
+          <span aria-hidden className="w-[3px] shrink-0 rounded-full bg-amber-soft" />
+          <div className="flex flex-col gap-1">
+            <blockquote className="m-0 text-pretty text-[17px] font-medium leading-snug tracking-[-0.01em]">
+              “{QUOTE.text}”
+            </blockquote>
+            <figcaption className="text-[13px] text-muted">
+              <span className="font-semibold text-ink">{QUOTE.by}</span> · {QUOTE.role}
+            </figcaption>
+          </div>
+        </figure>
       </header>
 
       <section aria-label="Continue reading" className="relative flex flex-col gap-4 overflow-hidden rounded-3xl bg-ink-dark p-6 text-white md:p-8">
@@ -156,16 +167,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      <figure className="m-0 flex flex-col items-center gap-2 px-2 pb-2 pt-4 text-center">
-        <Eyebrow color="#ff9f0a">Quote of the day</Eyebrow>
-        <blockquote className="m-0 max-w-[560px] text-pretty text-lg font-medium leading-snug tracking-[-0.01em]">
-          “{QUOTE.text}”
-        </blockquote>
-        <figcaption className="text-[13px] text-muted">
-          <span className="font-semibold text-ink">{QUOTE.by}</span> · {QUOTE.role}
-        </figcaption>
-      </figure>
     </div>
   );
 }
