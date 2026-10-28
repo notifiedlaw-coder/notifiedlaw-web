@@ -209,3 +209,25 @@ img {
 @media (prefers-reduced-motion: reduce) {
   .nl-shimmer { animation: none; background-image: none; -webkit-text-fill-color: var(--ink); }
 }
+
+/* "Continue with Google" in Google's branding colours: light by default, Google's dark variant on dark themes. */
+.google-btn {
+  background: #ffffff;
+  color: #1f1f1f;
+  border: 1px solid #747775;
+}
+.google-btn:hover:not(:disabled) { background: #f8f9fa; }
+:root[data-theme="dark"] .google-btn {
+  background: #131314;
+  color: #e3e3e3;
+  border-color: #8e918f;
+}
+:root[data-theme="dark"] .google-btn:hover:not(:disabled) { background: #1f1f20; }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] .google-btn {
+    background: #131314;
+    color: #e3e3e3;
+    border-color: #8e918f;
+  }
+  :root[data-theme="system"] .google-btn:hover:not(:disabled) { background: #1f1f20; }
+}
