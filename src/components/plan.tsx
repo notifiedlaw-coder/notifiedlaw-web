@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { PLAN_CREDITS, isPlan, type Level, type Plan } from "@/lib/data";
-import type { Profile } from "@/lib/profile";
+import type { Me, Profile } from "@/lib/profile";
 import { DEMO_BILLING } from "@/lib/site";
 
 type Ctx = {
@@ -18,23 +18,18 @@ type Ctx = {
 };
 const PlanCtx = createContext<Ctx>({ plan: "Free", setPlan: () => {}, pro: false, max: false, credits: 0, allowance: 0, extra: 0, spend: () => false, addCredits: () => {}, profile: null, setLevel: () => {}, setProfile: () => {} });
 
-type Me = { subscription: { plan: string; creditsUsed: number; creditsExtra: number }; profile: Profile | null };
-
 const send = (url: string, method: string, body: unknown) =>
   void fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
 
-// Plan, credits and profile live in D1 and come from /api/me. Guests (401) are treated as Free.
-export function PlanProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{ plan: Plan; used: number; extra: number; profile: Profile | null }>({ plan: "Free", used: 0, extra: 0, profile: null });
-  useEffect(() => {
-    let live = true;
-    fetch("/api/me").then((r) => (r.ok ? (r.json() as Promise<Me>) : null)).then((me) => {
-      if (!live || !me) return;
-      const sub = me.subscription;
-      setState({ plan: isPlan(sub.plan) ? sub.plan : "Free", used: sub.creditsUsed, extra: sub.creditsExtra, profile: me.profile });
-    }).catch(() => {});
-    return () => { live = false; };
-  }, []);
+// Plan, credits and profile live in D1 and are read on the server for each request (AppFrame), so the
+// first paint already shows the right plan. Guests (null) are treated as Free.
+export function PlanProvider({ me, children }: { me: Me | null; children: React.ReactNode }) {
+  const [state, setState] = useState<{ plan: Plan; used: number; extra: number; profile: Profile | null }>(() => ({
+    plan: me && isPlan(me.subscription.plan) ? me.subscription.plan : "Free",
+    used: me?.subscription.creditsUsed ?? 0,
+    extra: me?.subscription.creditsExtra ?? 0,
+    profile: me?.profile ?? null,
+  }));
   const { plan, used, extra, profile } = state;
   const allowance = PLAN_CREDITS[plan];
   const monthly = Math.max(0, allowance - used);
@@ -76,15 +71,11 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 
 export const usePlan = () => useContext(PlanCtx);
 
-/**
- * The level a screen shows: the user's own pick on this screen, else their profile level, else 200.
- * `initial` is the profile level read on the server, so the first paint already matches the profile
- * instead of showing 200 until /api/me answers.
- */
-export function useStudyLevel(initial?: Level | null): [Level, (l: Level) => void] {
+/** The level a screen shows: the user's own pick on this screen, else their profile level, else 200. */
+export function useStudyLevel(): [Level, (l: Level) => void] {
   const { profile } = usePlan();
   const [picked, setPicked] = useState<Level | null>(null);
-  return [picked ?? (profile?.level || initial || "200"), setPicked];
+  return [picked ?? (profile?.level || "200"), setPicked];
 }
 
 /** Renders children only while the viewer is below Supreme Justice (Max). */

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CREDIT_NAME, PLAN_NAMES } from "@/lib/data";
-import { UNI_SHORT } from "@/lib/profile";
+import { UNI_SHORT, type Me } from "@/lib/profile";
 import { useUser } from "@/components/user";
 import { PlanProvider, usePlan } from "./plan";
 import { ThemeToggle } from "./theme";
@@ -292,12 +292,12 @@ function Toolbar({ path, onMenu }: { path: string; onMenu: () => void }) {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ me, children }: { me: Me | null; children: React.ReactNode }) {
   const path = usePathname();
   const [menu, setMenu] = useState(false);
   const closeMenu = useCallback(() => setMenu(false), []);
   return (
-    <PlanProvider>
+    <PlanProvider me={me}>
     <div className="flex h-dvh overflow-hidden bg-surface text-[13px]">
       <Sidebar path={path} />
       <main className="relative flex min-w-0 flex-1 flex-col">

@@ -1,8 +1,5 @@
-import { eq } from "drizzle-orm";
-import { getDb, userIdFrom } from "@/lib/auth";
-import { profile, subscription } from "@/db/schema";
+import { meFor, userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
-import { isPlan } from "@/lib/data";
 
 /** Everything the client shell needs about the signed-in user besides their name. */
 export async function GET(req: Request) {
@@ -10,14 +7,5 @@ export async function GET(req: Request) {
   if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
   const rl = await limited(req, "READS", id);
   if (rl) return rl;
-  const db = getDb();
-  const [p] = await db.select().from(profile).where(eq(profile.userId, id));
-  const [s] = await db.select().from(subscription).where(eq(subscription.userId, id));
-  return Response.json({
-    profile: p ? {
-      ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",
-      jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
-    } : null,
-    subscription: { plan: s && isPlan(s.plan) ? s.plan : "Free", creditsUsed: s?.creditsUsed ?? 0, creditsExtra: s?.creditsExtra ?? 0 },
-  }, { headers: { "cache-control": "private, no-store" } });
+  return Response.json(await meFor(id), { headers: { "cache-control": "private, no-store" } });
 }

@@ -33,8 +33,8 @@ export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial 
   );
 }
 
-export function LibraryView({ courses, initialLevel }: { courses: Record<Level, Course[]>; initialLevel: Level | null }) {
-  const [level, setLevel] = useStudyLevel(initialLevel);
+export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
+  const [level, setLevel] = useStudyLevel();
   const { pro, max } = usePlan();
   const maxOnly = isMaxLevel(level) && !max;
   return (

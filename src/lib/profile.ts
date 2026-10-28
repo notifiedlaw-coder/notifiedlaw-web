@@ -26,6 +26,7 @@ export type ProfileInput = {
 };
 export type Profile = ProfileInput;
 export type SubscriptionState = { plan: Plan; creditsUsed: number; creditsExtra: number };
+export type Me = { profile: Profile | null; subscription: SubscriptionState };
 
 /** Shown as "UG Legon" style tags in the sidebar. */
 export const UNI_SHORT: Record<string, string> = {

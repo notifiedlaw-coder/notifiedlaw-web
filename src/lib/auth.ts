@@ -5,8 +5,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
-import { isPlan, type Level, type Plan } from "@/lib/data";
-import { isLevel } from "@/lib/profile";
+import { isPlan, type Plan } from "@/lib/data";
+import type { Me } from "@/lib/profile";
 
 /** Built per request: the D1 binding and secrets only exist inside a Worker request. */
 export function getAuth() {
@@ -40,12 +40,26 @@ export async function getPlan(): Promise<Plan> {
   return row && isPlan(row.plan) ? row.plan : "Free";
 }
 
-/** The signed-in user's study level from D1; null for guests and users who have not set one. */
-export async function getLevel(): Promise<Level | null> {
+/** Everything the client shell needs about a user besides their name: profile and subscription. */
+export async function meFor(userId: string): Promise<Me> {
+  const db = getDb();
+  const [[p], [s]] = await Promise.all([
+    db.select().from(schema.profile).where(eq(schema.profile.userId, userId)),
+    db.select().from(schema.subscription).where(eq(schema.subscription.userId, userId)),
+  ]);
+  return {
+    profile: p ? {
+      ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",
+      jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
+    } as Me["profile"] : null,
+    subscription: { plan: s && isPlan(s.plan) ? s.plan : "Free", creditsUsed: s?.creditsUsed ?? 0, creditsExtra: s?.creditsExtra ?? 0 },
+  };
+}
+
+/** meFor the signed-in user of this request, or null for guests. */
+export async function getMe(): Promise<Me | null> {
   const s = await getSession();
-  if (!s) return null;
-  const [row] = await getDb().select({ level: schema.profile.level }).from(schema.profile).where(eq(schema.profile.userId, s.user.id));
-  return row && isLevel(row.level) ? row.level : null;
+  return s ? meFor(s.user.id) : null;
 }
 
 /** For route handlers: the signed-in user's id from the request cookies, or null. */
