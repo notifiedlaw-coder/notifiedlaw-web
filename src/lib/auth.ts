@@ -5,7 +5,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
-import { isPlan, type Plan } from "@/lib/data";
+import { isPlan, type Level, type Plan } from "@/lib/data";
+import { isLevel } from "@/lib/profile";
 
 /** Built per request: the D1 binding and secrets only exist inside a Worker request. */
 export function getAuth() {
@@ -37,6 +38,14 @@ export async function getPlan(): Promise<Plan> {
   if (!s) return "Free";
   const [row] = await getDb().select({ plan: schema.subscription.plan }).from(schema.subscription).where(eq(schema.subscription.userId, s.user.id));
   return row && isPlan(row.plan) ? row.plan : "Free";
+}
+
+/** The signed-in user's study level from D1; null for guests and users who have not set one. */
+export async function getLevel(): Promise<Level | null> {
+  const s = await getSession();
+  if (!s) return null;
+  const [row] = await getDb().select({ level: schema.profile.level }).from(schema.profile).where(eq(schema.profile.userId, s.user.id));
+  return row && isLevel(row.level) ? row.level : null;
 }
 
 /** For route handlers: the signed-in user's id from the request cookies, or null. */

@@ -1,3 +1,4 @@
+import { getLevel } from "@/lib/auth";
 import { getCourses } from "@/lib/cms";
 import { LibraryView } from "./library-view";
 
@@ -7,5 +8,6 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Library" };
 
 export default async function Library() {
-  return <LibraryView courses={await getCourses()} />;
+  const [courses, level] = await Promise.all([getCourses(), getLevel()]);
+  return <LibraryView courses={courses} initialLevel={level} />;
 }

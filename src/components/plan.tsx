@@ -76,11 +76,15 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 
 export const usePlan = () => useContext(PlanCtx);
 
-/** The level a screen shows: the user's own pick on this screen, else their profile level, else 200. */
-export function useStudyLevel(): [Level, (l: Level) => void] {
+/**
+ * The level a screen shows: the user's own pick on this screen, else their profile level, else 200.
+ * `initial` is the profile level read on the server, so the first paint already matches the profile
+ * instead of showing 200 until /api/me answers.
+ */
+export function useStudyLevel(initial?: Level | null): [Level, (l: Level) => void] {
   const { profile } = usePlan();
   const [picked, setPicked] = useState<Level | null>(null);
-  return [picked ?? (profile?.level || "200"), setPicked];
+  return [picked ?? (profile?.level || initial || "200"), setPicked];
 }
 
 /** Renders children only while the viewer is below Supreme Justice (Max). */
