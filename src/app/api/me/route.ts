@@ -11,7 +11,10 @@ export async function GET(req: Request) {
   const [p] = await db.select().from(profile).where(eq(profile.userId, id));
   const [s] = await db.select().from(subscription).where(eq(subscription.userId, id));
   return Response.json({
-    profile: p ? { ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "" } : null,
+    profile: p ? {
+      ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",
+      jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
+    } : null,
     subscription: { plan: s && isPlan(s.plan) ? s.plan : "Free", creditsUsed: s?.creditsUsed ?? 0, creditsExtra: s?.creditsExtra ?? 0 },
   }, { headers: { "cache-control": "private, no-store" } });
 }

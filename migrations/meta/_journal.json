@@ -22,6 +22,13 @@
       "when": 1793202302729,
       "tag": "0002_blue_nico_minoru",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793205926991,
+      "tag": "0003_profile_status",
+      "breakpoints": true
     }
   ]
 }

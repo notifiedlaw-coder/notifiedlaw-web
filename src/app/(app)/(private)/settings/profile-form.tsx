@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePlan } from "@/components/plan";
 import { Btn, Eyebrow } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
-import { UNIVERSITIES } from "@/lib/content";
+import { StatusPicker, StatusQuestions } from "@/components/profile-fields";
 import { GENDERS, GOALS, MIN_DOB, profileErrors, type Profile } from "@/lib/profile";
 
 const field = "h-11 rounded-[10px] bg-fill px-3.5 text-[15px] outline-none";
@@ -15,6 +15,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   const [f, setF] = useState(profile);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState("");
+  const patch = (p: Partial<Profile>) => { setStatus("idle"); setF((x) => ({ ...x, ...p })); };
   const set = (k: "firstName" | "middleName" | "lastName" | "dob" | "phone") => (e: React.ChangeEvent<HTMLInputElement>) => { setStatus("idle"); setF((p) => ({ ...p, [k]: e.target.value })); };
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const errors = profileErrors(f);
@@ -34,7 +35,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       setError(((await res?.json().catch(() => null)) as { error?: string } | null)?.error ?? "Could not save. Check your connection and try again.");
       return;
     }
-    const saved = { ...f, level: profile.level, firstName: f.firstName.trim(), middleName: f.middleName.trim(), lastName: f.lastName.trim(), phone: f.phone.trim() };
+    const saved = ((await res.json().catch(() => null)) as { profile?: Profile } | null)?.profile ?? f;
     setProfile(saved);
     setF(saved);
     // The sidebar and header read the account name, so keep it in step with the profile.
@@ -56,9 +57,10 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           <select value={f.gender} onChange={(e) => { setStatus("idle"); setF((p) => ({ ...p, gender: e.target.value })); }} className={field}>{GENDERS.map((g) => <option key={g}>{g}</option>)}</select>
         </label>
         <label className={label}>Phone number <span className="font-normal">(optional, for MoMo payments)</span><input type="tel" inputMode="tel" value={f.phone} onChange={set("phone")} onBlur={blur("phone")} maxLength={30} aria-invalid={bad("phone")} autoComplete="tel" className={field} />{err("phone")}</label>
-        <label className={label}>University
-          <select value={f.university} onChange={(e) => { setStatus("idle"); setF((p) => ({ ...p, university: e.target.value })); }} className={field}>{UNIVERSITIES.map((u) => <option key={u.name}>{u.name}</option>)}</select>
-        </label>
+        <div className="flex flex-col gap-1 text-xs font-semibold text-muted">Which fits you best?
+          <StatusPicker value={f} onChange={patch} errors={errors} />
+        </div>
+        <StatusQuestions value={f} onChange={patch} errors={errors} />
         <div className="flex flex-col gap-1 text-xs font-semibold text-muted">Interests
           <div className="flex flex-wrap gap-2">{GOALS.map((g) => {
             const on = f.goals.includes(g);

@@ -80,7 +80,7 @@ export const usePlan = () => useContext(PlanCtx);
 export function useStudyLevel(): [Level, (l: Level) => void] {
   const { profile } = usePlan();
   const [picked, setPicked] = useState<Level | null>(null);
-  return [picked ?? profile?.level ?? "200", setPicked];
+  return [picked ?? (profile?.level || "200"), setPicked];
 }
 
 /** Renders children only while the viewer is below Supreme Justice (Max). */

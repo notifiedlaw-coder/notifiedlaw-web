@@ -18,13 +18,27 @@ export const BADGES: Record<Treatment, { label: string; bg: string; fg: string }
   unchecked: { label: "Not checked", bg: "rgba(118,118,128,0.12)", fg: "rgba(60,60,67,0.8)" },
 };
 
+// Ghanaian institutions that offer the law programme. Names already stored on profiles are kept as they were.
 export const UNIVERSITIES = [
-  { name: "University of Ghana", city: "Legon, Accra" },
-  { name: "KNUST", city: "Kumasi" },
-  { name: "University of Cape Coast", city: "Cape Coast" },
-  { name: "GIMPA", city: "Greenhill, Accra" },
-  { name: "UPSA", city: "Accra" },
-  { name: "Mountcrest University", city: "Accra" },
+  { name: "Accra Metropolitan University" },
+  { name: "Ashesi University" },
+  { name: "Central University" },
+  { name: "GIMPA" },
+  { name: "Greenfield University" },
+  { name: "KAAF University" },
+  { name: "Kings University" },
+  { name: "KNUST" },
+  { name: "Lancaster University Ghana" },
+  { name: "Mountcrest University" },
+  { name: "Pentecost University" },
+  { name: "Presbyterian University" },
+  { name: "SDD-UBIDS" },
+  { name: "University of Cape Coast" },
+  { name: "University of Development Studies" },
+  { name: "University of Ghana" },
+  { name: "UPSA" },
+  { name: "Wisconsin International University College" },
+  { name: "Zenith University College" },
 ];
 
 export const NETWORKS = [

@@ -28,9 +28,8 @@ export function Settings() {
         <Initials name={user.name} color="#FF9500" size={64} />
         <div><div className="text-xl font-bold">{user.name}</div><div className="text-[13px] text-muted">{user.email}</div></div>
       </div>
-      <Group title="Studies">
-        <Row label="University">{profile?.university ?? "—"}</Row>
-        <Row label="Level"><LevelSelect value={profile?.level ?? "200"} onChange={setLevel} /></Row>
+      <Group title="Reading level">
+        <Row label="Level"><LevelSelect value={profile?.level || "200"} onChange={setLevel} /></Row>
       </Group>
       {profile && <ProfileForm profile={profile} />}
       <Group title="Subscription">

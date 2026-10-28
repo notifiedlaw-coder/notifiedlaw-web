@@ -6,9 +6,23 @@ export const GOALS = ["Course notes", "Podcasts", "Past questions", "Case law", 
 export const LEVELS: readonly Level[] = ["100", "200", "300", "400", "pre-bar", "bar"];
 export const MIN_AGE = 16;
 
+export const STATUSES = [
+  { id: "student", label: "I’m a student", hint: "Studying law, or about to" },
+  { id: "employed", label: "I’m employed", hint: "Working, in law or elsewhere" },
+  { id: "exploring", label: "Chale, I’m trying oo", hint: "Still figuring things out" },
+] as const;
+export type Status = (typeof STATUSES)[number]["id"];
+export const SECTORS = ["Legal practice", "Judiciary and courts", "Government and public service", "Banking and finance", "Corporate or in-house", "Non-profit and advocacy", "Other"] as const;
+export const INTENTS = ["Get into law school", "Prepare for the Bar exam", "Move into a legal career", "Just curious about the law", "Something else"] as const;
+
+/** Everything after `status` is optional; "" means not answered. Only the set for the chosen status is kept. */
 export type ProfileInput = {
   firstName: string; middleName: string; lastName: string; dob: string; gender: string; phone: string;
-  university: string; level: Level; goals: string[];
+  status: Status;
+  university: string; level: Level | "";
+  jobTitle: string; employer: string; sector: string;
+  intent: string;
+  goals: string[];
 };
 export type Profile = ProfileInput;
 export type SubscriptionState = { plan: Plan; creditsUsed: number; creditsExtra: number };
@@ -16,7 +30,8 @@ export type SubscriptionState = { plan: Plan; creditsUsed: number; creditsExtra:
 /** Shown as "UG Legon" style tags in the sidebar. */
 export const UNI_SHORT: Record<string, string> = {
   "University of Ghana": "UG Legon", KNUST: "KNUST", "University of Cape Coast": "UCC",
-  GIMPA: "GIMPA", UPSA: "UPSA", "Mountcrest University": "Mountcrest",
+  GIMPA: "GIMPA", UPSA: "UPSA", "Mountcrest University": "Mountcrest", "University of Development Studies": "UDS",
+  "Accra Metropolitan University": "AMU", "Wisconsin International University College": "Wisconsin",
 };
 
 export const isLevel = (v: unknown): v is Level => LEVELS.includes(v as Level);
@@ -52,10 +67,10 @@ export function latestDob(now = new Date()) {
   return `${Number(t.slice(0, 4)) - MIN_AGE}${t.slice(4)}`;
 }
 
-export type ProfileErrors = Partial<Record<"firstName" | "middleName" | "lastName" | "dob" | "gender" | "phone" | "university" | "level", string>>;
+export type ProfileErrors = Partial<Record<"firstName" | "middleName" | "lastName" | "dob" | "gender" | "phone" | "status" | "university" | "level" | "jobTitle" | "employer" | "sector" | "intent", string>>;
 
 /** Field-by-field problems with a profile, shared by the forms (as feedback) and the API (as the gate). */
-export function profileErrors(p: Pick<ProfileInput, "firstName" | "middleName" | "lastName" | "dob" | "gender" | "phone" | "university" | "level">): ProfileErrors {
+export function profileErrors(p: Omit<ProfileInput, "goals">): ProfileErrors {
   const e: ProfileErrors = {};
   const name = (v: string, k: "firstName" | "middleName" | "lastName", what: string, required: boolean) => {
     const t = clean(v, 200);
@@ -71,8 +86,16 @@ export function profileErrors(p: Pick<ProfileInput, "firstName" | "middleName" |
   else if (p.dob > latestDob()) e.dob = `You must be at least ${MIN_AGE}.`;
   if (!(GENDERS as readonly string[]).includes(p.gender)) e.gender = "Pick a gender option.";
   if (p.phone.trim() && !normalizePhone(p.phone)) e.phone = "Enter a Ghana mobile number, like 024 123 4567.";
-  if (!UNIVERSITIES.some((u) => u.name === p.university)) e.university = "Pick a university.";
-  if (!isLevel(p.level)) e.level = "Pick a level.";
+  if (!STATUSES.some((x) => x.id === p.status)) e.status = "Tell us which fits you best.";
+  // The follow-up questions are optional: only a value that was given has to be valid.
+  if (p.level && !isLevel(p.level)) e.level = "Pick a level.";
+  if (p.status === "student" && p.university && !UNIVERSITIES.some((u) => u.name === p.university)) e.university = "Pick a university from the list.";
+  if (p.status === "employed") {
+    if (clean(p.jobTitle, 200).length > 80) e.jobTitle = "Job title is too long.";
+    if (clean(p.employer, 200).length > 100) e.employer = "Employer is too long.";
+    if (p.sector && !(SECTORS as readonly string[]).includes(p.sector)) e.sector = "Pick a sector from the list.";
+  }
+  if (p.status === "exploring" && p.intent && !(INTENTS as readonly string[]).includes(p.intent)) e.intent = "Pick an option from the list.";
   return e;
 }
 
@@ -82,12 +105,19 @@ export function parseProfile(b: unknown): ProfileInput | string {
   const p: ProfileInput = {
     firstName: clean(o.firstName, 80), middleName: clean(o.middleName, 120), lastName: clean(o.lastName, 80),
     dob: typeof o.dob === "string" ? o.dob.trim() : "", gender: clean(o.gender, 40), phone: clean(o.phone, 30),
-    university: clean(o.university, 80), level: o.level as Level,
+    status: o.status as Status,
+    university: clean(o.university, 80), level: (typeof o.level === "string" ? o.level : "") as Level | "",
+    jobTitle: clean(o.jobTitle, 80), employer: clean(o.employer, 100), sector: clean(o.sector, 60), intent: clean(o.intent, 60),
     goals: Array.isArray(o.goals) ? [...new Set(o.goals.filter((g): g is string => (GOALS as readonly string[]).includes(g as string)))] : [],
   };
   const first = Object.values(profileErrors(p))[0];
   if (first) return first;
   p.phone = p.phone ? normalizePhone(p.phone)! : "";
+  // Drop answers that belong to a different status, e.g. after someone changes theirs.
+  // The level is kept for everyone: it is also the level the library opens at.
+  if (p.status !== "student") p.university = "";
+  if (p.status !== "employed") { p.jobTitle = ""; p.employer = ""; p.sector = ""; }
+  if (p.status !== "exploring") p.intent = "";
   return p;
 }
 

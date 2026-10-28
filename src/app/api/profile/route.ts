@@ -4,17 +4,23 @@ import { profile } from "@/db/schema";
 import { readJson } from "@/lib/http";
 import { isLevel, parseProfile } from "@/lib/profile";
 
-/** Saves the onboarding answers (creates or replaces the user's profile). */
+/** Saves the onboarding answers or an edited profile (creates or replaces the user's profile). */
 export async function PUT(req: Request) {
   const id = await userIdFrom(req);
   if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
   const p = parseProfile(await readJson(req));
   if (typeof p === "string") return Response.json({ error: p }, { status: 400 });
   const now = new Date();
-  const row = { ...p, goals: JSON.stringify(p.goals), updatedAt: now };
+  const orNull = (v: string) => v || null;
+  const row = {
+    ...p, middleName: orNull(p.middleName), phone: orNull(p.phone), university: orNull(p.university), level: orNull(p.level),
+    jobTitle: orNull(p.jobTitle), employer: orNull(p.employer), sector: orNull(p.sector), intent: orNull(p.intent),
+    goals: JSON.stringify(p.goals), updatedAt: now,
+  };
   await getDb().insert(profile).values({ userId: id, createdAt: now, ...row })
     .onConflictDoUpdate({ target: profile.userId, set: row });
-  return Response.json({ ok: true });
+  // The cleaned profile comes back so the client shows exactly what was stored.
+  return Response.json({ ok: true, profile: p });
 }
 
 /** Changes the level after onboarding (Settings). */

@@ -56,8 +56,14 @@ export const profile = sqliteTable("profile", {
   dob: text("dob").notNull(), // ISO date, YYYY-MM-DD
   gender: text("gender").notNull(),
   phone: text("phone"),
-  university: text("university").notNull(),
-  level: text("level").notNull(),
+  status: text("status").notNull().default("student"), // student | employed | exploring
+  // The questions after status are all optional, and only the set for the chosen status is kept.
+  university: text("university"),
+  level: text("level"),
+  jobTitle: text("job_title"),
+  employer: text("employer"),
+  sector: text("sector"),
+  intent: text("intent"),
   goals: text("goals").notNull().default("[]"), // JSON array of goal labels
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),

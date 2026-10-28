@@ -116,7 +116,7 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
         <span className="min-w-0 flex-1 leading-tight">
           <span className="block truncate text-[14px] font-semibold min-[1920px]:text-[15px]">{user.name}</span>
           <span className="block truncate text-xs text-muted min-[1920px]:text-[13px]">
-            {profile ? (UNI_SHORT[profile.university] ?? profile.university) + " · " : ""}{PLAN_NAMES[plan].replace(/^.*\((.*)\)$/, "$1")}
+            {profile?.university ? (UNI_SHORT[profile.university] ?? profile.university) + " · " : ""}{PLAN_NAMES[plan].replace(/^.*\((.*)\)$/, "$1")}
           </span>
         </span>
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0 text-faint" aria-hidden>
