@@ -10,7 +10,7 @@
   },
   "observability": { "enabled": true },
   "r2_buckets": [
-    // Public marketing videos, streamed by src/app/media/[...key]/route.ts
+    // Public marketing videos, audio and images, served by src/app/media/[...key]/route.ts
     { "binding": "VIDEOS", "bucket_name": "notifiedlaw-videos" }
   ],
   "d1_databases": [

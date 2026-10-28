@@ -1,9 +1,9 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { limited } from "@/lib/rate-limit";
 
-const TYPES: Record<string, string> = { mp4: "video/mp4", webm: "video/webm", mp3: "audio/mpeg" };
+const TYPES: Record<string, string> = { mp4: "video/mp4", webm: "video/webm", mp3: "audio/mpeg", webp: "image/webp" };
 
-// Streams public videos and audio from the VIDEOS R2 bucket, with Range support so browsers can
+// Streams public videos, audio and images from the VIDEOS R2 bucket, with Range support so browsers can
 // start playback immediately and scrub.
 export async function GET(request: Request, { params }: { params: Promise<{ key: string[] }> }) {
   const key = (await params).key.join("/");
@@ -22,7 +22,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
   const headers = new Headers({
     "content-type": type,
     "accept-ranges": "bytes",
-    "cache-control": "public, max-age=86400",
+    // Images are versioned by key, so they can sit in caches for a year.
+    "cache-control": type.startsWith("image/") ? "public, max-age=31536000, immutable" : "public, max-age=86400",
     etag: obj.httpEtag,
   });
   let status = 200;

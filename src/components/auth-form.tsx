@@ -20,7 +20,18 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <div className="grid min-h-dvh md:grid-cols-[1.1fr_1fr]">
       <div className="relative flex flex-col justify-end overflow-hidden bg-ink-dark px-5 py-5 text-white sm:px-8 md:min-h-dvh md:p-14">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url(/photos/balme-library.jpg)" }} />
+        {/* Variants live in R2 under images/; the face sits high in the frame, so crop from the top. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/media/images/barrister-768.webp"
+          srcSet="/media/images/barrister-480.webp 480w, /media/images/barrister-768.webp 768w, /media/images/barrister-1034.webp 1034w"
+          sizes="(min-width: 768px) 53vw, 100vw"
+          alt=""
+          width={1034}
+          height={1520}
+          fetchPriority="high"
+          className="absolute inset-0 size-full object-cover object-[50%_15%]"
+        />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(28,28,30,0.2) 0%, rgba(28,28,30,0.75) 45%, rgba(28,28,30,0.97) 100%)" }} />
         <div className="relative flex flex-col gap-2 md:gap-4">
           <Link href="/" aria-label="NotifiedLaw home" className="w-fit text-[17px] font-semibold" style={{ color: "#fff", textDecoration: "none" }}>Notified<span className="font-normal text-amber-soft">Law</span></Link>
