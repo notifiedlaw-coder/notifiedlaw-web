@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { limited } from "@/lib/rate-limit";
 
 const TYPES: Record<string, string> = { mp4: "video/mp4", webm: "video/webm", mp3: "audio/mpeg" };
 
@@ -8,6 +9,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
   const key = (await params).key.join("/");
   const type = TYPES[key.split(".").pop() ?? ""];
   if (!type || key.length > 300 || key.includes("..") || /[\\\x00-\x1f]/.test(key)) return new Response("Not found", { status: 404 });
+
+  const rl = await limited(request, "MEDIA");
+  if (rl) return rl;
 
   const { env } = getCloudflareContext();
   const bucket = env.VIDEOS;

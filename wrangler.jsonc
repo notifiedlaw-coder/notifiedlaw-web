@@ -17,6 +17,13 @@
     // Users, sessions and (later) progress. Schema lives in src/db/schema.ts; migrations in ./migrations.
     { "binding": "DB", "database_name": "notifiedlaw-db", "database_id": "0a0b819f-d1f9-4c76-89ba-f2f9e330b1ae", "migrations_dir": "migrations" }
   ],
+  "ratelimits": [
+    // Workers Rate Limiting; used by src/lib/rate-limit.ts. period is 10 or 60 seconds.
+    { "name": "RL_WRITES", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } },
+    { "name": "RL_READS", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
+    { "name": "RL_ADMIN", "namespace_id": "1003", "simple": { "limit": 5, "period": 60 } },
+    { "name": "RL_MEDIA", "namespace_id": "1004", "simple": { "limit": 300, "period": 60 } }
+  ],
   "vars": {
     "GOOGLE_CLIENT_ID": "776945171684-51d8p7incfdsv3vfaendvmg10vo75br2.apps.googleusercontent.com",
     "BETTER_AUTH_URL": "https://notifiedlaw.com",

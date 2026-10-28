@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb } from "@/lib/auth";
+import { limited } from "@/lib/rate-limit";
 import { syncNotion } from "@/lib/notion/sync";
 
 /** Constant-time string compare, so the token cannot be guessed one character at a time. */
@@ -12,6 +13,9 @@ function same(a: string, b: string) {
 
 // POST /api/admin/sync with `Authorization: Bearer <ADMIN_SYNC_TOKEN>` copies the Notion CMS into D1.
 export async function POST(req: Request) {
+  // Before the token check, so the bearer token cannot be brute-forced.
+  const rl = await limited(req, "ADMIN");
+  if (rl) return rl;
   const { env } = getCloudflareContext();
   if (!env.NOTION_TOKEN || !env.ADMIN_SYNC_TOKEN) return Response.json({ error: "sync is not configured" }, { status: 503 });
   const given = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";

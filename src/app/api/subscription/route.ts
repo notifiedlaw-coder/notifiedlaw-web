@@ -1,6 +1,7 @@
 import { getDb, userIdFrom } from "@/lib/auth";
 import { subscription } from "@/db/schema";
 import { DEMO_BILLING } from "@/lib/site";
+import { limited } from "@/lib/rate-limit";
 import { readJson } from "@/lib/http";
 import { parseSubscription } from "@/lib/profile";
 
@@ -10,6 +11,8 @@ export async function PUT(req: Request) {
   if (!DEMO_BILLING) return Response.json({ error: "forbidden" }, { status: 403 });
   const id = await userIdFrom(req);
   if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
+  const rl = await limited(req, "WRITES", id);
+  if (rl) return rl;
   const s = parseSubscription(await readJson(req));
   if (typeof s === "string") return Response.json({ error: s }, { status: 400 });
   const now = new Date();

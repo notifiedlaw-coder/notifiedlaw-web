@@ -1,12 +1,15 @@
 import { eq } from "drizzle-orm";
 import { getDb, userIdFrom } from "@/lib/auth";
 import { profile, subscription } from "@/db/schema";
+import { limited } from "@/lib/rate-limit";
 import { isPlan } from "@/lib/data";
 
 /** Everything the client shell needs about the signed-in user besides their name. */
 export async function GET(req: Request) {
   const id = await userIdFrom(req);
   if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
+  const rl = await limited(req, "READS", id);
+  if (rl) return rl;
   const db = getDb();
   const [p] = await db.select().from(profile).where(eq(profile.userId, id));
   const [s] = await db.select().from(subscription).where(eq(subscription.userId, id));

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { Empty } from "@/components/ui";
 import { getDb, getSession } from "@/lib/auth";
 import { getCourses } from "@/lib/cms";
-import { randomQuote } from "@/lib/quotes";
+import { dailyQuote } from "@/lib/quotes";
 import { profile } from "@/db/schema";
 import { abbr, bySemester, LEVEL_LABEL, type Level } from "@/lib/data";
 
@@ -19,7 +19,7 @@ export default async function Home() {
   if (session && !p) redirect("/onboarding");
   const first = p?.firstName || session?.user.name.trim().split(/\s+/)[0] || "there";
   const level = (p?.level ?? "200") as Level;
-  const [courses, quote] = await Promise.all([getCourses().then((c) => c[level]), randomQuote()]);
+  const [courses, quote] = await Promise.all([getCourses().then((c) => c[level]), dailyQuote()]);
   const date = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Accra" }).format(new Date());
 
   return (

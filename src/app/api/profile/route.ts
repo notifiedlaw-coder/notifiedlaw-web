@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { getDb, userIdFrom } from "@/lib/auth";
 import { profile } from "@/db/schema";
+import { limited } from "@/lib/rate-limit";
 import { readJson } from "@/lib/http";
 import { isLevel, parseProfile } from "@/lib/profile";
 
@@ -8,6 +9,8 @@ import { isLevel, parseProfile } from "@/lib/profile";
 export async function PUT(req: Request) {
   const id = await userIdFrom(req);
   if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
+  const rl = await limited(req, "WRITES", id);
+  if (rl) return rl;
   const p = parseProfile(await readJson(req));
   if (typeof p === "string") return Response.json({ error: p }, { status: 400 });
   const now = new Date();
@@ -27,6 +30,8 @@ export async function PUT(req: Request) {
 export async function PATCH(req: Request) {
   const id = await userIdFrom(req);
   if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
+  const rl = await limited(req, "WRITES", id);
+  if (rl) return rl;
   const level = ((await readJson(req)) as { level?: unknown } | null)?.level;
   if (!isLevel(level)) return Response.json({ error: "Unknown level." }, { status: 400 });
   const res = await getDb().update(profile).set({ level, updatedAt: new Date() }).where(eq(profile.userId, id));
