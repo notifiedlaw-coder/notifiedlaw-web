@@ -3,6 +3,8 @@ import { UNIVERSITIES } from "@/lib/content";
 export const TRIAL_DAYS = 7;
 export const LINK_MINUTES = 30;
 export const RESEND_SECONDS = 60;
+/** Verification emails one account can send in 24 hours. */
+export const DAILY_SENDS = 5;
 
 export const domainsFor = (university: string) => UNIVERSITIES.find((u) => u.name === university)?.domains ?? [];
 

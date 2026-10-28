@@ -99,6 +99,9 @@ export const uniEmailRequest = sqliteTable("uni_email_request", {
   tokenHash: text("token_hash").notNull().unique(),
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
   sentAt: integer("sent_at", { mode: "timestamp_ms" }).notNull(),
+  // Daily cap on links: how many were sent since windowStart. Kept when the address is changed.
+  sends: integer("sends").notNull().default(1),
+  windowStart: integer("window_start", { mode: "timestamp_ms" }), // null: rows from before the cap
 });
 
 // Content synced from the Notion "LAW DATABASE". One flexible table for every kind of page so a new Notion

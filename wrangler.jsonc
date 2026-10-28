@@ -27,7 +27,9 @@
     { "name": "RL_WRITES", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } },
     { "name": "RL_READS", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
     { "name": "RL_ADMIN", "namespace_id": "1003", "simple": { "limit": 5, "period": 60 } },
-    { "name": "RL_MEDIA", "namespace_id": "1004", "simple": { "limit": 300, "period": 60 } }
+    { "name": "RL_MEDIA", "namespace_id": "1004", "simple": { "limit": 300, "period": 60 } },
+    // University email links: per account, per IP and per recipient (src/app/api/uni-email).
+    { "name": "RL_UNI_EMAIL", "namespace_id": "1005", "simple": { "limit": 3, "period": 60 } }
   ],
   "vars": {
     "GOOGLE_CLIENT_ID": "776945171684-51d8p7incfdsv3vfaendvmg10vo75br2.apps.googleusercontent.com",
