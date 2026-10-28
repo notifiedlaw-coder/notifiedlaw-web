@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // The four tables Better Auth needs. App data (plans, progress, streaks) gets its own tables below.
 export const user = sqliteTable("user", {
@@ -71,3 +71,22 @@ export const subscription = sqliteTable("subscription", {
   creditsExtra: integer("credits_extra").notNull().default(0),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// Content synced from the Notion "LAW DATABASE". One flexible table for every kind of page so a new Notion
+// section needs no migration. Only rows with published = 1 are shown on the site.
+export const cmsEntry = sqliteTable("cms_entry", {
+  id: text("id").primaryKey(), // Notion page id
+  kind: text("kind").notNull(), // course | topic | case | article | episode | question
+  parentId: text("parent_id"), // topic -> its course page id
+  level: text("level"), // 100 | 200 | 300 | 400 | pre-bar | bar
+  semester: text("semester"), // "1" | "2"
+  title: text("title").notNull(),
+  slug: text("slug").notNull(), // courses: the site course slug; others: url slug
+  position: integer("position").notNull().default(0),
+  props: text("props").notNull().default("{}"), // JSON of the remaining Notion properties
+  body: text("body").notNull().default(""), // page content as Markdown
+  stage: text("stage"), // Draft | Review | Publish, as set in Notion
+  published: integer("published", { mode: "boolean" }).notNull().default(false),
+  notionEditedAt: text("notion_edited_at"),
+  syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [index("cms_entry_kind_published").on(t.kind, t.published), index("cms_entry_parent").on(t.parentId)]);

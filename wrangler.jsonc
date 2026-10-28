@@ -19,7 +19,9 @@
   ],
   "vars": {
     "GOOGLE_CLIENT_ID": "776945171684-51d8p7incfdsv3vfaendvmg10vo75br2.apps.googleusercontent.com",
-    "BETTER_AUTH_URL": "https://notifiedlaw.com"
+    "BETTER_AUTH_URL": "https://notifiedlaw.com",
+    // The Notion LAW DATABASE that the CMS sync reads (Notified Law Admin page).
+    "NOTION_ROOT_DATABASE_ID": "4062efa9c98e80089682f3481b6c4b67"
   },
   "routes": [
     { "pattern": "notifiedlaw.com", "custom_domain": true },

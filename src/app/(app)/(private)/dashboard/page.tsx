@@ -4,8 +4,9 @@ import { ShowIfFree, ShowUnlessMax } from "@/components/plan";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb, getSession } from "@/lib/auth";
+import { getCourses } from "@/lib/cms";
 import { profile } from "@/db/schema";
-import { abbr, COURSES, LEVEL_LABEL, QUOTE, type Level } from "@/lib/data";
+import { abbr, LEVEL_LABEL, QUOTE, type Level } from "@/lib/data";
 
 export const metadata = { title: "Home" };
 
@@ -37,7 +38,7 @@ export default async function Home() {
   if (session && !p) redirect("/onboarding");
   const first = p?.firstName || session?.user.name.trim().split(/\s+/)[0] || "there";
   const level = (p?.level ?? "200") as Level;
-  const courses = COURSES[level];
+  const courses = (await getCourses())[level];
   const date = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Accra" }).format(new Date());
 
   // One list on phones (iOS-style grouped rows), three tiles from sm up.

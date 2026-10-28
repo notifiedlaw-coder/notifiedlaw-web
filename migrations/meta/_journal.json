@@ -15,6 +15,13 @@
       "when": 1793197019315,
       "tag": "0001_tidy_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793202302729,
+      "tag": "0002_blue_nico_minoru",
+      "breakpoints": true
     }
   ]
 }

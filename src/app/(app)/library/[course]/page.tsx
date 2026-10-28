@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Btn, Eyebrow } from "@/components/ui";
-import { COURSES, abbr, findCourse, isMaxLevel, LEVEL_LABEL, LEVELS } from "@/lib/data";
+import { findIn, getCourses } from "@/lib/cms";
+import { abbr, isMaxLevel, LEVEL_LABEL } from "@/lib/data";
 import { CourseTopics } from "./course-topics";
 
-export function generateStaticParams() {
-  return LEVELS.flatMap((l) => COURSES[l].map((c) => ({ course: c.slug })));
-}
+// Topics can come from Notion (D1), so this page is rendered on request.
+export const dynamic = "force-dynamic";
 
 const TOOLS = [
   ["AI Summaries", "One per topic", "/library", "PRO"],
@@ -17,7 +17,7 @@ const TOOLS = [
 
 export default async function CoursePage({ params }: { params: Promise<{ course: string }> }) {
   const { course: slug } = await params;
-  const hit = findCourse(slug);
+  const hit = findIn(await getCourses(), slug);
   if (!hit) notFound();
   const { course, level } = hit;
   const done = Math.round(course.progress * course.topics.length);

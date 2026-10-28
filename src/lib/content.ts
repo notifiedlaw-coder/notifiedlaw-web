@@ -21,7 +21,8 @@ export const BADGES: Record<Treatment, { label: string; bg: string; fg: string }
 /* ---------- Reader chapters (LAW 201, topic 1) ---------- */
 export type Block =
   | { kind: "p"; pre: string; hl?: string; post?: string }
-  | { kind: "case"; name: string; cite: string; body: string };
+  | { kind: "case"; name: string; cite: string; body: string }
+  | { kind: "md"; md: string }; // Markdown written in Notion
 export type Q = { q: string; opts: string[]; a: number; why: string };
 export type Chapter = { title: string; blocks: Block[]; quiz: Q[] };
 

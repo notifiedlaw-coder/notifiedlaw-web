@@ -1,2 +1,6 @@
 GOOGLE_CLIENT_SECRET=
 BETTER_AUTH_SECRET=
+# Notion sync: an internal integration token from the workspace that owns the Law Database, and a long random
+# string callers send as a Bearer token to POST /api/admin/sync.
+NOTION_TOKEN=
+ADMIN_SYNC_TOKEN=

@@ -4,15 +4,22 @@ import Link from "next/link";
 import { useState } from "react";
 import { Badge, Chevron, Chip, Page, SearchField, Segmented, Title } from "@/components/ui";
 import { CASE_LIST, STATUTE_LIST } from "@/lib/content";
+import type { CmsCase } from "@/lib/cms";
 
-export function CaseLaw() {
+/** `extra` are case briefs published from Notion; they are listed with the built-in cases. */
+export function CaseLaw({ extra = [] }: { extra?: CmsCase[] }) {
   const [tab, setTab] = useState<"Cases" | "Legislation">("Cases");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"Recent" | "A–Z">("Recent");
   const [filter, setFilter] = useState("All");
   const needle = q.toLowerCase();
 
-  const cases = CASE_LIST.filter((c) => (filter === "All" || c.court === filter) && (c.title + c.cite).toLowerCase().includes(needle))
+  const title = (s: string) => s.toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase());
+  const all = [
+    ...CASE_LIST,
+    ...extra.map((c) => ({ title: c.title, cite: c.cite, court: title(c.court), year: 0, area: c.courses.join(", ") || c.jurisdiction.map(title).join(", "), slug: c.slug })),
+  ];
+  const cases = all.filter((c) => (filter === "All" || c.court === filter) && (c.title + c.cite).toLowerCase().includes(needle))
     .sort((a, b) => (sort === "Recent" ? b.year - a.year : a.title.localeCompare(b.title)));
   const statutes = STATUTE_LIST.filter((s) => (filter === "All" || s.group === filter) && (s.title + s.ref).toLowerCase().includes(needle));
   const filters = tab === "Cases" ? ["All", "Supreme Court", "Court of Appeal"] : ["All", "Constitution", "Acts of Parliament", "Decrees & PNDC Laws"];

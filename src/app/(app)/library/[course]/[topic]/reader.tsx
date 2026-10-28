@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { usePlan } from "@/components/plan";
 import { Btn, Gate, Segmented } from "@/components/ui";
-import { CHAPTERS, PODCAST_CAPTIONS } from "@/lib/content";
+import { Markdown, splitChapters } from "@/components/markdown";
+import { CHAPTERS, PODCAST_CAPTIONS, type Chapter } from "@/lib/content";
 
 const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
 const SPEEDS = [1, 1.25, 1.5, 2];
 
-export function Reader({ course, code, n, title, maxOnly = false }: { course: string; code: string; n: number; title: string; maxOnly?: boolean }) {
+/** `body` is the topic written in Notion (Markdown). Without it the built-in sample note is shown. */
+export function Reader({ course, code, slug, n, title, maxOnly = false, body }: { course: string; code: string; slug: string; n: number; title: string; maxOnly?: boolean; body?: string }) {
   const { pro, max } = usePlan();
   const [cur, setCur] = useState(0);
   const [done, setDone] = useState(0);
@@ -18,8 +20,15 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
   const [tab, setTab] = useState<"Summary" | "Ask AI">("Summary");
   const scroller = useRef<HTMLDivElement>(null);
 
-  const total = CHAPTERS.length;
-  const ch = CHAPTERS[cur];
+  const cms = !!body;
+  // Notion topics become chapters at each "##" heading and have no quiz yet, so every chapter is open.
+  const chapters = useMemo<Chapter[]>(
+    () => (body ? splitChapters(body, title).map((c) => ({ title: c.title, blocks: [{ kind: "md" as const, md: c.md }], quiz: [] })) : CHAPTERS),
+    [body, title],
+  );
+  const total = chapters.length;
+  const ch = chapters[cur];
+  const minutes = Math.max(1, Math.round((body ?? "").split(/\s+/).length / 200));
   const right = ch.quiz.filter((q, qi) => picks[`${cur}-${qi}`] === q.a).length;
   const passed = right === ch.quiz.length || cur < done;
   const last = cur === total - 1;
@@ -46,10 +55,10 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
             </div>
             <h1 className="mb-2 mt-2.5 text-[28px] font-bold leading-tight tracking-[-0.01em] md:text-4xl">{title}</h1>
             <div className="mb-5 text-[13px] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
-              {total} chapters · 14 min read · Updated for the 2026/27 academic year
+              {total} {total === 1 ? "chapter" : "chapters"} · {cms ? minutes : 14} min read{cms ? "" : " · Updated for the 2026/27 academic year"}
             </div>
             <div className="scroll-row mb-6 flex flex-wrap gap-2" style={{ fontFamily: "var(--font-sans)" }}>
-              {CHAPTERS.map((c, i) => {
+              {chapters.map((c, i) => {
                 const isCur = i === cur, isDone = !isCur && i < done, locked = !isCur && i > Math.min(done, total - 1);
                 return (
                   <button key={c.title} onClick={() => !locked && go(i)} disabled={locked}
@@ -63,7 +72,7 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
                 );
               })}
             </div>
-            {cur === 0 && (
+            {cur === 0 && !cms && (
               <figure className="mb-2" style={{ fontFamily: "var(--font-sans)" }}>
                 <div className="h-[200px] overflow-hidden rounded-[14px] bg-cover bg-center sm:h-[260px] md:h-[340px]"
                   style={{ backgroundImage: "url(/photos/supreme-court-accra.jpg)", backgroundColor: "#1C1C1E" }} />
@@ -72,7 +81,9 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
             )}
             <h2 className="mb-2.5 mt-7 text-[26px] font-bold tracking-[-0.01em]">{ch.title}</h2>
             {ch.blocks.map((b, i) =>
-              b.kind === "p" ? (
+              b.kind === "md" ? (
+                <Markdown key={i} source={b.md} />
+              ) : b.kind === "p" ? (
                 <p key={i} className="mb-4">
                   {b.pre}
                   {b.hl && <span className="rounded-[3px] bg-[rgba(255,204,0,0.35)] px-0.5">{b.hl}</span>}
@@ -86,6 +97,12 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
                 </div>
               ),
             )}
+            {cms ? (
+              <div className="mt-8 flex items-center justify-between gap-3 border-t border-edge/10 pt-5" style={{ fontFamily: "var(--font-sans)", fontSize: 14 }}>
+                {cur > 0 ? <button onClick={() => go(cur - 1)} className="h-10 rounded-[10px] bg-fill px-4 text-[14px] font-semibold">Previous chapter</button> : <span />}
+                {last ? <Btn href={`/library/${slug}`}>Back to course</Btn> : <button onClick={() => go(cur + 1)} className="h-10 rounded-[10px] bg-blue px-4 text-[14px] font-semibold text-white">Next chapter</button>}
+              </div>
+            ) : (
             <div className="mt-8 flex flex-col gap-4 rounded-[18px] border border-edge/10 bg-panel p-5" style={{ fontFamily: "var(--font-sans)", fontSize: 14, lineHeight: 1.4 }}>
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-xl bg-amber/15 text-[#C93400]"><Icon name="check" size={18} /></div>
@@ -136,13 +153,14 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
                 )}
               </div>
             </div>
+            )}
           </article>
         </div>
 
-        <PodcastBar max={max} />
+        {!cms && <PodcastBar max={max} />}
       </div>
 
-      <aside className="relative hidden w-[320px] shrink-0 flex-col border-l border-edge/10 bg-panel xl:flex">
+      {!cms && <aside className="relative hidden w-[320px] shrink-0 flex-col border-l border-edge/10 bg-panel xl:flex">
         <div className="px-4 pb-3 pt-3.5"><Segmented options={["Summary", "Ask AI"] as const} value={tab} onChange={setTab} labels={{ Summary: "AI Summary" }} /></div>
         {tab === "Summary" ? (
           <div className="relative flex flex-1 flex-col gap-[18px] overflow-auto px-[18px] pb-5 pt-1">
@@ -176,7 +194,7 @@ export function Reader({ course, code, n, title, maxOnly = false }: { course: st
             {!max && <Gate title="Your personal AI tutor" body="Ask questions about this note and get answers grounded in Ghanaian law." cta="Unlock with Supreme Justice (Max)" color="#5856D6" />}
           </div>
         )}
-      </aside>
+      </aside>}
     </div>
   );
 }

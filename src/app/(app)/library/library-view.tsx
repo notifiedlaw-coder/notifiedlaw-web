@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Btn, Chevron, LevelSelect, Page, Title } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { usePlan, useStudyLevel } from "@/components/plan";
-import { abbr, COURSES, isMaxLevel, LEVEL_LABEL, TOTAL_TOPICS } from "@/lib/data";
+import { abbr, isMaxLevel, LEVEL_LABEL, TOTAL_TOPICS, type Course, type Level } from "@/lib/data";
 
 export function TopicRow({ slug, i, title, color, locked, lockLabel = "Senior Judicial (Pro)" }: { slug: string; i: number; title: string; color: string; locked: boolean; lockLabel?: string }) {
   return (
@@ -28,7 +28,7 @@ export function TopicRow({ slug, i, title, color, locked, lockLabel = "Senior Ju
   );
 }
 
-export function LibraryView() {
+export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
   const [level, setLevel] = useStudyLevel();
   const { pro, max } = usePlan();
   const maxOnly = isMaxLevel(level) && !max;
@@ -56,7 +56,7 @@ export function LibraryView() {
           <Btn href="/plans">See plans</Btn>
         </div>
       )}
-      {COURSES[level].map((c) => (
+      {courses[level].map((c) => (
         <section key={c.slug} className="flex flex-col gap-2">
           <Link href={`/library/${c.slug}`} className="flex items-center gap-2.5 px-1" style={{ textDecoration: "none", color: "inherit" }}>
             <span className="flex size-7 items-center justify-center rounded-lg text-[11px] font-bold text-white" style={{ background: c.color }}>{abbr(c.code)}</span>
