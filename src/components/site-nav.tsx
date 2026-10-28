@@ -12,7 +12,7 @@ const SIGNUP = "/signup";
 export function SiteNav() {
   const [menu, setMenu] = useState(false);
   return (
-    <nav className="sticky top-3 z-20 mt-3 px-4 text-[17px] leading-[1.47] tracking-[-0.022em] text-[#1D1D1F]" style={{ colorScheme: "light" }}>
+    <nav data-site-nav className="sticky top-3 z-20 mt-3 px-4 text-[17px] leading-[1.47] tracking-[-0.022em] text-[#1D1D1F]" style={{ colorScheme: "light" }}>
       <div className="mx-auto flex h-14 max-w-[1080px] items-center gap-5 rounded-[18px] bg-white/80 pl-5 pr-2 shadow-[0_0_0_0.5px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.06)] backdrop-blur-xl backdrop-saturate-200">
         <Link href="/#top" className="flex items-center gap-2.5 text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]!">
           <span className="text-[17px]"><b>Notified</b><span className="text-[#FF9500]">Law</span></span>

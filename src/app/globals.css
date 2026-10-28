@@ -92,6 +92,12 @@
   --strong-fg: #1d1d1f;
 }
 
+/* Public pages scroll the document: reserve the scrollbar's width so the centred top bar does not shift
+   between long and short pages. The app shell scrolls inside its own panel, so it is left alone. */
+html:has([data-site-nav]) {
+  scrollbar-gutter: stable;
+}
+
 html,
 body {
   margin: 0;
