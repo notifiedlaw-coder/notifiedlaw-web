@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { ShowIfFree, ShowUnlessMax } from "@/components/plan";
+import { getSession } from "@/lib/auth";
 import { abbr, COURSES, DEMO_USER, QUOTE } from "@/lib/data";
 
 export const metadata = { title: "Home" };
@@ -26,7 +27,9 @@ const Chevron = () => (
 
 const link = { textDecoration: "none", color: "inherit" } as const;
 
-export default function Home() {
+export default async function Home() {
+  const session = await getSession();
+  const first = session?.user.name.trim().split(/\s+/)[0] || "there";
   const courses = COURSES[DEMO_USER.level];
 
   // One list on phones (iOS-style grouped rows), three tiles from sm up.
@@ -40,7 +43,7 @@ export default function Home() {
     <div className="mx-auto flex max-w-[1080px] flex-col gap-8 px-4 pb-12 pt-5 sm:px-6 md:px-10 md:pt-9">
       <header>
         <div className="text-[13px] font-semibold uppercase tracking-[0.04em] text-muted">Monday, 26 October</div>
-        <h1 className="mt-1 text-[34px] font-bold leading-tight tracking-[-0.03em] md:text-5xl">Akwaaba, {DEMO_USER.first}</h1>
+        <h1 className="mt-1 text-[34px] font-bold leading-tight tracking-[-0.03em] md:text-5xl">Akwaaba, {first}</h1>
         <figure className="m-0 mt-4 flex max-w-[560px] gap-3">
           <span aria-hidden className="w-[3px] shrink-0 rounded-full bg-amber-soft" />
           <div className="flex flex-col gap-1">

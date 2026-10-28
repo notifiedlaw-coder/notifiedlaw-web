@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CREDIT_NAME, DEMO_USER, PLAN_NAMES } from "@/lib/data";
+import { useUser } from "@/components/user";
 import { PlanProvider, usePlan } from "./plan";
 import { ThemeToggle } from "./theme";
 import {
@@ -69,6 +70,7 @@ function Wordmark({ className = "" }: { className?: string }) {
 
 function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: string) => void }) {
   const { plan } = usePlan();
+  const user = useUser();
   const roomy = !!onNavigate; // the phone drawer: larger, bolder rows
   return (
     <>
@@ -108,10 +110,10 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
         style={{ textDecoration: "none", color: "inherit" }}
       >
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber text-xs font-semibold text-white">
-          AO
+          {user.initials}
         </span>
         <span className="min-w-0 flex-1 leading-tight">
-          <span className="block truncate text-[14px] font-semibold min-[1920px]:text-[15px]">{DEMO_USER.name}</span>
+          <span className="block truncate text-[14px] font-semibold min-[1920px]:text-[15px]">{user.name}</span>
           <span className="block truncate text-xs text-muted min-[1920px]:text-[13px]">
             {DEMO_USER.uniShort} · {PLAN_NAMES[plan].replace(/^.*\((.*)\)$/, "$1")}
           </span>

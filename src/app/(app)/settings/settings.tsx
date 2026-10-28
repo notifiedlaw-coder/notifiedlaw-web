@@ -5,6 +5,8 @@ import { useState } from "react";
 import { usePlan } from "@/components/plan";
 import { useTheme, type Theme } from "@/components/theme";
 import { Eyebrow, Initials, LevelSelect, Page, Segmented } from "@/components/ui";
+import { useUser } from "@/components/user";
+import { authClient } from "@/lib/auth-client";
 import { CREDIT_NAME, DEMO_USER, PLAN_NAMES, type Level, type Plan } from "@/lib/data";
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -17,13 +19,14 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
 export function Settings() {
   const { plan, setPlan, credits, allowance, extra } = usePlan();
   const { theme, setTheme } = useTheme();
+  const user = useUser();
   const [level, setLevel] = useState<Level>(DEMO_USER.level);
 
   return (
     <Page max={640}>
       <div className="flex items-center gap-4">
-        <Initials name={DEMO_USER.name} color="#FF9500" size={64} />
-        <div><div className="text-xl font-bold">{DEMO_USER.name}</div><div className="text-[13px] text-muted">ama.owusu@st.ug.edu.gh · Student email verified</div></div>
+        <Initials name={user.name} color="#FF9500" size={64} />
+        <div><div className="text-xl font-bold">{user.name}</div><div className="text-[13px] text-muted">{user.email}</div></div>
       </div>
       <Group title="Studies">
         <Row label="University">University of Ghana</Row>
@@ -42,7 +45,7 @@ export function Settings() {
       <Group title="Demo">
         <Row label="Preview as plan"><Segmented options={["Free", "Pro", "Pro Max"] as readonly Plan[]} value={plan} onChange={setPlan} /></Row>
       </Group>
-      <Link href="/" className="rounded-xl bg-surface py-3 text-center text-sm font-medium text-red shadow-card" style={{ textDecoration: "none", color: "#FF3B30" }}>Sign Out</Link>
+      <button onClick={() => authClient.signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } })} className="cursor-pointer rounded-xl border-0 bg-surface py-3 text-center text-sm font-medium text-red shadow-card" style={{ color: "#FF3B30" }}>Sign Out</button>
     </Page>
   );
 }

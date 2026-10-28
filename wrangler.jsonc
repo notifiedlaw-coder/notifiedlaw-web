@@ -13,6 +13,14 @@
     // Public marketing videos, streamed by src/app/media/[...key]/route.ts
     { "binding": "VIDEOS", "bucket_name": "notifiedlaw-videos" }
   ],
+  "d1_databases": [
+    // Users, sessions and (later) progress. Schema lives in src/db/schema.ts; migrations in ./migrations.
+    { "binding": "DB", "database_name": "notifiedlaw-db", "database_id": "0a0b819f-d1f9-4c76-89ba-f2f9e330b1ae", "migrations_dir": "migrations" }
+  ],
+  "vars": {
+    "GOOGLE_CLIENT_ID": "776945171684-51d8p7incfdsv3vfaendvmg10vo75br2.apps.googleusercontent.com",
+    "BETTER_AUTH_URL": "https://notifiedlaw.com"
+  },
   "routes": [
     { "pattern": "notifiedlaw.com", "custom_domain": true },
     { "pattern": "www.notifiedlaw.com", "custom_domain": true } // redirected to the apex in next.config.ts
