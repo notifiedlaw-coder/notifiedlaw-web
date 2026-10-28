@@ -31,7 +31,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 const DIRECTIONS = ["up-left", "up", "up-right", "left", "center", "right", "down-left", "down", "down-right"] as const;
 const REACTIONS = ["blink", "heart", "sparkle", "surprised", "wink", "bashful", "sleepy", "dizzy", "delighted"] as const;
-type Direction = (typeof DIRECTIONS)[number];
+export type Direction = (typeof DIRECTIONS)[number];
 type Reaction = (typeof REACTIONS)[number];
 
 // Clockwise from the right, matching atan2 with y pointing down.
@@ -160,7 +160,7 @@ export type LiveMascotProps = {
   /** What a screen reader calls it. */
   label?: string;
   /** Poses drawn over her; they breathe and lean with her. */
-  overlay?: ReactNode;
+  overlay?: ReactNode | ((direction: Direction) => ReactNode);
   /** Fade the live sprite out while an overlay pose stands in for it. */
   hideSprite?: boolean;
   /** Whose eyes blink: the live head, the front-facing head an overlay shows, or nobody. */
@@ -460,7 +460,7 @@ export function LiveMascot({
                 }}
               />
             </span>
-            {overlay}
+            {typeof overlay === "function" ? overlay(blink === "front" ? "center" : direction) : overlay}
             {blink ? (
               <span ref={lidsRef} aria-hidden="true" style={{ position: "absolute", inset: 0, opacity: 0, pointerEvents: "none" }}>
                 <Eyelids direction={blink === "front" ? "center" : direction} size={size} />
