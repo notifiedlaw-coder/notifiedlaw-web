@@ -132,3 +132,16 @@ export const quote = sqliteTable("quote", {
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// My Files: one row per upload. The bytes live in the private FILES R2 bucket under `key`, which is built from
+// the user id and the row id, never from the file name. Quota is the sum of `size` over the user's rows.
+export const userFile = sqliteTable("user_file", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  key: text("key").notNull().unique(),
+  name: text("name").notNull(), // cleaned display name, with its .pdf or .docx extension
+  kind: text("kind").notNull(), // pdf | docx, from the file's contents, not its name
+  size: integer("size").notNull(),
+  sha256: text("sha256").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [index("user_file_user").on(t.userId, t.createdAt)]);

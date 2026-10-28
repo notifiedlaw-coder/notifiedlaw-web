@@ -11,7 +11,9 @@
   "observability": { "enabled": true },
   "r2_buckets": [
     // Public marketing videos, audio and images, served by src/app/media/[...key]/route.ts
-    { "binding": "VIDEOS", "bucket_name": "notifiedlaw-videos" }
+    { "binding": "VIDEOS", "bucket_name": "notifiedlaw-videos" },
+    // My Files uploads. Private: no public or r2.dev access; read only through src/app/api/files/[id]/route.ts.
+    { "binding": "FILES", "bucket_name": "notifiedlaw-files" }
   ],
   "d1_databases": [
     // Users, sessions and (later) progress. Schema lives in src/db/schema.ts; migrations in ./migrations.
@@ -44,7 +46,7 @@
 
   // Add as features land (all Cloudflare-native):
   //   D1 (users, progress, quiz results)   "d1_databases"
-  //   R2 (My Files uploads, podcast audio) more "r2_buckets"
+  //   R2 (podcast audio)                   more "r2_buckets"
   //   KV (sessions, rate limits)           "kv_namespaces"
   //   Workers AI + Vectorize (Notified AI) "ai", "vectorize"
   //   Turnstile on sign-in; Email Service for receipts (binding above).

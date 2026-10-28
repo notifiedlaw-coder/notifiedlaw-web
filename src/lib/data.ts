@@ -22,6 +22,12 @@ export const PLAN_NAMES: Record<Plan, string> = {
 /** Notify Credits: the AI allowance each plan includes per month. Placeholder amounts, to be set before launch. */
 export const CREDIT_NAME = "Notify Credits";
 export const PLAN_CREDITS: Record<Plan, number> = { Free: 0, Pro: 150, "Pro Max": 500 };
+/** My Files storage each plan includes, in bytes. */
+const MB = 1024 * 1024;
+export const PLAN_STORAGE: Record<Plan, number> = { Free: 500 * MB, Pro: 5 * 1024 * MB, "Pro Max": 10 * 1024 * MB };
+/** Largest single upload. The Worker holds the whole file in memory while it checks it. */
+export const MAX_FILE_BYTES = 25 * MB;
+
 /** Credits one Notified AI message costs. */
 export const AI_MESSAGE_COST = 1;
 
