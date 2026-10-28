@@ -37,6 +37,7 @@ export function Onboarding({ defaults }: { defaults: { first: string; middle: st
   const valid = step === 0 ? !ABOUT_KEYS.some((k) => errors[k]) : step === 1 ? !errors.status : !Object.keys(errors).length;
   const pill = (on: boolean) => ({ background: on ? "rgba(0,122,255,0.08)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #007AFF" : "0 0 0 0.5px var(--hairline)" });
   const text = (k: "firstName" | "middleName" | "lastName" | "phone" | "dob") => ({ value: f[k], onBlur: blur(k), "aria-invalid": bad(k), onChange: (e: React.ChangeEvent<HTMLInputElement>) => patch({ [k]: e.target.value }) });
+  const cell = (i: number) => `col-start-1 row-start-1 ${step === i ? "" : "invisible"}`;
   const last = step === STEPS.length - 1;
 
   const finish = async () => {
@@ -52,12 +53,14 @@ export function Onboarding({ defaults }: { defaults: { first: string; middle: st
     <div className="flex min-h-dvh items-center justify-center bg-canvas px-5 py-10">
       <div className="flex w-full max-w-[560px] flex-col gap-6 rounded-3xl bg-surface p-8 shadow-card">
         <div className="flex gap-1.5">{STEPS.map((_, i) => <div key={i} className="h-1 flex-1 rounded-sm" style={{ background: i <= step ? "#007AFF" : "var(--track)" }} />)}</div>
-        <div>
+        <div className="min-h-[5.5rem]">
           <div className="text-xs font-semibold text-muted">Step {step + 1} of {STEPS.length}</div>
           <h1 className="mt-1 text-[28px] font-bold tracking-[-0.02em]">{step === 2 && f.status ? FOLLOW_UP[f.status] : STEPS[step][0]}</h1>
           <p className="mt-1 text-sm text-muted">{STEPS[step][1]}</p>
         </div>
-        {step === 0 && (
+        {/* Every step shares one grid cell, so the card keeps the height of the tallest step. */}
+        <div className="grid">
+        <div className={cell(0)}>
           <div className="flex flex-col gap-3.5">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-xs font-semibold text-muted">First name<input {...text("firstName")} maxLength={80} required autoComplete="given-name" className={fieldCls} />{err("firstName")}</label>
@@ -71,10 +74,11 @@ export function Onboarding({ defaults }: { defaults: { first: string; middle: st
             </div>
             <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Phone number <span className="font-normal">(optional, for MoMo payments)</span><input type="tel" inputMode="tel" {...text("phone")} maxLength={30} placeholder="024 000 0000" autoComplete="tel" className={fieldCls} />{err("phone")}</label>
           </div>
-        )}
-        {step === 1 && <StatusPicker value={f} onChange={patch} errors={touched.status ? errors : {}} />}
-        {step === 2 && <StatusQuestions value={f} onChange={patch} errors={errors} />}
-        {step === 3 && <div className="flex flex-wrap gap-2">{GOALS.map((g) => <button key={g} type="button" aria-pressed={f.goals.includes(g)} onClick={() => patch({ goals: f.goals.includes(g) ? f.goals.filter((x) => x !== g) : [...f.goals, g] })} className="rounded-full px-4 py-2 text-sm font-medium" style={pill(f.goals.includes(g))}>{g}</button>)}</div>}
+        </div>
+        <div className={cell(1)}><StatusPicker value={f} onChange={patch} errors={touched.status ? errors : {}} /></div>
+        <div className={cell(2)}><StatusQuestions value={f} onChange={patch} errors={errors} /></div>
+        <div className={cell(3)}><div className="flex flex-wrap gap-2">{GOALS.map((g) => <button key={g} type="button" aria-pressed={f.goals.includes(g)} onClick={() => patch({ goals: f.goals.includes(g) ? f.goals.filter((x) => x !== g) : [...f.goals, g] })} className="rounded-full px-4 py-2 text-sm font-medium" style={pill(f.goals.includes(g))}>{g}</button>)}</div></div>
+        </div>
         {error && <p className="m-0 text-sm text-red">{error}</p>}
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} className="h-10 rounded-[10px] px-4 text-sm text-muted" style={{ visibility: step ? "visible" : "hidden" }}>Back</button>
