@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Eyebrow } from "@/components/ui";
 import { findIn, getCourses } from "@/lib/cms";
-import { abbr, isMaxLevel, LEVEL_LABEL } from "@/lib/data";
+import { abbr, isMaxLevel, LEVEL_LABEL, SEMESTER_LABEL } from "@/lib/data";
 import { CourseTopics } from "./course-topics";
 
 // Courses come from Notion (D1), so this page is rendered on request.
@@ -25,7 +25,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
         <div className="absolute bottom-4 left-5 flex items-end gap-4 text-white">
           <div className="flex size-14 items-center justify-center rounded-2xl border-[3px] border-surface bg-white/20 text-xl font-bold">{abbr(course.title)}</div>
           <div>
-            <div className="text-xs font-semibold opacity-80">{LEVEL_LABEL[level]}</div>
+            <div className="text-xs font-semibold opacity-80">{LEVEL_LABEL[level]} · {SEMESTER_LABEL(course.semester)}</div>
             <h1 className="text-[26px] font-bold leading-tight tracking-tight">{course.title}</h1>
             <div className="text-[13px] opacity-80">{course.topics.length} topics · {ready} available</div>
           </div>

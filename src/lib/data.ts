@@ -34,4 +34,12 @@ export const isMaxLevel = (l: Level) => l === "pre-bar" || l === "bar";
 export const abbr = (title: string) => title.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w)).map((w) => w[0]).join("").toUpperCase().slice(0, 3) || "?";
 
 export type TopicInfo = { title: string; ready: boolean; mins: number; chapters: number };
-export type Course = { slug: string; title: string; color: string; topics: TopicInfo[] };
+export type Course = { slug: string; title: string; color: string; semester: string; topics: TopicInfo[] };
+
+export const SEMESTER_LABEL = (s: string) => (s === "1" ? "First Semester" : s === "2" ? "Second Semester" : `Semester ${s}`);
+
+/** Groups a level's courses by semester, in semester order. */
+export function bySemester(courses: Course[]) {
+  const sems = [...new Set(courses.map((c) => c.semester))].sort();
+  return sems.map((s) => ({ semester: s, label: SEMESTER_LABEL(s), courses: courses.filter((c) => c.semester === s) }));
+}

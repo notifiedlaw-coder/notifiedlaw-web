@@ -56,7 +56,7 @@ export async function getCourses(): Promise<Record<Level, Course[]>> {
     if (!isLevel(c.level)) continue;
     const mine = topics.filter((t) => t.parentId === c.id).sort((a, b) => a.position - b.position);
     out[c.level].push({
-      slug: c.slug, title: c.title, color: PALETTE[out[c.level].length % PALETTE.length],
+      slug: c.slug, title: c.title, semester: c.semester ?? "1", color: PALETTE[out[c.level].length % PALETTE.length],
       topics: mine.map((t) => ({ title: t.title, ready: t.published, mins: readMins(t.body), chapters: Math.max(1, (t.body.match(/^## /gm) ?? []).length) })),
     });
   }

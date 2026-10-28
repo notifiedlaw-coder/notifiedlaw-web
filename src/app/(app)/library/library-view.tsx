@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Btn, Chevron, Empty, LevelSelect, Page, Title } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { usePlan, useStudyLevel } from "@/components/plan";
-import { abbr, isMaxLevel, LEVEL_LABEL, type Course, type Level, type TopicInfo } from "@/lib/data";
+import { abbr, bySemester, isMaxLevel, LEVEL_LABEL, type Course, type Level, type TopicInfo } from "@/lib/data";
 
 export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial (Pro)" }: { slug: string; i: number; topic: TopicInfo; locked: boolean; lockLabel?: string }) {
   const body = (
@@ -62,19 +62,24 @@ export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
         </div>
       )}
       {courses[level].length === 0 && <Empty title={`No courses for ${LEVEL_LABEL[level]} yet`}>Courses are added from the NotifiedLaw content database and appear here once they are published.</Empty>}
-      {courses[level].map((c) => (
-        <section key={c.slug} className="flex flex-col gap-2">
-          <Link href={`/library/${c.slug}`} className="flex items-center gap-2.5 px-1" style={{ textDecoration: "none", color: "inherit" }}>
-            <span className="flex size-7 items-center justify-center rounded-lg text-[11px] font-bold text-white" style={{ background: c.color }}>{abbr(c.title)}</span>
-            <span className="text-[17px] font-semibold">{c.title}</span>
-          </Link>
-          <div className="overflow-hidden rounded-xl bg-surface shadow-card">
-            {c.topics.map((t, i) => (
-              <TopicRow key={t.title + i} slug={c.slug} i={i} topic={t} locked={maxOnly || (!pro && i >= 2)} lockLabel={maxOnly ? "Supreme Justice (Max)" : undefined} />
-            ))}
-            {c.topics.length === 0 && <div className="px-4 py-3.5 text-[13px] text-muted">Topics will appear here once they are added.</div>}
-          </div>
-        </section>
+      {bySemester(courses[level]).map((sem) => (
+        <div key={sem.semester} className="flex flex-col gap-4">
+          <h2 className="px-1 text-[13px] font-bold uppercase tracking-[0.05em] text-muted">{sem.label}</h2>
+          {sem.courses.map((c) => (
+          <section key={c.slug} className="flex flex-col gap-2">
+            <Link href={`/library/${c.slug}`} className="flex items-center gap-2.5 px-1" style={{ textDecoration: "none", color: "inherit" }}>
+              <span className="flex size-7 items-center justify-center rounded-lg text-[11px] font-bold text-white" style={{ background: c.color }}>{abbr(c.title)}</span>
+              <span className="text-[17px] font-semibold">{c.title}</span>
+            </Link>
+            <div className="overflow-hidden rounded-xl bg-surface shadow-card">
+              {c.topics.map((t, i) => (
+                <TopicRow key={t.title + i} slug={c.slug} i={i} topic={t} locked={maxOnly || (!pro && i >= 2)} lockLabel={maxOnly ? "Supreme Justice (Max)" : undefined} />
+              ))}
+              {c.topics.length === 0 && <div className="px-4 py-3.5 text-[13px] text-muted">Topics will appear here once they are added.</div>}
+            </div>
+          </section>
+        ))}
+        </div>
       ))}
     </Page>
   );
