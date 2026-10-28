@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { AUDIO_SRC, HeroPromo } from "@/components/hero-promo";
 import { LandingLoader } from "@/components/landing-loader";
+import { LawyerMascot } from "@/components/lawyer-mascot";
 import { SiteNav } from "@/components/site-nav";
 import { FAQ } from "@/lib/site";
 
@@ -69,6 +70,7 @@ export default function Landing() {
     <div className="nl-light bg-white text-[17px] leading-[1.47] tracking-[-0.022em] text-[#1D1D1F]" style={{ colorScheme: "light" }}>
       <LandingLoader images={IMAGES} audio={AUDIO_SRC} onReady={(url) => { setAudio(url); setReady(true); }} />
       <SiteNav />
+      <LawyerMascot />
 
       <main id="main" tabIndex={-1}>
       <div className="mt-5 flex justify-center px-4">
