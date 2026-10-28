@@ -72,8 +72,7 @@ export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
           {sem.courses.map((c) => (
           <section key={c.slug} className="flex flex-col gap-2">
             <Link href={`/library/${c.slug}`} className="flex items-center gap-1.5 self-start px-1 hover:opacity-70" style={{ textDecoration: "none", color: "inherit" }}>
-              <span className="mr-1 size-2.5 shrink-0 rounded-full" style={{ background: c.color }} aria-hidden />
-              <span className="text-[17px] font-semibold tracking-[-0.01em]">{c.title}</span>
+              <span className="text-[17px] font-semibold tracking-[-0.01em]" style={{ color: c.color }}>{c.title}</span>
               <Chevron />
             </Link>
             <div className="overflow-hidden rounded-xl bg-surface shadow-card">
