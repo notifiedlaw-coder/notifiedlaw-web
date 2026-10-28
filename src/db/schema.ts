@@ -75,7 +75,30 @@ export const subscription = sqliteTable("subscription", {
   plan: text("plan").notNull().default("Free"),
   creditsUsed: integer("credits_used").notNull().default(0),
   creditsExtra: integer("credits_extra").notNull().default(0),
+  // Set once, when a university email is verified: Pro until this time. Never cleared, so it also records
+  // that the account has had its one trial.
+  trialEndsAt: integer("trial_ends_at", { mode: "timestamp_ms" }),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+// Verified university emails. The address is the key, so each one can back only one account, ever: there is
+// no foreign key to user, so deleting the account does not free the address for a second trial.
+export const uniEmail = sqliteTable("uni_email", {
+  email: text("email").primaryKey(), // normalised: lower-case, no +tag
+  userId: text("user_id").notNull().unique(), // one verified address per account
+  university: text("university").notNull(),
+  verifiedAt: integer("verified_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+// A verification link waiting to be clicked; at most one per user. Only a hash of the token is stored.
+// Pending rows do not reserve the address, so nobody can block someone else's email by requesting it first.
+export const uniEmailRequest = sqliteTable("uni_email_request", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  university: text("university").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  sentAt: integer("sent_at", { mode: "timestamp_ms" }).notNull(),
 });
 
 // Content synced from the Notion "LAW DATABASE". One flexible table for every kind of page so a new Notion

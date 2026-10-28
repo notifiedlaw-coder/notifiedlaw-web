@@ -19,7 +19,7 @@ export const abs = (path = "/") => new URL(path, SITE.url).toString();
 /** Routes behind the app shell that hold per-user state. Kept out of search and AI indexes. */
 export const PRIVATE_PATHS = [
   "/dashboard", "/settings", "/checkout", "/onboarding", "/exam-prep", "/hot-topics", "/plans", "/login",
-  "/ai", "/flashcards", "/leaderboard", "/files",
+  "/ai", "/flashcards", "/leaderboard", "/files", "/verify-uni",
 ] as const;
 
 export const FAQ = [

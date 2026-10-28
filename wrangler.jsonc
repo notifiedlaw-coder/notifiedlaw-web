@@ -17,6 +17,11 @@
     // Users, sessions and (later) progress. Schema lives in src/db/schema.ts; migrations in ./migrations.
     { "binding": "DB", "database_name": "notifiedlaw-db", "database_id": "0a0b819f-d1f9-4c76-89ba-f2f9e330b1ae", "migrations_dir": "migrations" }
   ],
+  "send_email": [
+    // Cloudflare Email Service: university email verification. Sends from notifiedlaw.com, which must be
+    // onboarded to Email Sending (wrangler email sending enable notifiedlaw.com). Simulated under local dev.
+    { "name": "EMAIL" }
+  ],
   "ratelimits": [
     // Workers Rate Limiting; used by src/lib/rate-limit.ts. period is 10 or 60 seconds.
     { "name": "RL_WRITES", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } },
@@ -40,5 +45,5 @@
   //   R2 (My Files uploads, podcast audio) more "r2_buckets"
   //   KV (sessions, rate limits)           "kv_namespaces"
   //   Workers AI + Vectorize (Notified AI) "ai", "vectorize"
-  //   Turnstile on sign-in; Email Service for receipts.
+  //   Turnstile on sign-in; Email Service for receipts (binding above).
 }

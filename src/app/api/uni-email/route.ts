@@ -1,0 +1,51 @@
+import { eq } from "drizzle-orm";
+import { getDb, userIdFrom } from "@/lib/auth";
+import { profile, uniEmail, uniEmailRequest } from "@/db/schema";
+import { limited } from "@/lib/rate-limit";
+import { readJson } from "@/lib/http";
+import { sendEmail, uniEmailMessage } from "@/lib/email";
+import { newToken } from "@/lib/token";
+import { LINK_MINUTES, RESEND_SECONDS, checkUniEmail } from "@/lib/uni-email";
+
+const fail = (error: string, status: number) => Response.json({ error }, { status });
+
+/**
+ * Sends a verification link to a university email. The address must be on the profile university's domains,
+ * must not already be verified by any account, and each account can verify only one. One link per minute.
+ */
+export async function POST(req: Request) {
+  const id = await userIdFrom(req);
+  if (!id) return fail("unauthenticated", 401);
+  const rl = await limited(req, "WRITES", id);
+  if (rl) return rl;
+  const body = (await readJson(req)) as { email?: unknown } | null;
+  const db = getDb();
+  const [[p], [mine], [pending]] = await Promise.all([
+    db.select({ university: profile.university }).from(profile).where(eq(profile.userId, id)),
+    db.select().from(uniEmail).where(eq(uniEmail.userId, id)),
+    db.select().from(uniEmailRequest).where(eq(uniEmailRequest.userId, id)),
+  ]);
+  if (mine) return fail("Your account already has a verified university email.", 409);
+  if (!p?.university) return fail("Choose your university in your profile first.", 400);
+  const checked = checkUniEmail(body?.email, p.university);
+  if ("error" in checked) return fail(checked.error, 400);
+  const now = new Date();
+  if (pending && now.getTime() - pending.sentAt.getTime() < RESEND_SECONDS * 1000)
+    return fail("A link was just sent. Wait a minute before sending another.", 429);
+  const [taken] = await db.select({ userId: uniEmail.userId }).from(uniEmail).where(eq(uniEmail.email, checked.email));
+  if (taken) return fail("This university email is already linked to another NotifiedLaw account.", 409);
+
+  const { token, hash } = await newToken();
+  const row = { email: checked.email, university: p.university, tokenHash: hash, expiresAt: new Date(now.getTime() + LINK_MINUTES * 60_000), sentAt: now };
+  // Replacing the row also retires any earlier link.
+  await db.insert(uniEmailRequest).values({ userId: id, ...row }).onConflictDoUpdate({ target: uniEmailRequest.userId, set: row });
+  const link = `${new URL(req.url).origin}/verify-uni?token=${token}`;
+  if (process.env.NODE_ENV !== "production") console.info(`[uni-email] verification link for ${checked.email}: ${link}`);
+  try {
+    await sendEmail({ to: checked.email, ...uniEmailMessage(link, p.university, LINK_MINUTES) });
+  } catch (e) {
+    console.error("[uni-email] send failed", (e as { code?: string }).code, (e as Error).message);
+    return fail("We could not send the email. Check the address and try again shortly.", 502);
+  }
+  return Response.json({ ok: true, uniEmail: { email: checked.email, university: p.university, verified: false, sentAt: now.getTime() } });
+}

@@ -106,8 +106,8 @@ export function Badge({ kind, label }: { kind: Treatment; label?: string }) {
 }
 
 export function Btn({
-  children, onClick, href, tone = "primary", disabled, className = "",
-}: { children: React.ReactNode; onClick?: () => void; href?: string; tone?: "primary" | "plain" | "dark"; disabled?: boolean; className?: string }) {
+  children, onClick, href, tone = "primary", disabled, className = "", type = "button",
+}: { children: React.ReactNode; onClick?: () => void; href?: string; tone?: "primary" | "plain" | "dark"; disabled?: boolean; className?: string; type?: "button" | "submit" }) {
   const tones = {
     primary: "bg-blue text-white hover:bg-[#0068DA]",
     plain: "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)] hover:bg-fill",
@@ -121,7 +121,7 @@ export function Btn({
       </Link>
     );
   return (
-    <button onClick={onClick} disabled={disabled} className={cls}>
+    <button type={type} onClick={onClick} disabled={disabled} className={cls}>
       {children}
     </button>
   );

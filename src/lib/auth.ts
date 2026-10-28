@@ -32,27 +32,39 @@ export function getDb() {
   return drizzle(getCloudflareContext().env.DB, { schema });
 }
 
+/** The plan a subscription row grants now: its paid plan, or Pro while a university-email trial runs. */
+export function planOf(row: { plan: string; trialEndsAt: Date | null } | undefined, now = new Date()): Plan {
+  const paid = row && isPlan(row.plan) ? row.plan : "Free";
+  return paid === "Free" && row?.trialEndsAt && row.trialEndsAt > now ? "Pro" : paid;
+}
+
 /** The signed-in user's plan from D1; Free for guests and for users with no subscription row. */
 export async function getPlan(): Promise<Plan> {
   const s = await getSession();
   if (!s) return "Free";
-  const [row] = await getDb().select({ plan: schema.subscription.plan }).from(schema.subscription).where(eq(schema.subscription.userId, s.user.id));
-  return row && isPlan(row.plan) ? row.plan : "Free";
+  const [row] = await getDb().select({ plan: schema.subscription.plan, trialEndsAt: schema.subscription.trialEndsAt }).from(schema.subscription).where(eq(schema.subscription.userId, s.user.id));
+  return planOf(row);
 }
 
 /** Everything the client shell needs about a user besides their name: profile and subscription. */
 export async function meFor(userId: string): Promise<Me> {
   const db = getDb();
-  const [[p], [s]] = await Promise.all([
+  const [[p], [s], [verified], [pending]] = await Promise.all([
     db.select().from(schema.profile).where(eq(schema.profile.userId, userId)),
     db.select().from(schema.subscription).where(eq(schema.subscription.userId, userId)),
+    db.select().from(schema.uniEmail).where(eq(schema.uniEmail.userId, userId)),
+    db.select().from(schema.uniEmailRequest).where(eq(schema.uniEmailRequest.userId, userId)),
   ]);
+  const trialEndsAt = s?.trialEndsAt ?? null;
+  const onTrial = s?.plan === "Free" && !!trialEndsAt && trialEndsAt > new Date();
   return {
     profile: p ? {
       ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",
       jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
     } as Me["profile"] : null,
-    subscription: { plan: s && isPlan(s.plan) ? s.plan : "Free", creditsUsed: s?.creditsUsed ?? 0, creditsExtra: s?.creditsExtra ?? 0 },
+    subscription: { plan: planOf(s), creditsUsed: s?.creditsUsed ?? 0, creditsExtra: s?.creditsExtra ?? 0, trialEndsAt: trialEndsAt?.getTime() ?? null, onTrial },
+    uniEmail: verified ? { email: verified.email, university: verified.university, verified: true, sentAt: null }
+      : pending ? { email: pending.email, university: pending.university, verified: false, sentAt: pending.sentAt.getTime() } : null,
   };
 }
 

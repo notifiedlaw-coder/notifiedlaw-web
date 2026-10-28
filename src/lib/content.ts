@@ -19,26 +19,28 @@ export const BADGES: Record<Treatment, { label: string; bg: string; fg: string }
 };
 
 // Ghanaian institutions that offer the law programme. Names already stored on profiles are kept as they were.
-export const UNIVERSITIES = [
-  { name: "Accra Metropolitan University" },
-  { name: "Ashesi University" },
-  { name: "Central University" },
-  { name: "GIMPA" },
-  { name: "Greenfield University" },
-  { name: "KAAF University" },
-  { name: "Kings University" },
-  { name: "KNUST" },
-  { name: "Lancaster University Ghana" },
-  { name: "Mountcrest University" },
-  { name: "Pentecost University" },
-  { name: "Presbyterian University" },
-  { name: "SDD-UBIDS" },
-  { name: "University of Cape Coast" },
-  { name: "University of Development Studies" },
-  { name: "University of Ghana" },
-  { name: "UPSA" },
-  { name: "Wisconsin International University College" },
-  { name: "Zenith University College" },
+// `domains` are the institution's mail domains; a university email must be on one of them or a subdomain
+// (so ug.edu.gh also covers st.ug.edu.gh). Each was checked to have MX records and the matching website.
+export const UNIVERSITIES: { name: string; domains: string[] }[] = [
+  { name: "Accra Metropolitan University", domains: ["accramet.edu.gh"] },
+  { name: "Ashesi University", domains: ["ashesi.edu.gh"] },
+  { name: "Central University", domains: ["central.edu.gh"] },
+  { name: "GIMPA", domains: ["gimpa.edu.gh"] },
+  { name: "Greenfield University", domains: ["gfc.edu.gh"] },
+  { name: "KAAF University", domains: ["kaafuni.edu.gh"] },
+  { name: "Kings University", domains: ["kuc.edu.gh"] },
+  { name: "KNUST", domains: ["knust.edu.gh"] },
+  { name: "Lancaster University Ghana", domains: ["lancaster.edu.gh"] },
+  { name: "Mountcrest University", domains: ["mountcrestuniversity.edu.gh", "mountcrestuniversity.com"] },
+  { name: "Pentecost University", domains: ["pentvars.edu.gh"] },
+  { name: "Presbyterian University", domains: ["presbyuniversity.edu.gh"] },
+  { name: "SDD-UBIDS", domains: ["ubids.edu.gh"] },
+  { name: "University of Cape Coast", domains: ["ucc.edu.gh"] },
+  { name: "University of Development Studies", domains: ["uds.edu.gh"] },
+  { name: "University of Ghana", domains: ["ug.edu.gh"] },
+  { name: "UPSA", domains: ["upsa.edu.gh", "upsamail.edu.gh"] },
+  { name: "Wisconsin International University College", domains: ["wiuc-ghana.edu.gh"] },
+  { name: "Zenith University College", domains: ["zuc.edu.gh"] },
 ];
 
 export const NETWORKS = [

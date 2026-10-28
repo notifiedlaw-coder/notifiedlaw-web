@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { PLAN_CREDITS, isPlan, type Level, type Plan } from "@/lib/data";
-import type { Me, Profile } from "@/lib/profile";
+import type { Me, Profile, UniEmailState } from "@/lib/profile";
 import { DEMO_BILLING } from "@/lib/site";
 
 type Ctx = {
@@ -15,8 +15,11 @@ type Ctx = {
   setLevel: (l: Level) => void;
   /** Replaces the cached profile after it was saved from Settings. */
   setProfile: (p: Profile) => void;
+  /** University-email trial: when it ends (set once the account has had it) and whether it is running now. */
+  trialEndsAt: number | null; onTrial: boolean;
+  uniEmail: UniEmailState | null; setUniEmail: (u: UniEmailState) => void;
 };
-const PlanCtx = createContext<Ctx>({ plan: "Free", setPlan: () => {}, pro: false, max: false, credits: 0, allowance: 0, extra: 0, spend: () => false, addCredits: () => {}, profile: null, setLevel: () => {}, setProfile: () => {} });
+const PlanCtx = createContext<Ctx>({ plan: "Free", setPlan: () => {}, pro: false, max: false, credits: 0, allowance: 0, extra: 0, spend: () => false, addCredits: () => {}, profile: null, setLevel: () => {}, setProfile: () => {}, trialEndsAt: null, onTrial: false, uniEmail: null, setUniEmail: () => {} });
 
 const send = (url: string, method: string, body: unknown) =>
   void fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
@@ -24,14 +27,18 @@ const send = (url: string, method: string, body: unknown) =>
 // Plan, credits and profile live in D1 and are read on the server for each request (AppFrame), so the
 // first paint already shows the right plan. Guests (null) are treated as Free.
 export function PlanProvider({ me, children }: { me: Me | null; children: React.ReactNode }) {
-  const [state, setState] = useState<{ plan: Plan; used: number; extra: number; profile: Profile | null }>(() => ({
+  const [state, setState] = useState<{ plan: Plan; used: number; extra: number; profile: Profile | null; uniEmail: UniEmailState | null }>(() => ({
     plan: me && isPlan(me.subscription.plan) ? me.subscription.plan : "Free",
     used: me?.subscription.creditsUsed ?? 0,
     extra: me?.subscription.creditsExtra ?? 0,
     profile: me?.profile ?? null,
+    uniEmail: me?.uniEmail ?? null,
   }));
-  const { plan, used, extra, profile } = state;
-  const allowance = PLAN_CREDITS[plan];
+  const { plan, used, extra, profile, uniEmail } = state;
+  const trialEndsAt = me?.subscription.trialEndsAt ?? null;
+  const onTrial = me?.subscription.onTrial ?? false;
+  // The trial unlocks Pro content but no monthly Notify Credits.
+  const allowance = onTrial ? 0 : PLAN_CREDITS[plan];
   const monthly = Math.max(0, allowance - used);
   const credits = monthly + extra;
 
@@ -56,6 +63,7 @@ export function PlanProvider({ me, children }: { me: Me | null; children: React.
     send("/api/subscription", "PUT", { plan: p });
   }, []);
   const setProfile = useCallback((profile: Profile) => setState((s) => ({ ...s, profile })), []);
+  const setUniEmail = useCallback((uniEmail: UniEmailState) => setState((s) => ({ ...s, uniEmail })), []);
   const setLevel = useCallback((level: Level) => {
     setState((s) => (s.profile ? { ...s, profile: { ...s.profile, level } } : s));
     send("/api/profile", "PATCH", { level });
@@ -63,8 +71,8 @@ export function PlanProvider({ me, children }: { me: Me | null; children: React.
 
   // Memoised so the many consumers only re-render when the plan or balance actually changes.
   const value = useMemo(
-    () => ({ plan, setPlan, pro: plan !== "Free", max: plan === "Pro Max", credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile }),
-    [plan, setPlan, credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile],
+    () => ({ plan, setPlan, pro: plan !== "Free", max: plan === "Pro Max", credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile, trialEndsAt, onTrial, uniEmail, setUniEmail }),
+    [plan, setPlan, credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile, trialEndsAt, onTrial, uniEmail, setUniEmail],
   );
   return <PlanCtx.Provider value={value}>{children}</PlanCtx.Provider>;
 }

@@ -26,7 +26,14 @@ export type ProfileInput = {
 };
 export type Profile = ProfileInput;
 export type SubscriptionState = { plan: Plan; creditsUsed: number; creditsExtra: number };
-export type Me = { profile: Profile | null; subscription: SubscriptionState };
+/** A verified university email, or the one a link was last sent to. Times are epoch ms. */
+export type UniEmailState = { email: string; university: string; verified: boolean; sentAt: number | null };
+export type Me = {
+  profile: Profile | null;
+  /** `plan` already includes a running trial; `trialEndsAt` is set once the account has had its trial. */
+  subscription: SubscriptionState & { trialEndsAt: number | null; onTrial: boolean };
+  uniEmail: UniEmailState | null;
+};
 
 /** Shown as "UG Legon" style tags in the sidebar. */
 export const UNI_SHORT: Record<string, string> = {
