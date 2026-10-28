@@ -57,9 +57,11 @@ export default async function Home() {
                       key={c.slug}
                       href={`/library/${c.slug}`}
                       className="flex w-[72%] shrink-0 snap-start items-center gap-3 rounded-2xl bg-surface p-4 shadow-card transition-shadow hover:shadow-card-hover sm:w-auto"
-                      style={link}
+                      // The course colour as a light wash over the card, matching its dot in the Library.
+                      style={{ ...link, backgroundImage: `linear-gradient(${c.color}1f, ${c.color}0a)` }}
                     >
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <span className="size-2.5 rounded-full" style={{ background: c.color }} aria-hidden />
                         <div className="min-h-[38px] text-[15px] font-semibold leading-tight">{c.title}</div>
                         <div className="text-xs text-muted">{c.topics.length} topics · {c.topics.filter((t) => t.ready).length} available</div>
                       </div>
