@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SITE } from "@/lib/site";
 
-export const CONTACT_EMAIL = "support@notifiedlaw.com";
+export const CONTACT_EMAIL = "notifiedlaw@gmail.com";
 
 export type LegalSection = { h: string; p: (string | string[])[] };
 
