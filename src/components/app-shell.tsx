@@ -78,17 +78,6 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
       <div className={`px-5 pb-3 pt-5 ${roomy ? "text-xl" : "text-[19px] min-[1920px]:text-[22px]"}`}>
         <Wordmark />
       </div>
-      <div className="px-3 pb-2.5">
-        <Link
-          href="/search"
-          onClick={intercept("/search", onNavigate)}
-          className={`flex items-center gap-1.5 bg-edge/[0.055] text-muted ${roomy ? "h-10 rounded-[10px] px-3 text-[15px]" : "h-8 rounded-lg px-2.5 text-[14px] min-[1440px]:h-9 min-[1440px]:text-[15px] min-[1920px]:h-10 min-[1920px]:text-[16px]"}`}
-          style={{ textDecoration: "none", color: "inherit" }}
-        >
-          <Icon name="search" size={roomy ? 16 : 13} />
-          Search cases, articles, topics
-        </Link>
-      </div>
       <nav data-drawer-scroll className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-2.5">
         <div className="h-1.5" />
         {NAV_TOP.map((i) => (
