@@ -14,7 +14,7 @@ const PRICES = {
 };
 // Everything the loader waits for (the hero poster is only a fallback, so it is left out).
 const IMAGES = ["library", "case-law", "exam"].map((s) => `/landing/${s}.jpg`);
-const NAV = [["Overview", "#features"], ["Hot Topics", "#listen"], ["Exam Prep", "#exam"], ["Pricing", "#pricing"]];
+const NAV = [["Overview", "#features"], ["Hot Topics", "#listen"], ["Exam Prep", "#exam"], ["Pricing", "#pricing"], ["Articles", "/articles"]];
 
 const HIGHLIGHTS: { tag: string; color: string; title: string; body: string; slot?: string; alt?: string }[] = [
   { tag: "Library", color: "#FF9500", title: "Every course. Every topic.", body: "Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline.", slot: "library", alt: "Reader view — Judicial Review note" },
@@ -208,6 +208,9 @@ export default function Landing() {
       </section>
 
       <footer className="bg-[#F5F5F7] px-[22px] pb-8 text-xs text-[#6E6E73]">
+        <nav aria-label="Site" className="mx-auto flex max-w-[1024px] flex-wrap gap-x-5 gap-y-2 border-t-[0.5px] border-black/15 py-[18px]">
+          {[["Library", "/library"], ["Articles", "/articles"], ["Case Law", "/case-law"], ["Pricing", "#pricing"], ["Sign in", LOGIN], ["Create account", SIGNUP]].map(([l, h]) => <a key={l} href={h} className="text-[#424245]! no-underline hover:text-[#424245]! hover:underline">{l}</a>)}
+        </nav>
         <div className="mx-auto flex max-w-[1024px] flex-wrap justify-between gap-x-6 gap-y-3 border-t-[0.5px] border-black/15 pt-[18px]">
           <span>Copyright © 2026 NotifiedLaw. All rights reserved.</span>
           <div className="flex flex-wrap gap-5">
