@@ -4,9 +4,10 @@ import { UNIVERSITIES } from "@/lib/content";
 import { INTENTS, SECTORS, STATUSES, isLevel, type ProfileErrors, type ProfileInput } from "@/lib/profile";
 import { LEVEL_LABEL } from "@/lib/data";
 
-export const fieldCls = "h-11 rounded-[10px] bg-fill px-3.5 text-[15px] outline-none";
-export const labelCls = "flex flex-col gap-1 text-xs font-semibold text-muted";
-const optional = <span className="font-normal"> (optional)</span>;
+// Inputs sit inside their label, so they set their own colour and weight rather than inherit the label's.
+export const fieldCls = "h-11 rounded-[10px] bg-surface px-3.5 text-[15px] font-normal text-ink shadow-[0_0_0_1px_var(--hairline)] outline-none focus:shadow-[0_0_0_2px_#007AFF]";
+export const labelCls = "flex flex-col gap-1.5 text-[13px] font-semibold text-ink";
+const optional = <span className="font-normal text-muted"> (optional)</span>;
 
 type Props = { value: ProfileInput; onChange: (patch: Partial<ProfileInput>) => void; errors: ProfileErrors };
 
@@ -40,10 +41,10 @@ export function StatusQuestions({ value, onChange, errors }: Props) {
   if (value.status === "student")
     return (
       <div className="flex flex-col gap-3.5">
-        <label className={labelCls}>University{optional}
+        <label className={labelCls}><span>University{optional}</span>
           {select("university", UNIVERSITIES.map((u) => ({ v: u.name, t: u.name })), "Choose your university", value.university)}{err(errors.university)}
         </label>
-        <label className={labelCls}>Level{optional}
+        <label className={labelCls}><span>Level{optional}</span>
           {select("level", Object.entries(LEVEL_LABEL).filter(([k]) => isLevel(k)).map(([v, t]) => ({ v, t })), "Choose your level", value.level)}{err(errors.level)}
         </label>
       </div>
@@ -51,16 +52,16 @@ export function StatusQuestions({ value, onChange, errors }: Props) {
   if (value.status === "employed")
     return (
       <div className="flex flex-col gap-3.5">
-        <label className={labelCls}>Job title{optional}<input value={value.jobTitle} onChange={(e) => onChange({ jobTitle: e.target.value })} maxLength={80} autoComplete="organization-title" className={fieldCls} />{err(errors.jobTitle)}</label>
-        <label className={labelCls}>Employer{optional}<input value={value.employer} onChange={(e) => onChange({ employer: e.target.value })} maxLength={100} autoComplete="organization" className={fieldCls} />{err(errors.employer)}</label>
-        <label className={labelCls}>Sector{optional}
+        <label className={labelCls}><span>Job title{optional}</span><input value={value.jobTitle} onChange={(e) => onChange({ jobTitle: e.target.value })} maxLength={80} autoComplete="organization-title" className={fieldCls} />{err(errors.jobTitle)}</label>
+        <label className={labelCls}><span>Employer{optional}</span><input value={value.employer} onChange={(e) => onChange({ employer: e.target.value })} maxLength={100} autoComplete="organization" className={fieldCls} />{err(errors.employer)}</label>
+        <label className={labelCls}><span>Sector{optional}</span>
           {select("sector", SECTORS.map((s) => ({ v: s, t: s })), "Choose a sector", value.sector)}{err(errors.sector)}
         </label>
       </div>
     );
   if (value.status === "exploring")
     return (
-      <label className={labelCls}>What brings you here?{optional}
+      <label className={labelCls}><span>What brings you here?{optional}</span>
         {select("intent", INTENTS.map((s) => ({ v: s, t: s })), "Choose one", value.intent)}{err(errors.intent)}
       </label>
     );

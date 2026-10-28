@@ -14,7 +14,7 @@ const Group = ({ title, children }: { title: string; children: React.ReactNode }
   <section className="flex flex-col gap-1.5"><Eyebrow>{title}</Eyebrow><div className="overflow-hidden rounded-xl bg-surface shadow-card">{children}</div></section>
 );
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex min-h-11 items-center justify-between gap-4 border-t border-edge/[0.06] px-4 py-2 text-sm first:border-0"><span>{label}</span><span className="text-muted">{children}</span></div>
+  <div className="flex min-h-11 items-center justify-between gap-4 border-t border-edge/[0.06] px-4 py-2 text-sm first:border-0"><span className="font-medium">{label}</span><span>{children}</span></div>
 );
 
 export function Settings() {

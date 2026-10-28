@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { StatusPicker, StatusQuestions, fieldCls } from "@/components/profile-fields";
+import { StatusPicker, StatusQuestions, fieldCls, labelCls } from "@/components/profile-fields";
 import { GENDERS, GOALS, MIN_DOB, profileErrors, type ProfileInput } from "@/lib/profile";
 
 const STEPS = [
@@ -63,16 +63,16 @@ export function Onboarding({ defaults }: { defaults: { first: string; middle: st
         <div className={cell(0)}>
           <div className="flex flex-col gap-3.5">
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">First name<input {...text("firstName")} maxLength={80} required autoComplete="given-name" className={fieldCls} />{err("firstName")}</label>
-              <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Last name<input {...text("lastName")} maxLength={80} required autoComplete="family-name" className={fieldCls} />{err("lastName")}</label>
+              <label className={labelCls}>First name<input {...text("firstName")} maxLength={80} required autoComplete="given-name" className={fieldCls} />{err("firstName")}</label>
+              <label className={labelCls}>Last name<input {...text("lastName")} maxLength={80} required autoComplete="family-name" className={fieldCls} />{err("lastName")}</label>
             </div>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Middle name(s) <span className="font-normal">(optional)</span><input {...text("middleName")} maxLength={120} autoComplete="additional-name" className={fieldCls} />{err("middleName")}</label>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Date of birth<input type="date" {...text("dob")} min={MIN_DOB} max={today} required autoComplete="bday" className={fieldCls} />{err("dob")}</label>
-            <div className="flex flex-col gap-1 text-xs font-semibold text-muted" onBlur={blur("gender")}>Gender
+            <label className={labelCls}><span>Middle name(s) <span className="font-normal text-muted">(optional)</span></span><input {...text("middleName")} maxLength={120} autoComplete="additional-name" className={fieldCls} />{err("middleName")}</label>
+            <label className={labelCls}>Date of birth<input type="date" {...text("dob")} min={MIN_DOB} max={today} required autoComplete="bday" className={fieldCls} />{err("dob")}</label>
+            <div className={labelCls} onBlur={blur("gender")}>Gender
               <div className="flex flex-wrap gap-2">{GENDERS.map((g) => <button key={g} type="button" aria-pressed={f.gender === g} onClick={() => patch({ gender: g })} className="rounded-full px-4 py-2 text-sm font-medium text-ink" style={pill(f.gender === g)}>{g}</button>)}</div>
               {err("gender")}
             </div>
-            <label className="flex flex-col gap-1 text-xs font-semibold text-muted">Phone number <span className="font-normal">(optional, for MoMo payments)</span><input type="tel" inputMode="tel" {...text("phone")} maxLength={30} placeholder="024 000 0000" autoComplete="tel" className={fieldCls} />{err("phone")}</label>
+            <label className={labelCls}><span>Phone number <span className="font-normal text-muted">(optional, for MoMo payments)</span></span><input type="tel" inputMode="tel" {...text("phone")} maxLength={30} placeholder="024 000 0000" autoComplete="tel" className={fieldCls} />{err("phone")}</label>
           </div>
         </div>
         <div className={cell(1)}><StatusPicker value={f} onChange={patch} errors={touched.status ? errors : {}} /></div>

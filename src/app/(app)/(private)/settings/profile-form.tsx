@@ -4,11 +4,9 @@ import { useState } from "react";
 import { usePlan } from "@/components/plan";
 import { Btn, Eyebrow } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
-import { StatusPicker, StatusQuestions } from "@/components/profile-fields";
+import { StatusPicker, StatusQuestions, fieldCls as field, labelCls as label } from "@/components/profile-fields";
 import { GENDERS, GOALS, MIN_DOB, profileErrors, type Profile } from "@/lib/profile";
 
-const field = "h-11 rounded-[10px] bg-fill px-3.5 text-[15px] outline-none";
-const label = "flex flex-col gap-1 text-xs font-semibold text-muted";
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const { setProfile } = usePlan();
@@ -51,17 +49,17 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           <label className={label}>First name<input value={f.firstName} onChange={set("firstName")} onBlur={blur("firstName")} maxLength={80} required aria-invalid={bad("firstName")} autoComplete="given-name" className={field} />{err("firstName")}</label>
           <label className={label}>Last name<input value={f.lastName} onChange={set("lastName")} onBlur={blur("lastName")} maxLength={80} required aria-invalid={bad("lastName")} autoComplete="family-name" className={field} />{err("lastName")}</label>
         </div>
-        <label className={label}>Middle name(s) <span className="font-normal">(optional)</span><input value={f.middleName} onChange={set("middleName")} onBlur={blur("middleName")} maxLength={120} aria-invalid={bad("middleName")} autoComplete="additional-name" className={field} />{err("middleName")}</label>
+        <label className={label}><span>Middle name(s) <span className="font-normal text-muted">(optional)</span></span><input value={f.middleName} onChange={set("middleName")} onBlur={blur("middleName")} maxLength={120} aria-invalid={bad("middleName")} autoComplete="additional-name" className={field} />{err("middleName")}</label>
         <label className={label}>Date of birth<input type="date" value={f.dob} min={MIN_DOB} max={new Date().toISOString().slice(0, 10)} onChange={set("dob")} onBlur={blur("dob")} required aria-invalid={bad("dob")} autoComplete="bday" className={field} />{err("dob")}</label>
         <label className={label}>Gender
           <select value={f.gender} onChange={(e) => { setStatus("idle"); setF((p) => ({ ...p, gender: e.target.value })); }} className={field}>{GENDERS.map((g) => <option key={g}>{g}</option>)}</select>
         </label>
-        <label className={label}>Phone number <span className="font-normal">(optional, for MoMo payments)</span><input type="tel" inputMode="tel" value={f.phone} onChange={set("phone")} onBlur={blur("phone")} maxLength={30} aria-invalid={bad("phone")} autoComplete="tel" className={field} />{err("phone")}</label>
-        <div className="flex flex-col gap-1 text-xs font-semibold text-muted">Which fits you best?
+        <label className={label}><span>Phone number <span className="font-normal text-muted">(optional, for MoMo payments)</span></span><input type="tel" inputMode="tel" value={f.phone} onChange={set("phone")} onBlur={blur("phone")} maxLength={30} aria-invalid={bad("phone")} autoComplete="tel" className={field} />{err("phone")}</label>
+        <div className={label}>Which fits you best?
           <StatusPicker value={f} onChange={patch} errors={errors} />
         </div>
         <StatusQuestions value={f} onChange={patch} errors={errors} />
-        <div className="flex flex-col gap-1 text-xs font-semibold text-muted">Interests
+        <div className={label}>Interests
           <div className="flex flex-wrap gap-2">{GOALS.map((g) => {
             const on = f.goals.includes(g);
             return <button key={g} type="button" aria-pressed={on} onClick={() => { setStatus("idle"); setF((p) => ({ ...p, goals: on ? p.goals.filter((x) => x !== g) : [...p.goals, g] })); }} className="rounded-full px-3.5 py-1.5 text-sm font-medium text-ink" style={{ background: on ? "rgba(0,122,255,0.08)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #007AFF" : "0 0 0 0.5px var(--hairline)" }}>{g}</button>;
