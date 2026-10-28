@@ -14,11 +14,12 @@ const PRICES = {
   semester: { pro: "GH₵150", max: "GH₵290", per: "/ semester" },
 };
 // Everything the loader waits for (the hero poster is only a fallback, so it is left out).
-const IMAGES = ["library", "case-law", "exam"].map((s) => `/landing/${s}.jpg`);
+const IMAGES = ["exam"].map((s) => `/landing/${s}.jpg`);
 
-const HIGHLIGHTS: { tag: string; color: string; title: string; body: string; slot?: string; alt?: string }[] = [
-  { tag: "Library", color: "#FF9500", title: "Every course. Every topic.", body: "Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline.", slot: "library", alt: "Reader view — Judicial Review note" },
-  { tag: "Case Law", color: "#0071E3", title: "The judgments, searchable.", body: "Find the ratio, the holding and the dissent without the 80-page scroll.", slot: "case-law", alt: "Case Law search results" },
+const HIGHLIGHTS: { tag: string; color: string; title: string; body: string }[] = [
+  { tag: "Library", color: "#FF9500", title: "Every course. Every topic.", body: "Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline." },
+  { tag: "Case Law", color: "#0071E3", title: "The judgments, searchable.", body: "Find the ratio, the holding and the dissent without the 80-page scroll." },
+  { tag: "AI Assistant", color: "#5856D6", title: "Ask anything about Ghanaian law.", body: "Notified AI answers from Ghanaian law only and points you to the cases, Acts and notes behind each answer." },
   { tag: "Articles", color: "#FF9F0A", title: "Plain-English explainers.", body: "Short pieces on the questions Ghanaian law students actually ask, linked to the cases and notes behind them." },
   { tag: "Hot Topics", color: "#FF2D55", title: "A podcast on the law in the news.", body: "Each episode links back to the cases, Acts and notes you can study next." },
   { tag: "Exam Prep", color: "#34C759", title: "Past questions, expertly marked.", body: "Answer timed questions and get written feedback from an expert marker." },
@@ -103,7 +104,6 @@ export default function Landing() {
                   <div className="text-balance text-[24px] font-bold leading-[1.14] tracking-[-0.025em]">{f.title}</div>
                   <div className="text-[#6E6E73]">{f.body}</div>
                 </div>
-                {f.slot && <div className="mt-auto h-[170px] shrink-0 md:h-[200px]"><Slot src={f.slot} label={f.alt ?? f.tag} /></div>}
               </div>
             ))}
           </div>
