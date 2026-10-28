@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DURATION, STAGE, Scene, type Mode } from "./scenes";
 
-const AUDIO_SRC = "/media/voiceover.mp3";
+export const AUDIO_SRC = "/media/voiceover.mp3";
 const AUDIO_END = 25.88; // length of the voice-over; the last half second is silent
 const STILL = 4.2; // frame shown to people who prefer reduced motion: the Home screen, fully built
 
@@ -12,8 +12,9 @@ const btn = "flex size-9 items-center justify-center rounded-full border-0 bg-bl
 /**
  * The hero promo, drawn live from the app's own screens so it is sharp at any size.
  * Autoplays silently (browsers require it); the mute button turns the voice-over on.
+ * It holds on the first frame until `ready`, so the landing loader can lift onto the opening shot.
  */
-export function HeroPromo() {
+export function HeroPromo({ ready = true, audioSrc = AUDIO_SRC }: { ready?: boolean; audioSrc?: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
@@ -23,7 +24,7 @@ export function HeroPromo() {
   const [tabVisible, setTabVisible] = useState(true);
   const [muted, setMuted] = useState(true);
 
-  const playing = wantPlay && inView && tabVisible;
+  const playing = ready && wantPlay && inView && tabVisible;
   const mode: Mode = box.h > box.w ? "tall" : "wide";
   const stage = STAGE[mode];
   const scale = box.w / stage.w;
@@ -66,8 +67,8 @@ export function HeroPromo() {
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    // Muted, the voice-over stays paused: nothing is downloaded or decoded until someone turns it on,
-    // and it then seeks to the current frame.
+    // Muted, the voice-over stays paused; turned on, it seeks to the current frame. The landing loader has
+    // usually fetched it already and passes it in as a blob URL.
     if (!playing || muted || time >= AUDIO_END) { if (!a.paused) a.pause(); return; }
     if (Math.abs(a.currentTime - time) > 0.3) a.currentTime = time;
     if (a.paused) void a.play().catch(() => {});
@@ -94,7 +95,7 @@ export function HeroPromo() {
         // eslint-disable-next-line @next/next/no-img-element
         <img src="/landing/hero-poster.jpg" alt="" className="size-full object-cover" />
       )}
-      <audio ref={audioRef} src={AUDIO_SRC} preload="none" muted={muted} />
+      <audio ref={audioRef} src={audioSrc} preload={audioSrc.startsWith("blob:") ? "auto" : "none"} muted={muted} />
       <div className="absolute bottom-3 right-3 flex gap-2 opacity-60 transition-opacity focus-within:opacity-100 hover:opacity-100">
         <button onClick={() => setWantPlay((v) => !v)} aria-label={wantPlay ? "Pause walkthrough" : "Play walkthrough"} className={btn}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden>

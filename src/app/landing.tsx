@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { EPISODES, PODCAST } from "@/lib/content";
-import { HeroPromo } from "@/components/hero-promo";
+import { AUDIO_SRC, HeroPromo } from "@/components/hero-promo";
+import { LandingLoader } from "@/components/landing-loader";
 import { FAQ } from "@/lib/site";
 
 const LOGIN = "/login";
@@ -13,6 +14,8 @@ const PRICES = {
   month: { pro: "GH₵45", max: "GH₵85", per: "/ month" },
   semester: { pro: "GH₵150", max: "GH₵290", per: "/ semester" },
 };
+// Everything the loader waits for (the hero poster is only a fallback, so it is left out).
+const IMAGES = ["library", "flashcards", "case-law", "exam", "podcast-art"].map((s) => `/landing/${s}.jpg`);
 const NAV = [["Overview", "#features"], ["Notified AI", "#ai"], ["Hot Topics", "#listen"], ["Exam Prep", "#exam"], ["Pricing", "#pricing"]];
 
 const HIGHLIGHTS: { tag: string; color: string; title: string; body: string; slot?: string; alt?: string }[] = [
@@ -65,10 +68,13 @@ export default function Landing() {
   const [billing, setBilling] = useState<"month" | "semester">("month");
   const [playing, setPlaying] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [audio, setAudio] = useState<string | null>(null);
   const p = PRICES[billing];
 
   return (
     <div className="bg-white text-[17px] leading-[1.47] tracking-[-0.022em] text-[#1D1D1F]" style={{ colorScheme: "light" }}>
+      <LandingLoader images={IMAGES} audio={AUDIO_SRC} onReady={(url) => { setAudio(url); setReady(true); }} />
       <nav className="sticky top-3 z-20 mt-3 px-4">
         <div className="mx-auto flex h-14 max-w-[1080px] items-center gap-5 rounded-[18px] bg-white/80 pl-5 pr-2 shadow-[0_0_0_0.5px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.06)] backdrop-blur-xl backdrop-saturate-200">
           <a href="#top" className="flex items-center gap-2.5 text-[#1D1D1F]! no-underline hover:text-[#1D1D1F]!">
@@ -120,7 +126,7 @@ export default function Landing() {
           <a href="#pricing" className={link}>See plans ›</a>
         </div>
         <div className="relative mt-14 aspect-[2/3] w-full max-w-[1080px] overflow-hidden rounded-t-[22px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.1),0_30px_80px_rgba(0,0,0,0.14)] md:aspect-video">
-          <HeroPromo />
+          <HeroPromo ready={ready} audioSrc={audio ?? AUDIO_SRC} />
         </div>
       </section>
 
