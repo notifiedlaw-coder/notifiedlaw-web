@@ -7,8 +7,8 @@ const DIRECTIONS = "/landing/mascots/afro-directions.webp";
 const REACTIONS = "/landing/mascots/afro-reactions.webp";
 
 // Where her hair mass sits per head direction, traced from the directions
-// sheet: [dx, dy, tilt°, squeeze]. The headwrap rides on it so it turns with her.
-const WRAP: Record<Direction, [number, number, number, number]> = {
+// sheet: [dx, dy, tilt°, squeeze]. The bun rides on it so it turns with her.
+const BUN: Record<Direction, [number, number, number, number]> = {
   "up-left": [8, 1, -4, 0.94],
   up: [0, 0, 0, 1],
   "up-right": [-8, 1, 4, 0.94],
@@ -23,7 +23,7 @@ const WRAP: Record<Direction, [number, number, number, number]> = {
 // Drawn in the mascot's 120×120 box: her hair tops out near y=8 and her shirt
 // spans roughly x 40–82, y 78–98. The body stays put while the head turns.
 function outfit(direction: Direction) {
-  const [dx, dy, tilt, squeeze] = WRAP[direction];
+  const [dx, dy, tilt, squeeze] = BUN[direction];
   return (
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pointer-events-none absolute inset-0 overflow-visible" aria-hidden="true">
       {/* Black gown over the shoulders, open at the neck. */}
@@ -34,17 +34,17 @@ function outfit(direction: Direction) {
         <path d="M58 80 L62 90 L55.5 93 Z" fill="#FFFFFF" stroke="#D2D2D7" strokeWidth={0.5} strokeLinejoin="round" />
         <path d="M66 80 L62 90 L68.5 93 Z" fill="#FFFFFF" stroke="#D2D2D7" strokeWidth={0.5} strokeLinejoin="round" />
       </g>
-      {/* Headwrap: folded cloth over the top of the afro, knotted at the side. */}
+      {/* Top bun: a round coil of curls sitting on the crown, with a hair tie. */}
       <g
         className="transition-transform duration-300 ease-out [transform-box:fill-box] [transform-origin:center_bottom] motion-reduce:transition-none"
         style={{ transform: `translate(${dx}px, ${dy}px) rotate(${tilt}deg) scaleX(${squeeze})` }}
       >
-        <path d="M32 31 Q27 4 62 3 Q97 4 92 31 Q78 22 62 22 Q46 22 32 31 Z" fill="#8E1B3A" stroke="#5E1026" strokeWidth={0.7} />
-        <path d="M33 25 Q62 12 91 25 M36 18 Q62 7 88 18" fill="none" stroke="#5E1026" strokeWidth={0.8} strokeLinecap="round" />
-        <path d="M32 29 Q62 16 92 29" fill="none" stroke="#F5B800" strokeWidth={1.8} strokeLinecap="round" />
-        <path d="M86 24 Q96 12 101 20 Q98 28 88 26 Z" fill="#A82348" stroke="#5E1026" strokeWidth={0.7} strokeLinejoin="round" />
-        <path d="M86 24 Q90 12 82 8 Q80 18 86 24 Z" fill="#A82348" stroke="#5E1026" strokeWidth={0.7} strokeLinejoin="round" />
-        <circle cx={87} cy={24.5} r={2.2} fill="#8E1B3A" stroke="#5E1026" strokeWidth={0.6} />
+        <circle cx={62} cy={0} r={14} fill="#0F0D0C" />
+        {[[52, -6], [62, -10], [72, -6], [49, 3], [75, 3], [57, 5], [67, 5]].map(([x, y]) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r={5.5} fill="#0F0D0C" stroke="#2A2522" strokeWidth={0.6} />
+        ))}
+        <path d="M56 -4 Q62 -9 68 -4 M54 2 Q62 -3 70 2" fill="none" stroke="#2A2522" strokeWidth={0.7} strokeLinecap="round" />
+        <path d="M50 10 Q62 6 74 10" fill="none" stroke="#F5B800" strokeWidth={2.2} strokeLinecap="round" />
       </g>
     </svg>
   );
