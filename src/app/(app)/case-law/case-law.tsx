@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { Chevron, Empty, Page, SearchField, Segmented, Title } from "@/components/ui";
+import { Chevron, Page, SearchField, Segmented, Title } from "@/components/ui";
 import type { CmsCase, CmsColumn } from "@/lib/cms";
 
 const SMALL = new Set(["of", "and", "the", "in", "on", "for", "at", "to"]);
@@ -61,66 +61,61 @@ export function CaseLaw({ cases: all, columns: schema }: { cases: CmsCase[]; col
   return (
     <Page max={1120}>
       <Title title="Case Law" sub="Case Briefs on Cases" />
-      {all.length === 0 ? (
-        <Empty title="No case briefs yet">Case briefs appear here once they are published.</Empty>
-      ) : (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            <SearchField value={q} onChange={setQ} placeholder="Search cases, citations, courts" />
-            <Segmented options={["A–Z", "Z–A"] as const} value={sort} onChange={setSort} />
-          </div>
-          {/* Phones and tablets: the column filters as pills above a list. */}
-          {filters.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 lg:hidden">
-              {filters.map((c) => <ColumnFilter key={c.name} col={c} picked={picked[c.name] ?? []} onPick={(v) => setCol(c.name, v)} count={(v) => count(c.name, v)} pill />)}
-            </div>
-          )}
-          <div role="status" className="-mt-2 flex items-center gap-2 text-xs text-muted">
-            {cases.length} {cases.length === 1 ? "case" : "cases"}
-            {active > 0 && <button type="button" onClick={() => setPicked({})} className="font-medium text-blue">Clear filters</button>}
-          </div>
-
-          <div className="overflow-hidden rounded-xl bg-surface shadow-card lg:hidden">
-            {cases.map((c) => (
-              <Link key={c.id} href={`/case-law/${c.slug}`} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-3 first:border-0 hover:bg-hover" style={{ textDecoration: "none", color: "inherit" }}>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-sm font-medium">{c.title}</span>
-                  <span className="truncate text-xs text-muted">{cols.map((col) => cell(c, col)).filter(Boolean).join(" · ")}</span>
-                </span>
-                <Chevron />
-              </Link>
-            ))}
-            {cases.length === 0 && <NoMatch q={q} />}
-          </div>
-
-          {/* Wide screens: Notion's table, a filter in each select column's header. */}
-          <div className="hidden rounded-xl bg-surface shadow-card lg:block">
-            <div role="row" className="grid items-center gap-4 border-b border-edge/10 px-4 py-1.5 text-xs font-semibold text-muted" style={grid}>
-              <span role="columnheader" className="py-1.5">Case Name</span>
-              {cols.map((c) => (
-                <span key={c.name} role="columnheader" className="min-w-0">
-                  {c.filter && c.options.length
-                    ? <ColumnFilter col={c} picked={picked[c.name] ?? []} onPick={(v) => setCol(c.name, v)} count={(v) => count(c.name, v)} />
-                    : <span className="block py-1.5">{label(c.name)}</span>}
-                </span>
-              ))}
-            </div>
-            {cases.map((c) => (
-              <Link key={c.id} href={`/case-law/${c.slug}`} role="row" className="grid items-center gap-4 border-t border-edge/[0.06] px-4 py-3 text-[13px] first-of-type:border-0 last:rounded-b-xl hover:bg-hover" style={{ ...grid, textDecoration: "none", color: "inherit" }}>
-                <span role="cell" className="min-w-0 text-sm font-medium">{c.title}</span>
-                {cols.map((col) => <span key={col.name} role="cell" className="min-w-0 text-muted">{cell(c, col) || "—"}</span>)}
-              </Link>
-            ))}
-            {cases.length === 0 && <NoMatch q={q} />}
-          </div>
-        </>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField value={q} onChange={setQ} placeholder="Search cases, citations, courts" />
+        <Segmented options={["A–Z", "Z–A"] as const} value={sort} onChange={setSort} />
+      </div>
+      {/* Phones and tablets: the column filters as pills above a list. */}
+      {filters.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 lg:hidden">
+          {filters.map((c) => <ColumnFilter key={c.name} col={c} picked={picked[c.name] ?? []} onPick={(v) => setCol(c.name, v)} count={(v) => count(c.name, v)} pill />)}
+        </div>
       )}
+      <div role="status" className="-mt-2 flex items-center gap-2 text-xs text-muted">
+        {cases.length} {cases.length === 1 ? "case" : "cases"}
+        {active > 0 && <button type="button" onClick={() => setPicked({})} className="font-medium text-blue">Clear filters</button>}
+      </div>
+
+      <div className="overflow-hidden rounded-xl bg-surface shadow-card lg:hidden">
+        {cases.map((c) => (
+          <Link key={c.id} href={`/case-law/${c.slug}`} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-3 first:border-0 hover:bg-hover" style={{ textDecoration: "none", color: "inherit" }}>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-sm font-medium">{c.title}</span>
+              <span className="truncate text-xs text-muted">{cols.map((col) => cell(c, col)).filter(Boolean).join(" · ")}</span>
+            </span>
+            <Chevron />
+          </Link>
+        ))}
+        {cases.length === 0 && <NoMatch q={q} none={!all.length} />}
+      </div>
+
+      {/* Wide screens: Notion's table, a filter in each select column's header. */}
+      <div className="hidden rounded-xl bg-surface shadow-card lg:block">
+        <div role="row" className="grid items-center gap-4 border-b border-edge/10 px-4 py-1.5 text-xs font-semibold text-muted" style={grid}>
+          <span role="columnheader" className="py-1.5">Case Name</span>
+          {cols.map((c) => (
+            <span key={c.name} role="columnheader" className="min-w-0">
+              {c.filter && c.options.length
+                ? <ColumnFilter col={c} picked={picked[c.name] ?? []} onPick={(v) => setCol(c.name, v)} count={(v) => count(c.name, v)} />
+                : <span className="block py-1.5">{label(c.name)}</span>}
+            </span>
+          ))}
+        </div>
+        {cases.map((c) => (
+          <Link key={c.id} href={`/case-law/${c.slug}`} role="row" className="grid items-center gap-4 border-t border-edge/[0.06] px-4 py-3 text-[13px] first-of-type:border-0 last:rounded-b-xl hover:bg-hover" style={{ ...grid, textDecoration: "none", color: "inherit" }}>
+            <span role="cell" className="min-w-0 text-sm font-medium">{c.title}</span>
+            {cols.map((col) => <span key={col.name} role="cell" className="min-w-0 text-muted">{cell(c, col) || "—"}</span>)}
+          </Link>
+        ))}
+        {cases.length === 0 && <NoMatch q={q} none={!all.length} />}
+      </div>
     </Page>
   );
 }
 
-const NoMatch = ({ q }: { q: string }) => (
-  <div className="p-6 text-center text-sm text-muted">{q ? <>Nothing matches “{q}”. Try a party name or citation.</> : "No cases match these filters."}</div>
+// With no briefs published yet the table and its filters still show, with this in place of rows.
+const NoMatch = ({ q, none }: { q: string; none: boolean }) => (
+  <div className="p-6 text-center text-sm text-muted">{none ? "No case briefs yet. They appear here once they are published." : q ? <>Nothing matches “{q}”. Try a party name or citation.</> : "No cases match these filters."}</div>
 );
 
 /** A column's filter: a button (a header, or a pill on small screens) opening a checklist of the column's Notion options. */
