@@ -4,6 +4,9 @@
 // letters, ALL-CAPS lines become chapters ("## ") and bold-only lines become subheadings ("### ").
 // Running it again on its own output changes nothing.
 
+/** Raise this whenever the rules below change, so the next sync reads every page from Notion again. */
+export const TIDY_VERSION = 2;
+
 const LIGATURES: Record<string, string> = { "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st" };
 const SMALL = new Set(["a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "of", "on", "or", "the", "to", "v", "vs", "with"]);
 
@@ -29,6 +32,8 @@ const boldRunsOn = (a: string, b: string) => {
   return /^\d{1,2}\.?$/.test(x) || /^[a-z]/.test(y) || (!ENDS.test(x) && (SMALL.has(lastWord(a)) || /^\d{1,2}\.\s/.test(x)));
 };
 const isBoldLine = (s: string) => BOLD_LINE.test(s) && plain(s).length <= 120;
+/** A bold line that is a subheading. One with figures in it ("Falck v. Williams [1900] AC 176") is a citation. */
+const isBoldHeading = (s: string) => isBoldLine(s) && !/\d/.test(plain(s).replace(/^\d{1,2}\.\s/, ""));
 
 /** "OFFER AND ACCEPTANCE" → "Offer and Acceptance". Short all-caps words that look like abbreviations stay as they are. */
 function titleCase(s: string) {
@@ -58,7 +63,7 @@ export function tidyMarkdown(md: string): string {
       // A bold heading broken over two lines.
       if (isBoldLine(prev) && isBoldLine(p) && boldRunsOn(prev, p)) { out[out.length - 1] = `**${plain(prev)} ${plain(p)}**`; continue; }
       // A sentence running on to the next line. Headings never take the line after them.
-      const open = !isBoldLine(prev) && !isCaps(prev) && (!ENDS.test(prev.replace(/\*+$/, "")) || /\bv\.\**$/.test(prev) || /^[a-z]/.test(p) || /^[\d\s.,;:()[\]-]+$/.test(p) || (/[;,]$/.test(prev) && /^\[\d{4}/.test(p)));
+      const open = !isBoldHeading(prev) && !isCaps(prev) && (!ENDS.test(prev.replace(/\*+$/, "")) || /\bv\.\**$/.test(prev) || /^[a-z]/.test(p) || /^[\d\s.,;:()[\]-]+$/.test(p) || (/[;,]$/.test(prev) && /^\[\d{4}/.test(p)));
       if (open && !isCaps(p)) {
         out[out.length - 1] = /[a-z]-$/.test(prev) ? prev.slice(0, -1) + p : `${prev} ${p.trim()}`;
         continue;
@@ -67,9 +72,16 @@ export function tidyMarkdown(md: string): string {
     out.push(p.trim() === p ? p : p.replace(/^\s+/, (m) => (LIST.test(p) ? m : "")));
   }
   return out.map((p) => {
+    // A Notion heading made bold, or all caps, arrives as "## **NATURE OF CONTRACT**": headings are bold
+    // already, so the markers go, and capitals become title case like the headings made from plain lines.
+    const h = /^(#{1,4})\s+(.*)$/.exec(p);
+    if (h && !p.includes("\n")) {
+      const t = h[2].replace(/\*\*/g, "").replace(/^[*_](.*)[*_]$/, "$1").trim();
+      return `${h[1]} ${(isCaps(t) ? titleCase(t) : t).replace(/[.:]$/, "")}`;
+    }
     if (p.includes("\n") || BLOCK.test(p) || LIST.test(p)) return p;
     if (isCaps(p)) return `## ${titleCase(plain(p)).replace(/[.:]$/, "")}`;
-    if (isBoldLine(p)) return `### ${plain(p).replace(/[.:]$/, "")}`;
+    if (isBoldHeading(p)) return `### ${plain(p).replace(/[.:]$/, "")}`;
     return p;
   }).join("\n\n");
 }

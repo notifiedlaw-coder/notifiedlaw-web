@@ -2,7 +2,7 @@ import { lt } from "drizzle-orm";
 import { cmsEntry } from "@/db/schema";
 import { blocksToMarkdown, cleanTitle, type Block, type RichText } from "./markdown";
 import { courseSlugFor, slugify } from "./map";
-import { tidyMarkdown } from "./tidy";
+import { TIDY_VERSION, tidyMarkdown } from "./tidy";
 
 // Reads the Notion "LAW DATABASE" through the Notion API and mirrors it into the cms_entry table.
 //
@@ -109,7 +109,7 @@ export async function syncNotion(opts: { token: string; rootDatabaseId: string; 
   const { token, rootDatabaseId, db } = opts;
   const started = new Date();
   // What is already stored, so a page that has not changed in Notion is not fetched again.
-  const known = new Map((await db.select({ id: cmsEntry.id, edited: cmsEntry.notionEditedAt, body: cmsEntry.body }).from(cmsEntry)).map((r) => [r.id, r]));
+  const known = new Map((await db.select({ id: cmsEntry.id, edited: cmsEntry.notionEditedAt, body: cmsEntry.body, props: cmsEntry.props }).from(cmsEntry)).map((r) => [r.id, r]));
   const rows: Row[] = [];
   let fetchedBodies = 0;
 
@@ -117,12 +117,15 @@ export async function syncNotion(opts: { token: string; rootDatabaseId: string; 
     const props = propsOf(page);
     const prev = known.get(page.id);
     let body: string;
-    // Unchanged pages are tidied again too, so a change to the tidying reaches every stored body.
-    if (prev && prev.edited === page.last_edited_time) body = tidyMarkdown(prev.body);
+    // A stored body is reused only if the page is unchanged and was tidied by these same rules; otherwise the page
+    // is read again, since tidied text cannot be un-tidied (a wrong heading would stay one).
+    const sameRules = (() => { try { return (JSON.parse(prev?.props ?? "{}") as { _tidy?: number })._tidy === TIDY_VERSION; } catch { return false; } })();
+    if (prev && sameRules && prev.edited === page.last_edited_time) body = prev.body;
     else { fetchedBodies++; body = tidyMarkdown(blocksToMarkdown(await children(token, page.id))); }
     const published = body.trim().length > 0;
     rows.push({
-      id: page.id, title: titleOf(page) || "Untitled", props: JSON.stringify(props), stage: stageLabel(props),
+      // _tidy: the rules the body was tidied with. No Notion column starts with "_", so it never clashes.
+      id: page.id, title: titleOf(page) || "Untitled", props: JSON.stringify({ ...props, _tidy: TIDY_VERSION }), stage: stageLabel(props),
       notionEditedAt: page.last_edited_time, syncedAt: started, body, published, ...base,
     });
   }
