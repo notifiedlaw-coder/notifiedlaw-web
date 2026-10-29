@@ -20,7 +20,7 @@ type Tab = "summary" | "notes";
 /**
  * A topic written in Notion (Markdown). Each "##" heading starts a chapter. On the right is a sidebar with two tabs:
  * the AI Summary (coming soon) and Notes, where a highlighted passage can be given a note saved to the reader's
- * account. Wide screens keep the sidebar open; narrower ones slide it in. Along the bottom, between the app's
+ * account. Wide screens keep the sidebar open; narrower ones show it as a card from a floating button. Along the bottom, between the app's
  * sidebar and this one, is a player bar for the topic's podcast (coming soon).
  */
 export function Reader({ course, slug, n, title, lock = null, body, topicId = null }: { course: string; slug: string; n: number; title: string; lock?: "Student" | "Pro Max" | null; body: string; topicId?: string | null }) {
@@ -46,6 +46,8 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
   const notes = useTopicNotes(topicId);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [pick, setPick] = useState<{ left: number; top: number } | null>(null);
+  // The selection the pill was shown for. Kept, because tapping the pill on a touch screen clears the selection.
+  const picked = useRef<Range | null>(null);
   const [active, setActive] = useState<string | null>(null);
   const [missing, setMissing] = useState<Set<string>>(new Set());
   const [wide, setWide] = useState(false);
@@ -55,13 +57,13 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
 
   // ---- sidebar
   const [tab, setTab] = useState<Tab>("notes");
-  const [drawer, setDrawer] = useState(false);
-  const showNotes = () => { setTab("notes"); if (!wide) setDrawer(true); };
-  const closeDrawer = () => { setDrawer(false); setDraft(null); };
+  const [popup, setPopup] = useState(false);
+  const showNotes = () => { setTab("notes"); if (!wide) setPopup(true); };
+  const closePopup = () => { setPopup(false); setDraft(null); };
 
   useEffect(() => {
     const m = matchMedia(WIDE);
-    const on = () => { setWide(m.matches); if (m.matches) setDrawer(false); };
+    const on = () => { setWide(m.matches); if (m.matches) setPopup(false); };
     on();
     m.addEventListener("change", on);
     return () => m.removeEventListener("change", on);
@@ -83,6 +85,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
         const sel = getSelection();
         const r = sel && sel.rangeCount && !sel.isCollapsed ? sel.getRangeAt(0) : null;
         if (ptr.down || !r || !text.current?.contains(r.commonAncestorContainer) || r.toString().trim().length < 2) return setPick(null);
+        picked.current = r.cloneRange();
         // Desktop content is scaled with CSS zoom (.nl-content), which scales the pill's position too.
         const z = parseFloat(getComputedStyle(text.current.closest(".nl-content") ?? document.body).zoom) || 1;
         const at = (left: number, top: number) => setPick({ left: left / z, top: top / z });
@@ -128,13 +131,21 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
 
   const startNote = () => {
     const sel = getSelection();
-    if (!text.current || !sel?.rangeCount) return;
-    const p = passageOf(textMap(text.current), sel.getRangeAt(0));
-    sel.removeAllRanges();
+    const r = picked.current ?? (sel?.rangeCount ? sel.getRangeAt(0) : null);
+    if (!text.current || !r) return;
+    const p = passageOf(textMap(text.current), r);
+    picked.current = null;
+    sel?.removeAllRanges();
     setPick(null);
     let color: NoteColor = DEFAULT_COLOR;
     try { const c = localStorage.getItem(COLOR_KEY); if (isNoteColor(c)) color = c; } catch {}
-    if (p) { setDraft({ chapter: cur, color, ...p }); setActive(null); showNotes(); }
+    if (!p) return;
+    setDraft({ chapter: cur, color, ...p });
+    setActive(null);
+    showNotes();
+    // Above the card, which covers the lower part of the text on narrow screens.
+    const el = scroller.current;
+    if (!wide && el) el.scrollBy({ top: p.range.getBoundingClientRect().top - el.getBoundingClientRect().top - 24, behavior: "smooth" });
   };
 
   // Marks the noted passages of the open chapter, and finds where each one is for jumping to it.
@@ -171,7 +182,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     setDraft(null);
     reveal.current = x.id;
     setJump((j) => j + 1);
-    setDrawer(false);
+    setPopup(false);
     if (x.chapter !== cur && x.chapter < total) go(x.chapter);
   };
   // Clicking a marked passage picks its note in the panel.
@@ -196,7 +207,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
   };
   const composer = draft && <Composer draft={draft} signedOut={notes.status === "signedOut"} onColor={(color) => setDraft({ ...draft, color })} onSave={save} onCancel={() => setDraft(null)} />;
   const sidebar = (
-    <Sidebar tab={tab} onTab={setTab} count={notes.notes.length} onClose={wide ? undefined : closeDrawer}>
+    <Sidebar tab={tab} onTab={setTab} count={notes.notes.length}>
       {tab === "summary" ? <Summary /> : topicId ? (
         <NotesPanel status={notes.status} notes={notes.notes} chapters={chapters.map((c) => c.title)} cur={cur} active={active} missing={missing}
           composer={composer} onOpen={open} onEdit={notes.edit} onDelete={notes.remove} />
@@ -243,14 +254,12 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
         </article>
         </div>
       </div>
-      {!wide && !drawer && (
-        <Fab count={notes.notes.length} onClick={() => setDrawer(true)} />
-      )}
+      {!wide && popup && <Popup onClose={closePopup}>{sidebar}</Popup>}
+      {!wide && <Fab count={notes.notes.length} open={popup} onClick={() => (popup ? closePopup() : setPopup(true))} />}
       </div>
       <Podcast title={title} minutes={minutes} />
       </div>
       {wide && <aside className="flex w-[340px] shrink-0 flex-col border-l border-edge/10 bg-fill/50" aria-label="AI Summary and Notes">{sidebar}</aside>}
-      {drawer && !wide && <Drawer onClose={closeDrawer}>{sidebar}</Drawer>}
       {pick && <AddNoteButton left={pick.left} top={pick.top} onAdd={startNote} />}
     </div>
   );
@@ -266,7 +275,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 ];
 
 /** The reader's sidebar: AI Summary and Notes as tabs, the open one filling the space below. */
-function Sidebar({ tab, onTab, count, onClose, children }: { tab: Tab; onTab: (t: Tab) => void; count: number; onClose?: () => void; children: React.ReactNode }) {
+function Sidebar({ tab, onTab, count, children }: { tab: Tab; onTab: (t: Tab) => void; count: number; children: React.ReactNode }) {
   const list = useRef<HTMLDivElement>(null);
   // Left and right arrows move between the tabs.
   const onKey = (e: React.KeyboardEvent) => {
@@ -291,43 +300,37 @@ function Sidebar({ tab, onTab, count, onClose, children }: { tab: Tab; onTab: (t
             );
           })}
         </div>
-        {onClose && (
-          <button type="button" onClick={onClose} aria-label="Close sidebar" className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-track/70 hover:text-ink">
-            <Icon name="close" size={14} />
-          </button>
-        )}
       </div>
       <div id="sidebar-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-1">{children}</div>
     </>
   );
 }
 
-/** The button that opens the sidebar on screens too narrow to keep it open, floating just above the player bar. */
-function Fab({ count, onClick }: { count: number; onClick: () => void }) {
+/** On screens too narrow to keep the sidebar open: the button floating just above the player bar that opens and closes it. */
+function Fab({ count, open, onClick }: { count: number; open: boolean; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} aria-label={`Open AI Summary and Notes${count ? `, ${count} ${count === 1 ? "note" : "notes"}` : ""}`}
-      className="absolute bottom-4 right-4 z-20 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-[#FFD60A] to-[#FF9F0A] text-white shadow-[0_8px_24px_rgba(255,159,10,0.4),0_2px_6px_rgba(0,0,0,0.15)] transition-transform active:scale-95 animate-[tt-pop_160ms_ease-out]">
-      <Icon name="note" size={24} />
-      {count > 0 && (
+    <button type="button" onClick={onClick} aria-expanded={open}
+      aria-label={open ? "Close AI Summary and Notes" : `Open AI Summary and Notes${count ? `, ${count} ${count === 1 ? "note" : "notes"}` : ""}`}
+      className="absolute bottom-4 right-4 z-30 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-[#FFD60A] to-[#FF9F0A] text-white shadow-[0_8px_24px_rgba(255,159,10,0.4),0_2px_6px_rgba(0,0,0,0.15)] transition-transform active:scale-95 animate-[tt-pop_160ms_ease-out]">
+      <Icon name={open ? "close" : "note"} size={open ? 20 : 24} />
+      {!open && count > 0 && (
         <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[11px] font-bold tabular-nums text-surface shadow-[0_0_0_2px_var(--surface)]" style={SANS}>{count}</span>
       )}
     </button>
   );
 }
 
-/** The sidebar sliding in from the right, for screens too narrow to keep it open. */
-function Drawer({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+/** The sidebar as a card that pops up above the floating button (which closes it), sized to what it holds so the text above stays in view. */
+function Popup({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-50 bg-black/30 animate-[tt-fade_160ms_ease-out]" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-label="AI Summary and Notes"
-        className="absolute inset-y-0 right-0 flex w-[min(380px,calc(100vw-40px))] flex-col bg-fill pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] shadow-[-10px_0_40px_rgba(0,0,0,0.2)] animate-[nl-drawer_240ms_cubic-bezier(0.2,0.9,0.3,1)]">
-        {children}
-      </div>
+    <div role="dialog" aria-label="AI Summary and Notes"
+      className="absolute bottom-[88px] left-3 right-3 z-30 flex max-h-[min(520px,62%)] origin-bottom-right flex-col overflow-hidden rounded-[22px] bg-fill shadow-[0_16px_48px_rgba(0,0,0,0.22),0_0_0_0.5px_var(--hairline)] animate-[tt-pop_180ms_ease-out] sm:left-auto sm:w-[380px]">
+      {children}
     </div>
   );
 }

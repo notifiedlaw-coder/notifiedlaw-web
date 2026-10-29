@@ -289,6 +289,3 @@ main:focus {
 @keyframes nl-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { [class*="animate-[nl-pop"], [class*="animate-[nl-fade"] { animation: none !important; } }
 
-/* The reader's sidebar slides in from the right on screens too narrow to keep it open. */
-@keyframes nl-drawer { from { transform: translateX(100%); } to { transform: none; } }
-@media (prefers-reduced-motion: reduce) { [class*="animate-[nl-drawer"] { animation: none !important; } }

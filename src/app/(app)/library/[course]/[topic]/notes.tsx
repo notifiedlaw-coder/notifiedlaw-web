@@ -145,7 +145,8 @@ export function useTopicNotes(topicId: string | null) {
 /** The pill that appears by a selection in the text, at a point on screen. Pressing it does not clear the selection. */
 export function AddNoteButton({ left, top, onAdd }: { left: number; top: number; onAdd: () => void }) {
   return (
-    <button type="button" data-add-note onPointerDown={(e) => e.preventDefault()} onClick={onAdd}
+    // Acts on press: on a touch screen the tap clears the selection, and the pill with it, before a click would land.
+    <button type="button" data-add-note onPointerDown={(e) => { e.preventDefault(); onAdd(); }} onClick={(e) => { if (e.detail === 0) onAdd(); }}
       className="fixed z-40 flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3.5 text-[13px] font-semibold text-surface shadow-[0_6px_20px_rgba(0,0,0,0.25)] animate-[tt-pop_140ms_ease-out]"
       style={{ ...SANS, left, top }}>
       <Icon name="note" size={14} />Add note
