@@ -5,7 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { isPaidPlan, type Plan } from "@/lib/data";
 import { sendEmail, studentLinkMessage } from "@/lib/email";
@@ -35,9 +35,15 @@ export function getAuth() {
     ],
     databaseHooks: {
       session: {
-        // Any sign-in to an account whose email is on a university domain proves the mailbox is still live,
-        // whether it came from the emailed link or from Google on a Workspace university.
-        create: { after: async (s) => { await recordStudent(db, s.userId); } },
+        // One device at a time: a new sign-in ends every other session of the account, so the old device is
+        // signed out on its next request. Any sign-in to an account whose email is on a university domain also
+        // proves the mailbox is still live, whether it came from the emailed link or from Google on a Workspace university.
+        create: {
+          after: async (s) => {
+            await db.delete(schema.session).where(and(eq(schema.session.userId, s.userId), ne(schema.session.id, s.id)));
+            await recordStudent(db, s.userId);
+          },
+        },
       },
     },
     user: {
