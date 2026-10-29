@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePlan } from "@/components/plan";
 import { useTheme, type Theme } from "@/components/theme";
-import { Eyebrow, Initials, LevelSelect, Page, Segmented } from "@/components/ui";
+import { Btn, Eyebrow, Initials, LevelSelect, Page, Segmented } from "@/components/ui";
 import { DEMO_BILLING } from "@/lib/site";
 import { useUser } from "@/components/user";
 import { authClient } from "@/lib/auth-client";
@@ -49,7 +50,39 @@ export function Settings() {
           <Row label="Preview as plan"><Segmented options={PLANS} value={plan} onChange={setPlan} labels={{ None: "Unpaid", "Pro Max": "Max" }} /></Row>
         </Group>
       )}
+      <DeleteAccount />
       <button onClick={() => authClient.signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } })} className="cursor-pointer rounded-xl border-0 bg-surface py-3 text-center text-sm font-medium text-red shadow-card" style={{ color: "#FF3B30" }}>Sign Out</button>
     </Page>
+  );
+}
+
+/** Deletes the account and everything stored with it, after a second click. */
+function DeleteAccount() {
+  const [stage, setStage] = useState<"idle" | "confirm" | "busy">("idle");
+  const [error, setError] = useState("");
+  const go = async () => {
+    setStage("busy");
+    setError("");
+    const { error: e } = await authClient.deleteUser().catch(() => ({ error: { code: "", message: "" } }));
+    if (!e) { window.location.assign("/"); return; }
+    setStage("confirm");
+    setError(e.code === "SESSION_EXPIRED" ? "For your safety, sign out and sign in again, then delete your account within a day." : "Could not delete your account. Try again.");
+  };
+  return (
+    <Group title="Delete account">
+      <div className="flex flex-col gap-3 px-4 py-3 text-sm">
+        <p className="m-0 text-muted">Deletes your profile, plan, {CREDIT_NAME} and every file in My Files. This cannot be undone.</p>
+        {stage === "idle" ? (
+          <div><Btn tone="plain" onClick={() => setStage("confirm")}>Delete account…</Btn></div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium">Delete your account and all your files?</span>
+            <Btn onClick={() => void go()} disabled={stage === "busy"} className="!bg-red">{stage === "busy" ? "Deleting…" : "Delete forever"}</Btn>
+            <Btn tone="plain" onClick={() => { setStage("idle"); setError(""); }} disabled={stage === "busy"}>Keep account</Btn>
+          </div>
+        )}
+        {error && <p role="alert" className="m-0 text-red">{error}</p>}
+      </div>
+    </Group>
   );
 }

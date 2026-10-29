@@ -18,6 +18,15 @@ export function getAuth() {
     socialProviders: {
       google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET },
     },
+    user: {
+      // Settings > Delete account. Accounts sign in with Google, so there is no password to ask for: Better Auth
+      // instead refuses unless the session was created in the last day (freshAge). D1 rows go by cascade; the
+      // R2 objects are removed afterwards, by the user's key prefix. The import is lazy because files.ts imports this file.
+      deleteUser: {
+        enabled: true,
+        afterDelete: async (u) => { await (await import("@/lib/files")).purgeUserObjects(u.id); },
+      },
+    },
   });
 }
 
