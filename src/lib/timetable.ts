@@ -13,12 +13,19 @@ export type TimetableInput = {
 
 export type Session = { courseId: string; start: string; end: string; review: boolean };
 export type PlanDay = { date: string; sessions: Session[]; exams: TimetableCourse[] };
+/** A saved session, as the calendar edits it. */
+export type StoredSession = Session & { id: string; date: string };
 
 export const MAX_COURSES = 12;
 export const MAX_DAY_HOURS = 12;
 /** Exams may be set up to a year ahead; the plan itself stops after MAX_PLAN_DAYS. */
 export const MAX_EXAM_DAYS = 366;
 export const MAX_PLAN_DAYS = 180;
+/** Saved sessions per user, counting the past ones kept when the plan is rebuilt. */
+export const MAX_SESSIONS = 5000;
+/** Lengths a session can be given on the calendar, in minutes. */
+export const MIN_SESSION_MINS = 15;
+export const MAX_SESSION_MINS = 240;
 export const SESSION_MINS = [30, 45, 60, 90, 120] as const;
 export const BREAK_MINS = [0, 5, 10, 15, 30] as const;
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -32,9 +39,9 @@ export const todayIso = () => new Date().toISOString().slice(0, 10);
 export const addDays = (iso: string, n: number) => new Date(Date.parse(iso) + n * 86_400_000).toISOString().slice(0, 10);
 export const daysBetween = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
 /** 0 for Monday through 6 for Sunday. */
-const weekday = (iso: string) => (new Date(Date.parse(iso)).getUTCDay() + 6) % 7;
-const toMins = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
-const toHhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+export const weekday = (iso: string) => (new Date(Date.parse(iso)).getUTCDay() + 6) % 7;
+export const toMins = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+export const toHhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 const isIsoDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(Date.parse(v)).toISOString().startsWith(v);
 const isTime = (v: unknown): v is string => typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
@@ -119,8 +126,32 @@ export function buildPlan(input: TimetableInput, today = todayIso()): PlanDay[] 
 }
 
 /** Planned study minutes for each course id. */
-export function minutesByCourse(days: PlanDay[], sessionMins: number) {
+export function minutesByCourse(sessions: Session[]) {
   const out = new Map<string, number>();
-  for (const d of days) for (const s of d.sessions) out.set(s.courseId, (out.get(s.courseId) ?? 0) + sessionMins);
+  for (const s of sessions) out.set(s.courseId, (out.get(s.courseId) ?? 0) + toMins(s.end) - toMins(s.start));
   return out;
 }
+
+/** The plan's sessions with ids and dates, ready to save. */
+export const planSessions = (days: PlanDay[]): StoredSession[] =>
+  days.flatMap((d) => d.sessions.map((s) => ({ ...s, id: crypto.randomUUID(), date: d.date })));
+
+/**
+ * Checks a session added or changed on the calendar: one of the timetable's courses, a date no more than a year
+ * either side of today, and a start and end on the same day, MIN_SESSION_MINS to MAX_SESSION_MINS apart.
+ */
+export function cleanSession(raw: unknown, courses: TimetableCourse[], today = todayIso()): Omit<StoredSession, "id" | "review"> | string {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  if (typeof r.courseId !== "string" || !courses.some((c) => c.id === r.courseId)) return "Choose one of your courses.";
+  if (!isIsoDate(r.date) || Math.abs(daysBetween(today, r.date)) > MAX_EXAM_DAYS) return "Choose a date within a year of today.";
+  if (!isTime(r.start)) return "Set a start time.";
+  if (!(isTime(r.end) || r.end === "24:00")) return "Set an end time.";
+  const len = toMins(r.end as string) - toMins(r.start);
+  if (len < MIN_SESSION_MINS) return `A session must be at least ${MIN_SESSION_MINS} minutes long and end after it starts.`;
+  if (len > MAX_SESSION_MINS) return `A session can be at most ${MAX_SESSION_MINS / 60} hours long.`;
+  return { courseId: r.courseId, date: r.date, start: r.start, end: r.end as string };
+}
+
+/** The first session in `others` that shares time with `s` on its day, if any. */
+export const clash = (s: { id?: string; date: string; start: string; end: string }, others: StoredSession[]) =>
+  others.find((o) => o.id !== s.id && o.date === s.date && o.start < s.end && s.start < o.end);

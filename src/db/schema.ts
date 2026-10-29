@@ -166,9 +166,21 @@ export const userFile = sqliteTable("user_file", {
 }, (t) => [index("user_file_user").on(t.userId, t.createdAt)]);
 
 // Study TimeTable: one per user, private to its owner. `input` is the JSON TimetableInput from lib/timetable
-// (courses with exam dates, weekly hours, session length); the day-by-day plan is generated from it on view.
+// (courses with exam dates, weekly hours, session length). Saving it rebuilds the sessions below from today on.
 export const timetable = sqliteTable("timetable", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
   input: text("input").notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// The TimeTable's study sessions, one row each so the student can move, change, add and delete them on the
+// calendar. `courseId` is a course id inside the owner's timetable input. Times are HH:MM; end may be 24:00.
+export const timetableSession = sqliteTable("timetable_session", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  courseId: text("course_id").notNull(),
+  date: text("date").notNull(), // YYYY-MM-DD
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+  review: integer("review", { mode: "boolean" }).notNull().default(false), // the final review before an exam
+}, (t) => [index("timetable_session_user_date").on(t.userId, t.date)]);
