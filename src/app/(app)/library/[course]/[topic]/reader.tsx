@@ -11,6 +11,9 @@ import { AddNoteButton, Composer, NotesPanel, findPassage, paint, passageOf, tex
 const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
 const WIDE = "(min-width: 1280px)"; // Tailwind's xl, where the sidebar stays open
 const COLOR_KEY = "nl-note-color"; // the colour last picked, for the next note
+/** The CSS highlight for each colour, from the same swatch the picker shows: a light mark, and a stronger "-on" one for the picked note or the draft. */
+const HIGHLIGHTS = NOTE_COLORS.map((c) =>
+  `::highlight(nl-${c.id}){background-color:color-mix(in srgb,${c.swatch} 35%,transparent)}::highlight(nl-${c.id}-on){background-color:color-mix(in srgb,${c.swatch} 60%,transparent)}`).join("");
 const PILL_W = 112; // the "Add note" pill's width, near enough, for keeping it on screen
 type Tab = "summary" | "notes";
 
@@ -96,6 +99,8 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
       });
     };
     const down = (e: PointerEvent) => {
+      // Pressing the pill itself must leave it, and the selection, where they are.
+      if (e.target instanceof Element && e.target.closest("[data-add-note]")) return;
       ptr.used = e.pointerType !== "touch";
       ptr.down = ptr.used;
       if (ptr.down) setPick(null);
@@ -201,6 +206,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
 
   return (
     <div className="relative flex h-full">
+      <style>{HIGHLIGHTS}</style>
       {lock === "Pro Max" && <Gate title="Pre-Bar and Bar Course come with Supreme Justice (Max)" body="Upgrade to read every note." cta="Unlock with Supreme Justice (Max)" color="#AF52DE" />}
       {lock === "Student" && <Gate title="Choose a plan to keep reading" body="The first two topics of every course are open as a preview. Student unlocks every topic from Level 100 to 400." cta="See plans" />}
       <div className="flex min-w-0 flex-1 flex-col">
