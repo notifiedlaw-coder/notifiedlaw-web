@@ -292,3 +292,6 @@ main:focus {
 /* Passages the reader has noted in a library topic (painted with the CSS Custom Highlight API). */
 ::highlight(nl-note) { background-color: rgba(255, 204, 0, 0.32); }
 ::highlight(nl-note-active) { background-color: rgba(255, 159, 10, 0.5); }
+/* The reader's sidebar slides in from the right on screens too narrow to keep it open. */
+@keyframes nl-drawer { from { transform: translateX(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { [class*="animate-[nl-drawer"] { animation: none !important; } }

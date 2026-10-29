@@ -257,12 +257,12 @@ function NoteCard({ n, active, missing, onOpen, onEdit, onDelete }: {
 }
 
 /**
- * "My Notes": what the reader has noted on this topic, by chapter, with the note being written on top. Notes on
- * the open chapter come first; picking one in another chapter opens that chapter.
+ * The Notes tab of the reader's sidebar: what the reader has noted on this topic, by chapter, with the note being
+ * written on top. Notes on the open chapter come first; picking one in another chapter opens that chapter.
  */
-export function NotesPanel({ status, notes, chapters, cur, active, missing, composer, className = "", onOpen, onEdit, onDelete }: {
+export function NotesPanel({ status, notes, chapters, cur, active, missing, composer, onOpen, onEdit, onDelete }: {
   status: Status; notes: TopicNote[]; chapters: string[]; cur: number; active: string | null; missing: Set<string>;
-  composer?: React.ReactNode; className?: string;
+  composer?: React.ReactNode;
   onOpen: (n: TopicNote) => void; onEdit: (id: string, t: string) => Promise<string | null>; onDelete: (id: string) => Promise<string | null>;
 }) {
   const mine = notes.filter((n) => n.chapter === cur);
@@ -274,50 +274,30 @@ export function NotesPanel({ status, notes, chapters, cur, active, missing, comp
       onEdit={(t) => onEdit(n.id, t)} onDelete={() => onDelete(n.id)} />
   );
   return (
-    <section className={`flex flex-col gap-3 rounded-[18px] bg-fill p-4 ${className}`} style={SANS} aria-label="My Notes">
-      <div className="flex shrink-0 items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#FFD60A] to-[#FF9F0A] text-white" aria-hidden><Icon name="note" size={16} /></span>
-        <span className="flex-1 text-[15px] font-semibold">My Notes</span>
-        {notes.length > 0 && <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted">{notes.length}</span>}
-      </div>
+    <div className="flex flex-col gap-3" style={SANS}>
       {composer}
-      <div className="-mx-1 flex min-h-0 flex-col gap-3 overflow-y-auto px-1 pb-0.5">
-        {status === "loading" && <div className="h-16 animate-pulse rounded-[14px] bg-surface/60" aria-label="Loading notes" />}
-        {status === "error" && <p className="m-0 text-[13px] text-muted">Your notes could not be loaded. Refresh to try again.</p>}
-        {status === "signedOut" && !composer && (
-          <p className="m-0 text-[13px] leading-snug text-muted">
-            Highlight any passage to note it. <Link href="/login" className="font-medium text-blue">Sign in</Link> to keep your notes in your account.
-          </p>
-        )}
-        {status === "ready" && !notes.length && !composer && (
-          <p className="m-0 text-[13px] leading-snug text-muted">Highlight any passage, then choose <b className="font-semibold text-ink">Add note</b>. Notes are saved to your account and only you can see them.</p>
-        )}
-        {mine.length > 0 && (
-          <>
-            {many && <h3 className="m-0 truncate text-[11px] font-bold uppercase tracking-[0.05em] text-muted">This chapter · {title(cur)}</h3>}
-            <ul className="m-0 flex list-none flex-col gap-2 p-0">{mine.map(card)}</ul>
-          </>
-        )}
-        {rest.length > 0 && [...new Set(rest.map((n) => n.chapter))].map((c) => (
-          <div key={c} className="flex flex-col gap-2">
-            <h3 className="m-0 truncate text-[11px] font-bold uppercase tracking-[0.05em] text-muted">{many ? `Chapter ${c + 1} · ${title(c)}` : "Notes"}</h3>
-            <ul className="m-0 flex list-none flex-col gap-2 p-0">{rest.filter((n) => n.chapter === c).map(card)}</ul>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/** The composer as a sheet from the bottom of the screen, for screens too narrow for the side panel. */
-export function ComposerSheet({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/30 animate-[tt-fade_160ms_ease-out]" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-label="Add a note" className="w-full rounded-t-[22px] bg-fill p-4 pb-[max(16px,env(safe-area-inset-bottom))] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] animate-[tt-sheet_240ms_cubic-bezier(0.2,0.9,0.3,1)]" style={SANS}>
-        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-track" aria-hidden />
-        <h2 className="m-0 mb-3 text-[17px] font-semibold">Add a note</h2>
-        {children}
-      </div>
+      {status === "loading" && <div className="h-16 animate-pulse rounded-[14px] bg-surface/60" aria-label="Loading notes" />}
+      {status === "error" && <p className="m-0 text-[13px] text-muted">Your notes could not be loaded. Refresh to try again.</p>}
+      {status === "signedOut" && !composer && (
+        <p className="m-0 text-[13px] leading-snug text-muted">
+          Highlight any passage to note it. <Link href="/login" className="font-medium text-blue">Sign in</Link> to keep your notes in your account.
+        </p>
+      )}
+      {status === "ready" && !notes.length && !composer && (
+        <p className="m-0 text-[13px] leading-snug text-muted">Highlight any passage, then choose <b className="font-semibold text-ink">Add note</b>. Notes are saved to your account and only you can see them.</p>
+      )}
+      {mine.length > 0 && (
+        <>
+          {many && <h3 className="m-0 truncate text-[11px] font-bold uppercase tracking-[0.05em] text-muted">This chapter · {title(cur)}</h3>}
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">{mine.map(card)}</ul>
+        </>
+      )}
+      {rest.length > 0 && [...new Set(rest.map((n) => n.chapter))].map((c) => (
+        <div key={c} className="flex flex-col gap-2">
+          <h3 className="m-0 truncate text-[11px] font-bold uppercase tracking-[0.05em] text-muted">{many ? `Chapter ${c + 1} · ${title(c)}` : "Notes"}</h3>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">{rest.filter((n) => n.chapter === c).map(card)}</ul>
+        </div>
+      ))}
     </div>
   );
 }

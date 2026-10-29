@@ -5,15 +5,17 @@ import { Icon } from "@/components/icons";
 import { Btn, Gate } from "@/components/ui";
 import { Markdown, splitChapters } from "@/components/markdown";
 import type { TopicNote } from "@/lib/notes";
-import { AddNoteButton, Composer, ComposerSheet, NotesPanel, findPassage, paint, passageOf, textMap, useTopicNotes, type Draft } from "./notes";
+import { AddNoteButton, Composer, NotesPanel, findPassage, paint, passageOf, textMap, useTopicNotes, type Draft } from "./notes";
 
 const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
-const WIDE = "(min-width: 1280px)"; // Tailwind's xl, where the side panel shows
+const WIDE = "(min-width: 1280px)"; // Tailwind's xl, where the sidebar stays open
+type Tab = "summary" | "notes";
 
 /**
- * A topic written in Notion (Markdown). Each "##" heading starts a chapter. Beside it on wide screens is My Notes,
- * where a highlighted passage can be given a note saved to the reader's account, then the AI Summary (coming
- * soon); on narrow screens the notes follow the text. At the bottom is a podcast player for the topic (coming soon).
+ * A topic written in Notion (Markdown). Each "##" heading starts a chapter. On the right is a sidebar with two tabs:
+ * the AI Summary (coming soon) and Notes, where a highlighted passage can be given a note saved to the reader's
+ * account. Wide screens keep the sidebar open; narrower ones slide it in. At the bottom is a podcast player for the
+ * topic (coming soon).
  */
 export function Reader({ course, slug, n, title, lock = null, body, topicId = null }: { course: string; slug: string; n: number; title: string; lock?: "Student" | "Pro Max" | null; body: string; topicId?: string | null }) {
   const [cur, setCur] = useState(0);
@@ -28,6 +30,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
   const go = (i: number) => {
     setCur(i);
     setDraft(null);
+    setActive(null);
     scroller.current?.scrollTo({ top: 0 });
   };
   // Parsed once per chapter, so selecting text (which re-renders) leaves the text's DOM, and the selection, alone.
@@ -40,20 +43,22 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
   const [active, setActive] = useState<string | null>(null);
   const [missing, setMissing] = useState<Set<string>>(new Set());
   const [wide, setWide] = useState(false);
-  const [viewH, setViewH] = useState(0);
   const ranges = useRef(new Map<string, Range>());
   const reveal = useRef<string | null>(null);
   const [jump, setJump] = useState(0);
 
+  // ---- sidebar
+  const [tab, setTab] = useState<Tab>("notes");
+  const [drawer, setDrawer] = useState(false);
+  const showNotes = () => { setTab("notes"); if (!wide) setDrawer(true); };
+  const closeDrawer = () => { setDrawer(false); setDraft(null); };
+
   useEffect(() => {
     const m = matchMedia(WIDE);
-    const on = () => setWide(m.matches);
+    const on = () => { setWide(m.matches); if (m.matches) setDrawer(false); };
     on();
     m.addEventListener("change", on);
-    const el = scroller.current;
-    const ro = el ? new ResizeObserver(() => setViewH(el.clientHeight)) : null;
-    if (el) ro!.observe(el);
-    return () => { m.removeEventListener("change", on); ro?.disconnect(); };
+    return () => m.removeEventListener("change", on);
   }, []);
 
   // The "Add note" pill follows a selection made inside the text.
@@ -80,7 +85,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     const p = passageOf(textMap(text.current), sel.getRangeAt(0));
     sel.removeAllRanges();
     setPick(null);
-    if (p) { setDraft({ chapter: cur, ...p }); setActive(null); }
+    if (p) { setDraft({ chapter: cur, ...p }); setActive(null); showNotes(); }
   };
 
   // Marks the noted passages of the open chapter, and finds where each one is for jumping to it.
@@ -113,6 +118,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     setDraft(null);
     reveal.current = x.id;
     setJump((j) => j + 1);
+    setDrawer(false);
     if (x.chapter !== cur && x.chapter < total) go(x.chapter);
   };
   // Clicking a marked passage picks its note in the panel.
@@ -121,7 +127,9 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     if (!sel?.isCollapsed || !sel.anchorNode) return;
     const hit = [...ranges.current].find(([, r]) => r.isPointInRange(sel.anchorNode!, sel.anchorOffset));
     setActive(hit?.[0] ?? null);
-    if (hit) document.getElementById(`note-${hit[0]}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (!hit) return;
+    showNotes();
+    requestAnimationFrame(() => document.getElementById(`note-${hit[0]}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   };
 
   const save = async (note: string) => {
@@ -131,9 +139,13 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     return err;
   };
   const composer = draft && <Composer draft={draft} signedOut={notes.status === "signedOut"} onSave={save} onCancel={() => setDraft(null)} />;
-  const panel = (inAside: boolean) => (
-    <NotesPanel status={notes.status} notes={notes.notes} chapters={chapters.map((c) => c.title)} cur={cur} active={active} missing={missing}
-      composer={inAside ? composer : null} className={inAside ? "min-h-0" : ""} onOpen={open} onEdit={notes.edit} onDelete={notes.remove} />
+  const sidebar = (
+    <Sidebar tab={tab} onTab={setTab} count={notes.notes.length} onClose={wide ? undefined : closeDrawer}>
+      {tab === "summary" ? <Summary /> : topicId ? (
+        <NotesPanel status={notes.status} notes={notes.notes} chapters={chapters.map((c) => c.title)} cur={cur} active={active} missing={missing}
+          composer={composer} onOpen={open} onEdit={notes.edit} onDelete={notes.remove} />
+      ) : <p className="m-0 text-[13px] leading-snug text-muted" style={SANS}>Notes open once you can read this topic.</p>}
+    </Sidebar>
   );
 
   return (
@@ -141,14 +153,21 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
       {lock === "Pro Max" && <Gate title="Pre-Bar and Bar Course come with Supreme Justice (Max)" body="Upgrade to read every note." cta="Unlock with Supreme Justice (Max)" color="#AF52DE" />}
       {lock === "Student" && <Gate title="Choose a plan to keep reading" body="The first two topics of every course are open as a preview. Student unlocks every topic from Level 100 to 400." cta="See plans" />}
       <div ref={scroller} className="min-w-0 flex-1 overflow-auto bg-surface">
-        <div className="mx-auto flex max-w-[1100px] justify-center gap-10 px-5 md:px-8">
+        <div className="mx-auto flex max-w-[1100px] justify-center px-5 md:px-8">
         <article className="min-w-0 max-w-[720px] flex-1 py-8 md:py-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>
           <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
             {course} · Topic {n}{total > 1 ? ` · Chapter ${cur + 1} of ${total}` : ""}
           </div>
           <h1 className="mb-2 mt-2.5 text-[28px] font-bold leading-tight tracking-[-0.01em] md:text-4xl">{title}</h1>
-          <div className="mb-5 text-[13px] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
-            {total} {total === 1 ? "chapter" : "chapters"} · {minutes} min read
+          <div className="mb-5 flex items-center gap-3 text-[13px] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
+            <span className="flex-1">{total} {total === 1 ? "chapter" : "chapters"} · {minutes} min read</span>
+            {!wide && (
+              <button type="button" onClick={() => setDrawer(true)} aria-label="Open AI Summary and Notes" aria-expanded={drawer}
+                className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-fill px-3 text-[13px] font-semibold text-ink">
+                <Icon name="sidebar" size={14} />Summary &amp; Notes
+                {notes.notes.length > 0 && <span className="rounded-full bg-surface px-1.5 text-[11px] tabular-nums text-muted">{notes.notes.length}</span>}
+              </button>
+            )}
           </div>
           {total > 1 && (
             <div className="mb-6 flex flex-wrap gap-2" style={{ fontFamily: "var(--font-sans)" }}>
@@ -162,7 +181,6 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
               ))}
             </div>
           )}
-          <div className="mb-6 xl:hidden"><Summary /></div>
           {total > 1 && <h2 className="mb-2.5 mt-7 text-[26px] font-bold tracking-[-0.01em]">{ch.title}</h2>}
           {/* Selectable so passages can be highlighted for notes; CopyGuard still blocks copy, cut, drag and right-click. */}
           <div ref={text} onClick={topicId ? onTextClick : undefined} className={topicId ? "nl-selectable" : undefined}>{md}</div>
@@ -170,19 +188,13 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
             {cur > 0 ? <button onClick={() => go(cur - 1)} className="h-10 rounded-[10px] bg-fill px-4 text-[14px] font-semibold">Previous chapter</button> : <span />}
             {last ? <Btn href={`/library/${slug}`}>Back to course</Btn> : <button onClick={() => go(cur + 1)} className="flex h-10 items-center gap-1.5 rounded-[10px] bg-blue px-4 text-[14px] font-semibold text-white">Next chapter<Icon name="back" size={12} className="rotate-180" /></button>}
           </div>
-          {topicId && !wide && <div className="mt-8">{panel(false)}</div>}
           <Podcast title={title} minutes={minutes} />
         </article>
-        <aside className="hidden w-[300px] shrink-0 xl:block" aria-label="My Notes and AI Summary">
-          <div className="sticky top-0 flex flex-col gap-4 py-10" style={viewH ? { maxHeight: viewH } : undefined}>
-            {topicId && wide && panel(true)}
-            <div className="shrink-0"><Summary /></div>
-          </div>
-        </aside>
         </div>
       </div>
+      {wide && <aside className="flex w-[340px] shrink-0 flex-col border-l border-edge/10 bg-fill/50" aria-label="AI Summary and Notes">{sidebar}</aside>}
+      {drawer && !wide && <Drawer onClose={closeDrawer}>{sidebar}</Drawer>}
       {pick && <AddNoteButton rect={pick} onAdd={startNote} />}
-      {draft && !wide && <ComposerSheet onClose={() => setDraft(null)}>{composer}</ComposerSheet>}
     </div>
   );
 }
@@ -191,10 +203,69 @@ const SANS = { fontFamily: "var(--font-sans)" };
 // Orange mixed toward the ink colour, so the label reads in both light and dark themes.
 const Soon = () => <span className="shrink-0 rounded-full bg-[#FF9500]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em]" style={{ color: "color-mix(in srgb, #FF9500 62%, var(--ink))" }}>Coming soon</span>;
 
+const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: "summary", label: "AI Summary", icon: "sparkle" },
+  { id: "notes", label: "Notes", icon: "note" },
+];
+
+/** The reader's sidebar: AI Summary and Notes as tabs, the open one filling the space below. */
+function Sidebar({ tab, onTab, count, onClose, children }: { tab: Tab; onTab: (t: Tab) => void; count: number; onClose?: () => void; children: React.ReactNode }) {
+  const list = useRef<HTMLDivElement>(null);
+  // Left and right arrows move between the tabs.
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const next = TABS[(TABS.findIndex((t) => t.id === tab) + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length].id;
+    onTab(next);
+    list.current?.querySelector<HTMLButtonElement>(`#tab-${next}`)?.focus();
+  };
+  return (
+    <>
+      <div className="flex shrink-0 items-center gap-2 p-3" style={SANS}>
+        <div ref={list} role="tablist" aria-label="Sidebar" onKeyDown={onKey} className="flex flex-1 rounded-[10px] bg-track/70 p-0.5">
+          {TABS.map((t) => {
+            const on = t.id === tab;
+            return (
+              <button key={t.id} id={`tab-${t.id}`} type="button" role="tab" aria-selected={on} aria-controls="sidebar-panel" tabIndex={on ? 0 : -1} onClick={() => onTab(t.id)}
+                className={`flex h-8 flex-1 items-center justify-center gap-1.5 rounded-[8px] text-[13px] font-semibold transition-colors ${on ? "bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.12)]" : "text-muted hover:text-ink"}`}>
+                <Icon name={t.icon} size={14} />{t.label}
+                {t.id === "notes" && count > 0 && <span className={`rounded-full px-1.5 text-[11px] tabular-nums ${on ? "bg-fill" : "bg-surface/70"}`}>{count}</span>}
+              </button>
+            );
+          })}
+        </div>
+        {onClose && (
+          <button type="button" onClick={onClose} aria-label="Close sidebar" className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-track/70 hover:text-ink">
+            <Icon name="close" size={14} />
+          </button>
+        )}
+      </div>
+      <div id="sidebar-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-1">{children}</div>
+    </>
+  );
+}
+
+/** The sidebar sliding in from the right, for screens too narrow to keep it open. */
+function Drawer({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 bg-black/30 animate-[tt-fade_160ms_ease-out]" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label="AI Summary and Notes"
+        className="absolute inset-y-0 right-0 flex w-[min(380px,calc(100vw-40px))] flex-col bg-fill pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] shadow-[-10px_0_40px_rgba(0,0,0,0.2)] animate-[nl-drawer_240ms_cubic-bezier(0.2,0.9,0.3,1)]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /** The AI Summary of a topic: the key rules and cases in a minute's read. Not built yet, so it shows its shape. */
 function Summary() {
   return (
-    <section className="flex flex-col gap-3 rounded-[18px] bg-fill p-4" style={SANS} aria-label="AI Summary, coming soon">
+    <section className="flex flex-col gap-3" style={SANS} aria-label="AI Summary, coming soon">
       <div className="flex items-center gap-2.5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#5AC8FA] to-[#007AFF] text-white" aria-hidden><Icon name="sparkle" size={16} /></span>
         <span className="flex-1 text-[15px] font-semibold">AI Summary</span>
