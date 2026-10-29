@@ -25,7 +25,8 @@ export type ProfileInput = {
   goals: string[];
 };
 export type Profile = ProfileInput;
-export type SubscriptionState = { plan: Plan; creditsUsed: number };
+/** promoUntil (epoch ms): when a promo code's plan ends, while it is the plan in use; null otherwise. */
+export type SubscriptionState = { plan: Plan; creditsUsed: number; promoUntil: number | null };
 /**
  * A student account: its university email, the student ID from onboarding ("" before it), and when the
  * mailbox was last proven (epoch ms). `eligible`: recent enough for the Student plan.
@@ -133,9 +134,9 @@ export function parseProfile(b: unknown): ProfileInput | string {
 }
 
 /** Validates a plan/credits update; fields left out are not changed. */
-export function parseSubscription(b: unknown): Partial<SubscriptionState> | string {
+export function parseSubscription(b: unknown): Partial<Pick<SubscriptionState, "plan" | "creditsUsed">> | string {
   const o = (b ?? {}) as Record<string, unknown>;
-  const out: Partial<SubscriptionState> = {};
+  const out: Partial<Pick<SubscriptionState, "plan" | "creditsUsed">> = {};
   if (o.plan !== undefined) { if (!isPlan(o.plan)) return "Unknown plan."; out.plan = o.plan; }
   if (o.creditsUsed !== undefined) { const n = count(o.creditsUsed); if (n === null) return "creditsUsed must be a whole number."; out.creditsUsed = n; }
   return out;

@@ -8,7 +8,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq, inArray, lt, ne } from "drizzle-orm";
 import * as schema from "@/db/schema";
-import { isPaidPlan, type Plan } from "@/lib/data";
+import type { Plan } from "@/lib/data";
+import { effectivePlan } from "@/lib/promo";
 import { sendEmail, studentLinkMessage } from "@/lib/email";
 import { limitedBy } from "@/lib/rate-limit";
 import { TURNSTILE_HEADER, verifyTurnstile } from "@/lib/turnstile";
@@ -156,14 +157,16 @@ export function getDb() {
   return drizzle(getCloudflareContext().env.DB, { schema });
 }
 
-/** The plan a subscription row grants: its paid plan, else None. */
-export const planOf = (row: { plan: string } | undefined): Plan => (row && isPaidPlan(row.plan) ? row.plan : "None");
+/** The plan a subscription row grants: its paid plan or a live promo plan, whichever is higher; else None. */
+export const planOf = (row: { plan: string; promoPlan?: string | null; promoUntil?: Date | null } | undefined): Plan => effectivePlan(row);
+/** The subscription columns planOf needs. */
+export const planCols = { plan: schema.subscription.plan, promoPlan: schema.subscription.promoPlan, promoUntil: schema.subscription.promoUntil };
 
 /** The signed-in user's plan from D1; None for guests and for users who have not paid. */
 export async function getPlan(): Promise<Plan> {
   const s = await getSession();
   if (!s) return "None";
-  const [row] = await getDb().select({ plan: schema.subscription.plan }).from(schema.subscription).where(eq(schema.subscription.userId, s.user.id));
+  const [row] = await getDb().select(planCols).from(schema.subscription).where(eq(schema.subscription.userId, s.user.id));
   return planOf(row);
 }
 
@@ -186,7 +189,7 @@ export async function meFor(userId: string): Promise<Me> {
       ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",
       jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
     } as Me["profile"] : null,
-    subscription: { plan: planOf(s), creditsUsed: s?.creditsUsed ?? 0 },
+    subscription: { plan: planOf(s), creditsUsed: s?.creditsUsed ?? 0, promoUntil: s?.promoUntil && planOf(s) !== planOf({ plan: s.plan }) ? s.promoUntil.getTime() : null },
     student: st ? {
       email: st.email, university: st.university, studentId: st.studentId ?? "",
       verifiedAt: st.verifiedAt.getTime(), eligible: studentEligible(st.verifiedAt.getTime()),

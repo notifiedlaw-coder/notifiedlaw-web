@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { usePlan } from "@/components/plan";
+import { PromoCode } from "@/components/promo-code";
 import { authClient } from "@/lib/auth-client";
 import { PLAN_PRICES, cedis } from "@/lib/content";
 import { CREDIT_NAME, PAID_PLANS, PLAN_CREDITS, PLAN_NAMES, type PaidPlan } from "@/lib/data";
@@ -34,6 +35,7 @@ export function Plans() {
         <p className="mt-1 text-[15px] text-muted">Billed monthly. Pay with MTN MoMo, Telecel Cash or card. Cancel anytime.</p>
       </div>
       {!paid && <p className="m-0 w-full rounded-xl bg-blue/10 px-4 py-3 text-left text-[13px]"><b>Choose a plan to start using NotifiedLaw.</b> Every plan opens the full library from Level 100 to 400.</p>}
+      <PromoCode className="self-start" />
       <div className="grid w-full gap-4 text-left md:grid-cols-3">
         {TIERS.map((t) => {
           const isCur = t.plan === current;

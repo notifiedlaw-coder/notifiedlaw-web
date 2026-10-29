@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { getDb, planOf } from "@/lib/auth";
+import { getDb, planCols, planOf } from "@/lib/auth";
 import { subscription, uploadDay, userFile, userFolder } from "@/db/schema";
 import { DAILY_UPLOADS, DAILY_UPLOAD_BYTES, PLAN_STORAGE } from "@/lib/data";
 import type { FileKind } from "@/lib/file-check";
@@ -27,7 +27,7 @@ export const fileKey = (userId: string, id: string) => `users/${userId}/${id}`;
 
 /** Storage the user's plan includes now. */
 export async function quotaFor(userId: string) {
-  const [row] = await getDb().select({ plan: subscription.plan }).from(subscription).where(eq(subscription.userId, userId));
+  const [row] = await getDb().select(planCols).from(subscription).where(eq(subscription.userId, userId));
   return PLAN_STORAGE[planOf(row)];
 }
 

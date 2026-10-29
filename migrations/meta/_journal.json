@@ -127,6 +127,13 @@
       "when": 1793274146013,
       "tag": "0017_timetable_session_auto",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1793277927289,
+      "tag": "0018_promo_codes",
+      "breakpoints": true
     }
   ]
 }

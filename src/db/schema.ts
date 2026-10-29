@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 // The four tables Better Auth needs. App data (plans, progress, streaks) gets its own tables below.
 export const user = sqliteTable("user", {
@@ -74,8 +74,19 @@ export const subscription = sqliteTable("subscription", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
   plan: text("plan").notNull().default("None"), // None | Student | Pro | Pro Max
   creditsUsed: integer("credits_used").notNull().default(0),
+  // A plan granted by a promo code, on top of the plan above, until promoUntil. It never replaces `plan`, so a
+  // Student plan is still there when the promo ends.
+  promoPlan: text("promo_plan"),
+  promoUntil: integer("promo_until", { mode: "timestamp_ms" }),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// Promo codes each account has used, so a code works once per account.
+export const promoRedemption = sqliteTable("promo_redemption", {
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  code: text("code").notNull(),
+  redeemedAt: integer("redeemed_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [primaryKey({ columns: [t.userId, t.code] })]);
 
 // Student accounts: the account's own email is on a university's domain. The row is written, and verifiedAt
 // moved on, every time the user proves they still hold that mailbox by signing in (an emailed link, or Google

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { usePlan } from "@/components/plan";
+import { PromoCode } from "@/components/promo-code";
 import { Btn } from "@/components/ui";
 import { NETWORKS, PLAN_PRICES, cedis } from "@/lib/content";
 import { PLAN_NAMES, isPaidPlan, type PaidPlan } from "@/lib/data";
@@ -91,6 +92,7 @@ export function Checkout() {
         <div className="text-xs font-semibold text-muted">Order summary</div>
         <div className="mt-2 flex justify-between text-sm"><span>{item}</span><span className="font-semibold">{price}</span></div>
         <div className="mt-1 text-xs text-muted">Monthly · cancel anytime</div>
+        <div className="mt-3 border-t border-edge/10 pt-3"><PromoCode /></div>
         <div className="mt-3 border-t border-edge/10 pt-3 text-xs text-muted">Changed your mind? <Link href="/plans">Back to plans</Link></div>
       </aside>
     </div>

@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { asc, eq } from "drizzle-orm";
-import { getDb, planOf } from "@/lib/auth";
+import { getDb, planCols, planOf } from "@/lib/auth";
 import { subscription, timetable, timetableSession } from "@/db/schema";
 import { DEFAULT_INPUT, buildPlan, planSessions, todayIso, type StoredSession, type TimetableInput } from "@/lib/timetable";
 
@@ -8,7 +8,7 @@ export type TimetableState = { input: TimetableInput; sessions: StoredSession[] 
 
 /** True when the user has a plan that includes TimeTable (any paid plan). */
 export async function canPlan(userId: string) {
-  const [row] = await getDb().select({ plan: subscription.plan }).from(subscription).where(eq(subscription.userId, userId));
+  const [row] = await getDb().select(planCols).from(subscription).where(eq(subscription.userId, userId));
   return planOf(row) !== "None";
 }
 
