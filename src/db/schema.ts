@@ -145,7 +145,7 @@ export const uploadDay = sqliteTable("upload_day", {
 // section needs no migration. Only rows with published = 1 are shown on the site.
 export const cmsEntry = sqliteTable("cms_entry", {
   id: text("id").primaryKey(), // Notion page id
-  kind: text("kind").notNull(), // course | topic | case | article | episode | question
+  kind: text("kind").notNull(), // course | topic | case | article | episode | question | columns (a section database's columns; slug is its kind)
   parentId: text("parent_id"), // topic -> its course page id
   level: text("level"), // 100 | 200 | 300 | 400 | pre-bar | bar
   semester: text("semester"), // "1" | "2"

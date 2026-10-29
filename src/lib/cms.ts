@@ -93,14 +93,29 @@ export async function topicPlace(topicId: string): Promise<{ level: Level; n: nu
   return { level: c.level, n: siblings.findIndex((s) => s.id === topicId) + 1 };
 }
 
-export type CmsCase = { id: string; slug: string; title: string; cite: string; court: string; jurisdiction: string[]; courses: string[]; body: string };
+/** cells: every Notion column but the title, by its name, as a list (a text column gives one value or none). */
+export type CmsCase = { id: string; slug: string; title: string; cite: string; court: string; jurisdiction: string[]; courses: string[]; cells: Record<string, string[]>; body: string };
 
 /** Published case briefs. The Notion columns are CASE NAME, CITATION, COURT, JURISDICTION and COURSE. */
 export async function getCaseBriefs(): Promise<CmsCase[]> {
   return (await entries("case", true)).map((e) => {
     const p = parse(e);
-    return { id: e.id, slug: e.slug, title: e.title, cite: text(p, "Citation"), court: text(p, "Court"), jurisdiction: list(p, "Jurisdiction"), courses: list(p, "Course"), body: e.body };
+    const cells = Object.fromEntries(Object.keys(p).filter((k) => !k.startsWith("_")).map((k) => [k, list(p, k).filter((v) => v.trim())]));
+    return { id: e.id, slug: e.slug, title: e.title, cite: text(p, "Citation"), court: list(p, "Court").join(", "), jurisdiction: list(p, "Jurisdiction"), courses: list(p, "Course"), cells, body: e.body };
   });
+}
+
+/** A column of a Notion database: its name, type (title, rich_text, select, multi_select …) and, for select columns, its options. */
+export type CmsColumn = { name: string; type: string; options: string[] };
+
+/**
+ * The columns of a section's Notion database (kind "case", "article" …), in Notion's order with the title first, as the
+ * last sync read them; empty before the first sync that reads them.
+ */
+export async function getColumns(kind: string): Promise<CmsColumn[]> {
+  const e = (await entries("columns", true)).find((x) => x.slug === kind);
+  const cols = e ? (parse(e).columns as CmsColumn[] | undefined) : undefined;
+  return Array.isArray(cols) ? cols : [];
 }
 
 export type CmsArticle = { slug: string; title: string; summary: string; area: string; industry: string; date: Date | null; mins: number; body: string };

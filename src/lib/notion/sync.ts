@@ -97,6 +97,13 @@ function propsOf(page: Json): Record<string, unknown> {
   return out;
 }
 
+/** A database's columns in Notion's order, the title column first: name, type and, for select columns, their options. */
+function columnsOf(db: Json): { name: string; type: string; options: string[] }[] {
+  return Object.entries<Json>(db.properties ?? {})
+    .map(([name, p]) => ({ name: name.trim(), type: String(p.type), options: ((p[p.type] as Json)?.options as Json[] | undefined)?.map((o) => String(o.name)) ?? [] }))
+    .sort((a, b) => Number(b.type === "title") - Number(a.type === "title"));
+}
+
 function stageLabel(props: Record<string, unknown>): string | null {
   const raw = props["Stage"];
   return raw === undefined ? null : (Array.isArray(raw) ? raw.join(", ") : String(raw ?? "")) || null;
@@ -176,6 +183,13 @@ export async function syncNotion(opts: { token: string; rootDatabaseId: string; 
       }
     } else if (kind) {
       for (const d of dbs) {
+        // The database's columns, with the options of its select columns, so the site can filter as Notion does.
+        const schema = await notion(token, `/databases/${d.id}`);
+        rows.push({
+          id: d.id, kind: "columns", parentId: null, level: null, semester: null, slug: kind, position: 0,
+          title: plain(schema.title) || name, props: JSON.stringify({ columns: columnsOf(schema) }), body: "", stage: null,
+          published: true, notionEditedAt: schema.last_edited_time, syncedAt: started,
+        });
         let pos = 0;
         for (const it of await queryDb(token, d.id)) {
           const t = titleOf(it);
@@ -195,5 +209,5 @@ export async function syncNotion(opts: { token: string; rootDatabaseId: string; 
   // Only after every Notion read and write succeeded: drop pages that were deleted in Notion.
   const removed = (await db.delete(cmsEntry).where(lt(cmsEntry.syncedAt, started)).returning({ id: cmsEntry.id })).length;
   const count = (k: string) => rows.filter((r) => r.kind === k).length;
-  return { courses: count("course"), topics: count("topic"), entries: rows.length, published: rows.filter((r) => r.published && r.kind !== "course").length, fetchedBodies, removed };
+  return { courses: count("course"), topics: count("topic"), entries: rows.length, published: rows.filter((r) => r.published && r.kind !== "course" && r.kind !== "columns").length, fetchedBodies, removed };
 }

@@ -1,4 +1,4 @@
-import { getCaseBriefs } from "@/lib/cms";
+import { getCaseBriefs, getColumns } from "@/lib/cms";
 import { CaseLaw } from "./case-law";
 
 export const metadata = {
@@ -11,5 +11,6 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  return <CaseLaw cases={await getCaseBriefs()} />;
+  const [cases, columns] = await Promise.all([getCaseBriefs(), getColumns("case")]);
+  return <CaseLaw cases={cases} columns={columns} />;
 }
