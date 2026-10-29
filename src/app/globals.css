@@ -282,3 +282,8 @@ main:focus {
 @keyframes tt-sheet { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes tt-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { [class*="animate-[tt-"] { animation: none !important; } }
+
+/* Celebration popup (promo code): a springy scale-in over a fading backdrop. */
+@keyframes nl-pop { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
+@keyframes nl-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { [class*="animate-[nl-pop"], [class*="animate-[nl-fade"] { animation: none !important; } }
