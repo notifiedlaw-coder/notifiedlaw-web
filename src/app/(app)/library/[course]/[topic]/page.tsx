@@ -16,7 +16,7 @@ export default async function TopicPage({ params }: { params: Promise<{ course: 
   if (!info.ready) notFound();
   // A locked topic never sends its text: the plan is checked here, not in the browser.
   const lock = topicLock(await getPlan(), hit.level, n);
-  const cms = lock ? { title: info.title, body: "" } : await getTopicBody(slug, n);
+  const cms = lock ? { id: null, title: info.title, body: "" } : await getTopicBody(slug, n);
   if (!cms) notFound();
-  return <Reader course={hit.course.title} slug={hit.course.slug} lock={lock} n={n} title={cms.title} body={cms.body} />;
+  return <Reader course={hit.course.title} slug={hit.course.slug} lock={lock} n={n} title={cms.title} body={cms.body} topicId={cms.id} />;
 }

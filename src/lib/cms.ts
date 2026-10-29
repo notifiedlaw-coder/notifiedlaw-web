@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { cmsEntry } from "@/db/schema";
 import { getDb } from "@/lib/auth";
 import { LEVELS, type Course, type Level } from "@/lib/data";
+import { splitChapters } from "@/components/markdown";
 
 // All study content comes from Notion, synced into the cms_entry table (see src/lib/notion/sync.ts).
 // Nothing is built in: when D1 has no rows, or cannot be read, the pages show an empty state.
@@ -57,7 +58,7 @@ export async function getCourses(): Promise<Record<Level, Course[]>> {
     const mine = topics.filter((t) => t.parentId === c.id).sort((a, b) => a.position - b.position);
     out[c.level].push({
       slug: c.slug, title: c.title, semester: c.semester ?? "1", color: PALETTE[out[c.level].length % PALETTE.length],
-      topics: mine.map((t) => ({ title: t.title, ready: t.published, mins: readMins(t.body), chapters: Math.max(1, (t.body.match(/^## /gm) ?? []).length) })),
+      topics: mine.map((t) => ({ title: t.title, ready: t.published, mins: readMins(t.body), chapters: splitChapters(t.body, t.title).length })),
     });
   }
   return out;
@@ -72,13 +73,24 @@ export function findIn(courses: Record<Level, Course[]>, slug: string) {
 }
 
 /** The published Notion text of topic number `n` (1-based) of a course, or null when it is not live. */
-export async function getTopicBody(courseSlug: string, n: number): Promise<{ title: string; body: string } | null> {
+export async function getTopicBody(courseSlug: string, n: number): Promise<{ id: string; title: string; body: string } | null> {
   const courses = await entries("course", true);
   const c = courses.find((x) => x.slug === courseSlug);
   if (!c) return null;
   const topics = (await entries("topic", false)).filter((t) => t.parentId === c.id).sort((a, b) => a.position - b.position);
   const t = topics[n - 1];
-  return t?.published ? { title: t.title, body: t.body } : null;
+  return t?.published ? { id: t.id, title: t.title, body: t.body } : null;
+}
+
+/** Where a published topic sits, by its Notion page id: its course's level and its number in the course. */
+export async function topicPlace(topicId: string): Promise<{ level: Level; n: number } | null> {
+  const db = getDb();
+  const [t] = await db.select({ parentId: cmsEntry.parentId, published: cmsEntry.published }).from(cmsEntry).where(and(eq(cmsEntry.id, topicId), eq(cmsEntry.kind, "topic")));
+  if (!t?.published || !t.parentId) return null;
+  const [c] = await db.select({ level: cmsEntry.level, published: cmsEntry.published }).from(cmsEntry).where(eq(cmsEntry.id, t.parentId));
+  if (!c?.published || !isLevel(c.level)) return null;
+  const siblings = await db.select({ id: cmsEntry.id }).from(cmsEntry).where(and(eq(cmsEntry.kind, "topic"), eq(cmsEntry.parentId, t.parentId))).orderBy(asc(cmsEntry.position));
+  return { level: c.level, n: siblings.findIndex((s) => s.id === topicId) + 1 };
 }
 
 export type CmsCase = { id: string; slug: string; title: string; cite: string; court: string; jurisdiction: string[]; courses: string[]; body: string };

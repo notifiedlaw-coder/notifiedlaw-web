@@ -129,12 +129,23 @@ export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 })
   return <>{out}</>;
 }
 
-/** Splits a Markdown body into chapters at each "## " heading; text before the first heading is its own chapter. */
+/**
+ * Splits a Markdown body into chapters at each "## " heading; text before the first heading is its own chapter.
+ * A heading with nothing under it before the next one (a Notion page with a heading 1 straight above a
+ * heading 2) is the chapter's title, and the heading after it becomes the chapter's first subheading.
+ */
 export function splitChapters(body: string, fallbackTitle: string): { title: string; md: string }[] {
   const parts = body.replace(/\r\n/g, "\n").split(/^(?=##\s)/m).map((p) => p.trim()).filter(Boolean);
-  const chapters = parts.map((p) => {
+  const chapters: { title: string; md: string }[] = [];
+  let empty: string | null = null;
+  for (const p of parts) {
     const m = /^##\s+(.*)\n?([\s\S]*)$/.exec(p);
-    return m ? { title: m[1].trim(), md: m[2].trim() } : { title: fallbackTitle, md: p };
-  });
+    const c = m ? { title: m[1].trim(), md: m[2].trim() } : { title: fallbackTitle, md: p };
+    if (empty !== null && m) chapters.push({ title: empty, md: `### ${c.title}\n\n${c.md}`.trim() });
+    else if (m && !c.md) { empty = c.title; continue; }
+    else chapters.push(c);
+    empty = null;
+  }
+  if (empty !== null) chapters.push({ title: empty, md: "" });
   return chapters.length ? chapters : [{ title: fallbackTitle, md: "" }];
 }

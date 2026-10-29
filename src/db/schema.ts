@@ -88,6 +88,21 @@ export const promoRedemption = sqliteTable("promo_redemption", {
   redeemedAt: integer("redeemed_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [primaryKey({ columns: [t.userId, t.code] })]);
 
+// Notes a reader pins to a passage of a library topic. `quote` is the highlighted text, `before` the few
+// characters ahead of it (to tell repeated phrases apart), `chapter` the 0-based chapter it was in.
+// Keyed on the topic's Notion page id, so a note stays with its topic when topics are reordered.
+export const topicNote = sqliteTable("topic_note", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  topicId: text("topic_id").notNull(),
+  chapter: integer("chapter").notNull(),
+  quote: text("quote").notNull(),
+  before: text("before").notNull().default(""),
+  note: text("note").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [index("topic_note_user_topic").on(t.userId, t.topicId)]);
+
 // Student accounts: the account's own email is on a university's domain. The row is written, and verifiedAt
 // moved on, every time the user proves they still hold that mailbox by signing in (an emailed link, or Google
 // for universities on Google Workspace). The Student plan needs a proof from the last STUDENT_VERIFY_DAYS.
