@@ -2,6 +2,7 @@ import { lt } from "drizzle-orm";
 import { cmsEntry } from "@/db/schema";
 import { blocksToMarkdown, cleanTitle, type Block, type RichText } from "./markdown";
 import { courseSlugFor, slugify } from "./map";
+import { tidyMarkdown } from "./tidy";
 
 // Reads the Notion "LAW DATABASE" through the Notion API and mirrors it into the cms_entry table.
 //
@@ -10,8 +11,8 @@ import { courseSlugFor, slugify } from "./map";
 //   LEVEL n -> "... SEMESTER NOTES" database -> course pages -> "TOPIC OUTLINE" database -> topic pages
 //   other sections hold a database of pages whose properties and body become the entry
 //
-// A row goes live when its Stage includes "Publish" and it has body text. Sections with no Stage column
-// (case briefs, for example) go live as soon as they have body text.
+// A row goes live as soon as it has body text; its Stage column is kept for reference but does not hold it back.
+// Bodies are tidied on the way in (see tidy.ts), since most notes are pasted from PDFs.
 
 const API = "https://api.notion.com/v1";
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -82,14 +83,6 @@ function propsOf(page: Json): Record<string, unknown> {
   return out;
 }
 
-/** True when this row has a Stage column and it includes Publish; null when there is no Stage column. */
-function stagePublished(props: Record<string, unknown>): boolean | null {
-  const raw = props["Stage"];
-  if (raw === undefined) return null;
-  const vals = (Array.isArray(raw) ? raw : [raw]).map((v) => String(v ?? "").toLowerCase());
-  return vals.some((v) => v === "publish" || v === "published");
-}
-
 function stageLabel(props: Record<string, unknown>): string | null {
   const raw = props["Stage"];
   return raw === undefined ? null : (Array.isArray(raw) ? raw.join(", ") : String(raw ?? "")) || null;
@@ -124,10 +117,10 @@ export async function syncNotion(opts: { token: string; rootDatabaseId: string; 
     const props = propsOf(page);
     const prev = known.get(page.id);
     let body: string;
-    if (prev && prev.edited === page.last_edited_time) body = prev.body;
-    else { fetchedBodies++; body = blocksToMarkdown(await children(token, page.id)); }
-    // Live when it has text and, if the row has a Stage column, that Stage includes Publish.
-    const published = body.trim().length > 0 && (stagePublished(props) ?? true);
+    // Unchanged pages are tidied again too, so a change to the tidying reaches every stored body.
+    if (prev && prev.edited === page.last_edited_time) body = tidyMarkdown(prev.body);
+    else { fetchedBodies++; body = tidyMarkdown(blocksToMarkdown(await children(token, page.id))); }
+    const published = body.trim().length > 0;
     rows.push({
       id: page.id, title: titleOf(page) || "Untitled", props: JSON.stringify(props), stage: stageLabel(props),
       notionEditedAt: page.last_edited_time, syncedAt: started, body, published, ...base,
