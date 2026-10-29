@@ -49,6 +49,9 @@ const rangeOf = (m: Map, s: number, e: number) => {
   return r;
 };
 
+/** A character that is part of a word: letters, digits, and apostrophes or hyphens inside a word. */
+const WORD = /[\p{L}\p{N}'’-]/u;
+
 /** The selected passage as it is saved: the quote, the text just before it, and its range. Null if empty. */
 export function passageOf(m: Map, sel: Range): { quote: string; before: string; range: Range } | null {
   let s = -1;
@@ -64,6 +67,9 @@ export function passageOf(m: Map, sel: Range): { quote: string; before: string; 
   while (s >= 0 && s <= e && m.text[s] === " ") s++;
   while (e >= s && m.text[e] === " ") e--;
   if (s < 0 || e < s) return null;
+  // Whole words only: a selection that starts or ends partway through a word takes in all of it.
+  while (s > 0 && WORD.test(m.text[s - 1]) && WORD.test(m.text[s])) s--;
+  while (e < m.text.length - 1 && WORD.test(m.text[e + 1]) && WORD.test(m.text[e])) e++;
   return { quote: m.text.slice(s, e + 1), before: m.text.slice(Math.max(0, s - BEFORE), s).trim(), range: rangeOf(m, s, e) };
 }
 

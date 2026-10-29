@@ -14,8 +14,8 @@ type Tab = "summary" | "notes";
 /**
  * A topic written in Notion (Markdown). Each "##" heading starts a chapter. On the right is a sidebar with two tabs:
  * the AI Summary (coming soon) and Notes, where a highlighted passage can be given a note saved to the reader's
- * account. Wide screens keep the sidebar open; narrower ones slide it in. At the bottom is a podcast player for the
- * topic (coming soon).
+ * account. Wide screens keep the sidebar open; narrower ones slide it in. Along the bottom, between the app's
+ * sidebar and this one, is a player bar for the topic's podcast (coming soon).
  */
 export function Reader({ course, slug, n, title, lock = null, body, topicId = null }: { course: string; slug: string; n: number; title: string; lock?: "Student" | "Pro Max" | null; body: string; topicId?: string | null }) {
   const [cur, setCur] = useState(0);
@@ -152,7 +152,8 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     <div className="relative flex h-full">
       {lock === "Pro Max" && <Gate title="Pre-Bar and Bar Course come with Supreme Justice (Max)" body="Upgrade to read every note." cta="Unlock with Supreme Justice (Max)" color="#AF52DE" />}
       {lock === "Student" && <Gate title="Choose a plan to keep reading" body="The first two topics of every course are open as a preview. Student unlocks every topic from Level 100 to 400." cta="See plans" />}
-      <div ref={scroller} className="min-w-0 flex-1 overflow-auto bg-surface">
+      <div className="flex min-w-0 flex-1 flex-col">
+      <div ref={scroller} className="min-h-0 flex-1 overflow-auto bg-surface">
         <div className="mx-auto flex max-w-[1100px] justify-center px-5 md:px-8">
         <article className="min-w-0 max-w-[720px] flex-1 py-8 md:py-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>
           <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
@@ -188,9 +189,10 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
             {cur > 0 ? <button onClick={() => go(cur - 1)} className="h-10 rounded-[10px] bg-fill px-4 text-[14px] font-semibold">Previous chapter</button> : <span />}
             {last ? <Btn href={`/library/${slug}`}>Back to course</Btn> : <button onClick={() => go(cur + 1)} className="flex h-10 items-center gap-1.5 rounded-[10px] bg-blue px-4 text-[14px] font-semibold text-white">Next chapter<Icon name="back" size={12} className="rotate-180" /></button>}
           </div>
-          <Podcast title={title} minutes={minutes} />
         </article>
         </div>
+      </div>
+      <Podcast title={title} minutes={minutes} />
       </div>
       {wide && <aside className="flex w-[340px] shrink-0 flex-col border-l border-edge/10 bg-fill/50" aria-label="AI Summary and Notes">{sidebar}</aside>}
       {drawer && !wide && <Drawer onClose={closeDrawer}>{sidebar}</Drawer>}
@@ -288,34 +290,54 @@ function Summary() {
   );
 }
 
-/** A podcast of the topic, pinned to the bottom of the page while reading. Not built yet, so its controls are off. */
+const Skip = ({ back }: { back?: boolean }) => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d={back ? "M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4" : "M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"} />
+    <text x="12" y="15.5" fontSize="7" fontWeight="700" textAnchor="middle" fill="currentColor" stroke="none">{back ? 15 : 30}</text>
+  </svg>
+);
+
+/**
+ * The topic's podcast as a player bar along the bottom of the reader: what is playing on the left, the controls and
+ * progress centred, speed and volume on the right. Not built yet, so its controls are off.
+ */
 function Podcast({ title, minutes }: { title: string; minutes: number }) {
   const length = Math.max(3, Math.round(minutes * 0.6));
   return (
-    <section className="sticky bottom-4 z-10 mt-8 flex items-center gap-3 rounded-[18px] bg-surface/85 p-2.5 pr-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.12),0_0_0_0.5px_var(--hairline)] backdrop-blur-xl" style={SANS} aria-label="Topic podcast, coming soon">
-      <span className="flex size-12 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br from-[#D06BFF] to-[#5856D6] text-white shadow-[0_2px_8px_rgba(88,86,214,0.35)]" aria-hidden><Icon name="headphones" size={22} /></span>
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-[14px] font-semibold">Listen to this topic</span>
-          <Soon />
-        </div>
-        <span className="truncate text-[12px] text-muted">AI podcast · about {length} min · {title}</span>
-        <div className="hidden items-center gap-2 text-[11px] tabular-nums text-faint sm:flex" aria-hidden>
-          <span>0:00</span>
-          <span className="h-1 flex-1 rounded-full bg-track" />
-          <span>{length}:00</span>
+    <section className="relative z-10 grid shrink-0 grid-cols-[1fr_auto] items-center gap-3 border-t border-edge/10 bg-surface px-3 py-2.5 pb-[max(10px,env(safe-area-inset-bottom))] md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)] md:gap-6 md:px-4" style={SANS} aria-label="Topic podcast, coming soon">
+      {/* On phones the progress is a hairline along the top of the bar. */}
+      <span className="absolute inset-x-0 top-0 h-0.5 bg-track md:hidden" aria-hidden />
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-[8px] bg-gradient-to-br from-[#D06BFF] to-[#5856D6] text-white shadow-[0_2px_8px_rgba(88,86,214,0.35)]" aria-hidden><Icon name="headphones" size={22} /></span>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-[14px] font-semibold">{title}</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-[12px] text-muted">AI podcast · {length} min</span>
+            <span className="md:hidden"><Soon /></span>
+          </div>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-1 text-muted">
-        <button type="button" disabled aria-label="Back 15 seconds" className="hidden size-9 items-center justify-center rounded-full opacity-50 sm:flex">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4" /><text x="12" y="15.5" fontSize="7" fontWeight="700" textAnchor="middle" fill="currentColor" stroke="none">15</text></svg>
-        </button>
-        <button type="button" disabled aria-label="Play, coming soon" className="flex size-11 items-center justify-center rounded-full bg-fill text-faint">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" /></svg>
-        </button>
-        <button type="button" disabled aria-label="Forward 30 seconds" className="hidden size-9 items-center justify-center rounded-full opacity-50 sm:flex">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4" /><text x="12" y="15.5" fontSize="7" fontWeight="700" textAnchor="middle" fill="currentColor" stroke="none">30</text></svg>
-        </button>
+      <div className="flex flex-col items-center gap-1.5">
+        <div className="flex items-center gap-4 text-muted">
+          <button type="button" disabled aria-label="Back 15 seconds" className="hidden size-8 items-center justify-center rounded-full opacity-50 md:flex"><Skip back /></button>
+          <button type="button" disabled aria-label="Play, coming soon" className="flex size-10 items-center justify-center rounded-full bg-ink text-surface opacity-40">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" /></svg>
+          </button>
+          <button type="button" disabled aria-label="Forward 30 seconds" className="hidden size-8 items-center justify-center rounded-full opacity-50 md:flex"><Skip /></button>
+        </div>
+        <div className="hidden w-full max-w-[560px] items-center gap-2 text-[11px] tabular-nums text-faint md:flex" aria-hidden>
+          <span className="w-8 text-right">0:00</span>
+          <span className="h-1 flex-1 rounded-full bg-track" />
+          <span className="w-8">{length}:00</span>
+        </div>
+      </div>
+      <div className="hidden items-center justify-end gap-3 text-muted md:flex">
+        <Soon />
+        <button type="button" disabled aria-label="Playback speed" className="h-7 rounded-full px-2 text-[12px] font-semibold opacity-50">1×</button>
+        <span className="flex items-center gap-2 opacity-50" aria-hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></svg>
+          <span className="hidden h-1 w-16 rounded-full bg-track 2xl:block"><span className="block h-full w-3/4 rounded-full bg-faint/60" /></span>
+        </span>
       </div>
     </section>
   );
