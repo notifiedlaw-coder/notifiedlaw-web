@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { limited } from "@/lib/rate-limit";
+import { clientKey } from "@/lib/client-key";
+import { limitedBy } from "@/lib/rate-limit";
 
 const TYPES: Record<string, string> = { mp4: "video/mp4", webm: "video/webm", mp3: "audio/mpeg", webp: "image/webp" };
 
@@ -10,10 +11,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
   const type = TYPES[key.split(".").pop() ?? ""];
   if (!type || key.length > 300 || key.includes("..") || /[\\\x00-\x1f]/.test(key)) return new Response("Not found", { status: 404 });
 
-  const rl = await limited(request, "MEDIA");
+  // Per signed-in session, else per IP: a shared campus IP does not run every student out of media together.
+  const { env } = getCloudflareContext();
+  const rl = await limitedBy("MEDIA", [await clientKey(request, env.BETTER_AUTH_SECRET)]);
   if (rl) return rl;
 
-  const { env } = getCloudflareContext();
   const bucket = env.VIDEOS;
   const hasRange = request.headers.has("range");
   const obj = await bucket.get(key, hasRange ? { range: request.headers } : undefined);

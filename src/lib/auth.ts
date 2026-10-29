@@ -10,6 +10,7 @@ import * as schema from "@/db/schema";
 import { isPaidPlan, type Plan } from "@/lib/data";
 import { sendEmail, studentLinkMessage } from "@/lib/email";
 import { limitedBy } from "@/lib/rate-limit";
+import { TURNSTILE_HEADER, verifyTurnstile } from "@/lib/turnstile";
 import { DAILY_SENDS, LINK_MINUTES, RESEND_SECONDS, checkStudentEmail, studentEligible, universityOf } from "@/lib/student";
 import type { Me } from "@/lib/profile";
 
@@ -57,13 +58,16 @@ const refuse = (message: string, status: "BAD_REQUEST" | "TOO_MANY_REQUESTS" = "
 /**
  * Emails a student sign-in link. Only normalised addresses at a supported university get one. Limits: one link a
  * minute and DAILY_SENDS a day per address (D1), plus RL_UNI_EMAIL per address and per IP, so nobody can flood
- * an inbox or probe addresses quickly. The link opens /verify-email, which signs in only on a button press, so
+ * an inbox or probe addresses quickly. A Turnstile check comes first, so a script cannot send links to made-up
+ * addresses (which still cost a send when they bounce). The link opens /verify-email, which signs in only on a button press, so
  * mail scanners that fetch links do not use up the token.
  */
 async function sendStudentLink(db: Db, email: string, token: string, h?: Headers) {
   const checked = checkStudentEmail(email);
   if ("error" in checked) throw refuse(checked.error);
   if (checked.email !== email) throw refuse("Enter your university email without capitals or a +tag.");
+  if (!(await verifyTurnstile(h?.get(TURNSTILE_HEADER), h?.get("cf-connecting-ip"))))
+    throw refuse("We could not confirm you are human. Complete the check and try again.");
   const burst = await limitedBy("UNI_EMAIL", [`to:${email}`, `ip:${h?.get("cf-connecting-ip") ?? "anon"}`]);
   if (burst) throw refuse("Too many requests. Wait a minute and try again.", "TOO_MANY_REQUESTS");
   const now = new Date();

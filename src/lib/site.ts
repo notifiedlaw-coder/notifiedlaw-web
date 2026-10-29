@@ -16,6 +16,14 @@ export const SITE = {
  */
 export const DEMO_BILLING = process.env.NODE_ENV !== "production";
 
+/**
+ * Turnstile on the student sign-in form (src/components/turnstile.tsx, checked in src/lib/turnstile.ts). Public by
+ * design. Outside production it is Cloudflare's always-pass test key, which works on localhost.
+ */
+export const TURNSTILE_SITE_KEY = process.env.NODE_ENV === "production" ? "0x4AAAAAAFqaigbm0wHzuOx-" : "1x00000000000000000000AA";
+/** The request header the student sign-in form sends its Turnstile token in. */
+export const TURNSTILE_HEADER = "x-turnstile-token";
+
 export const abs = (path = "/") => new URL(path, SITE.url).toString();
 
 /** Routes behind the app shell that hold per-user state. Kept out of search and AI indexes. */

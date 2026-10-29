@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fieldCls } from "@/components/profile-fields";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { authClient } from "@/lib/auth-client";
 import { UNIVERSITIES } from "@/lib/content";
 import { LINK_MINUTES, RESEND_SECONDS, checkStudentEmail } from "@/lib/student";
+import { TURNSTILE_HEADER } from "@/lib/site";
 
 /** Seconds left until `until` (epoch ms), ticking once a second; 0 when there is nothing to wait for. */
 function useSecondsLeft(until: number) {
@@ -27,18 +29,26 @@ export function StudentEmailForm({ cta }: { cta: string }) {
   const [sent, setSent] = useState<{ email: string; at: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [token, setToken] = useState<string | null>(null);
+  const turnstile = useRef<TurnstileHandle>(null);
   const left = useSecondsLeft(sent ? sent.at + RESEND_SECONDS * 1000 : 0);
 
   const send = async (raw: string) => {
     const checked = checkStudentEmail(raw);
     if ("error" in checked) { setError(checked.error); return; }
+    if (!token) { setError("Wait for the security check below to finish, then try again."); return; }
     setBusy(true);
     setError("");
-    const { error: e } = await authClient.signIn.magicLink({ email: checked.email }).catch(() => ({ error: { message: "" } }));
+    const { error: e } = await authClient.signIn.magicLink({ email: checked.email, fetchOptions: { headers: { [TURNSTILE_HEADER]: token } } })
+      .catch(() => ({ error: { message: "" } }));
     setBusy(false);
+    turnstile.current?.reset(); // each token works once
     if (e) { setError(e.message || "Could not reach NotifiedLaw. Check your connection and try again."); return; }
     setSent({ email: checked.email, at: Date.now() });
   };
+
+  // One widget for both views, so Resend gets a fresh token too.
+  const check = <Turnstile ref={turnstile} onToken={setToken} />;
 
   if (sent)
     return (
@@ -47,8 +57,9 @@ export function StudentEmailForm({ cta }: { cta: string }) {
         {error && <p className="m-0 text-red" role="alert">{error}</p>}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button type="button" className="text-muted" onClick={() => { setValue(sent.email); setSent(null); setError(""); }}>Use a different email</button>
-          <button type="button" className="font-semibold text-blue disabled:opacity-50" disabled={busy || left > 0} onClick={() => void send(sent.email)}>{busy ? "Sending…" : left > 0 ? `Resend in ${left}s` : "Resend link"}</button>
+          <button type="button" className="font-semibold text-blue disabled:opacity-50" disabled={busy || left > 0 || !token} onClick={() => void send(sent.email)}>{busy ? "Sending…" : left > 0 ? `Resend in ${left}s` : "Resend link"}</button>
         </div>
+        {left === 0 && check}
       </div>
     );
 
@@ -57,8 +68,9 @@ export function StudentEmailForm({ cta }: { cta: string }) {
       <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-ink">University email
         <input type="email" inputMode="email" autoComplete="email" value={value} onChange={(e) => { setValue(e.target.value); setError(""); }} maxLength={254} placeholder="you@st.ug.edu.gh" aria-invalid={!!error} className={fieldCls} />
       </label>
+      {check}
       {error && <p className="m-0 text-sm text-red" role="alert">{error}</p>}
-      <button type="submit" disabled={busy || !value.trim()} className="h-11 rounded-full bg-blue px-4 text-[15px] font-semibold text-white disabled:opacity-50">{busy ? "Sending…" : cta}</button>
+      <button type="submit" disabled={busy || !value.trim() || !token} className="h-11 rounded-full bg-blue px-4 text-[15px] font-semibold text-white disabled:opacity-50">{busy ? "Sending…" : cta}</button>
       <details className="text-xs text-muted">
         <summary className="cursor-pointer">Supported universities</summary>
         <p className="m-0 mt-1.5">{UNIVERSITIES.map((u) => u.name).join(", ")}. Not listed? Email notifiedlaw@gmail.com.</p>
