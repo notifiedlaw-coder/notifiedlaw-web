@@ -4,11 +4,11 @@ import { timetable, timetableSession } from "@/db/schema";
 import { limited } from "@/lib/rate-limit";
 import { readJson } from "@/lib/http";
 import { cleanTimetable } from "@/lib/timetable";
-import { canPlan, saveTimetable } from "@/lib/timetable-db";
+import { canPlan, saveInput } from "@/lib/timetable-db";
 
 /**
- * Saves the signed-in user's timetable, replacing any earlier one, and rebuilds its sessions from today on.
- * Each user only ever reaches their own rows.
+ * Saves the signed-in user's courses, exams, free time and planner settings, as changed on the calendar.
+ * Sessions of a removed course go with it. Each user only ever reaches their own rows.
  */
 export async function PUT(req: Request) {
   const userId = await userIdFrom(req);
@@ -18,7 +18,8 @@ export async function PUT(req: Request) {
   if (!(await canPlan(userId))) return Response.json({ error: "Choose a plan to use TimeTable." }, { status: 402 });
   const input = cleanTimetable(await readJson(req));
   if (typeof input === "string") return Response.json({ error: input }, { status: 400 });
-  return Response.json(await saveTimetable(userId, input));
+  await saveInput(userId, input);
+  return Response.json({ input });
 }
 
 /** Deletes the signed-in user's timetable and all its sessions. */

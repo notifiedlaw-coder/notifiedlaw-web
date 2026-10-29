@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const s = cleanSession(await readJson(req), t.input.courses);
   if (typeof s === "string") return Response.json({ error: s }, { status: 400 });
   if (clash(s, t.sessions)) return Response.json({ error: "That overlaps another session." }, { status: 409 });
-  const session = { ...s, id: crypto.randomUUID(), review: false };
-  await getDb().insert(timetableSession).values({ id: session.id, userId, courseId: s.courseId, date: s.date, startTime: s.start, endTime: s.end, review: false });
+  const session = { ...s, id: crypto.randomUUID(), review: false, auto: false };
+  await getDb().insert(timetableSession).values({ id: session.id, userId, courseId: s.courseId, date: s.date, startTime: s.start, endTime: s.end });
   return Response.json({ session }, { status: 201 });
 }

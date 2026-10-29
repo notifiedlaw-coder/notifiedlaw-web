@@ -165,8 +165,8 @@ export const userFile = sqliteTable("user_file", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [index("user_file_user").on(t.userId, t.createdAt)]);
 
-// Study TimeTable: one per user, private to its owner. `input` is the JSON TimetableInput from lib/timetable
-// (courses with exam dates, weekly hours, session length). Saving it rebuilds the sessions below from today on.
+// Study TimeTable: one per user, private to its owner. `input` is the JSON TimetableInput from lib/timetable:
+// courses with their exams, weekly free time, and the planner's session and break length.
 export const timetable = sqliteTable("timetable", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
   input: text("input").notNull(),
@@ -183,4 +183,5 @@ export const timetableSession = sqliteTable("timetable_session", {
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
   review: integer("review", { mode: "boolean" }).notNull().default(false), // the final review before an exam
+  auto: integer("auto", { mode: "boolean" }).notNull().default(false), // placed by the planner, so replaced when it runs again
 }, (t) => [index("timetable_session_user_date").on(t.userId, t.date)]);

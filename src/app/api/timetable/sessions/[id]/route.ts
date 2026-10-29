@@ -8,7 +8,10 @@ import { canPlan, timetableFor } from "@/lib/timetable-db";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-/** Moves or changes one of the signed-in user's sessions: its course, date, start or end. Unsent fields stay. */
+/**
+ * Moves or changes one of the signed-in user's sessions: its course, date, start or end. Unsent fields stay.
+ * A changed session is the student's own from then on, so the planner keeps it.
+ */
 export async function PATCH(req: Request, { params }: Ctx) {
   const userId = await userIdFrom(req);
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
@@ -23,9 +26,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const s = cleanSession({ ...old, ...body }, t.input.courses);
   if (typeof s === "string") return Response.json({ error: s }, { status: 400 });
   if (clash({ ...s, id }, t.sessions)) return Response.json({ error: "That overlaps another session." }, { status: 409 });
-  await getDb().update(timetableSession).set({ courseId: s.courseId, date: s.date, startTime: s.start, endTime: s.end })
+  await getDb().update(timetableSession).set({ courseId: s.courseId, date: s.date, startTime: s.start, endTime: s.end, auto: false })
     .where(and(eq(timetableSession.id, id), eq(timetableSession.userId, userId)));
-  return Response.json({ session: { ...old, ...s } });
+  return Response.json({ session: { ...old, ...s, auto: false } });
 }
 
 /** Deletes one of the signed-in user's sessions. */

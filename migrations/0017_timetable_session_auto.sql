@@ -1,0 +1,1 @@
+ALTER TABLE `timetable_session` ADD `auto` integer DEFAULT false NOT NULL;

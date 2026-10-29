@@ -1,143 +1,208 @@
 "use client";
 
-import { useState } from "react";
-import { Btn, Eyebrow, Page, Segmented, Title, cardCls } from "@/components/ui";
+import { useMemo, useState } from "react";
+import { Btn, Page, Segmented, Title, cardCls } from "@/components/ui";
 import {
-  BREAK_MINS, COURSE_COLORS, DEFAULT_INPUT, DIFFICULTY_LABEL, MAX_COURSES, MAX_DAY_HOURS, SESSION_MINS, WEEKDAYS,
-  addDays, cleanTimetable, todayIso,
-  type Difficulty, type TimetableCourse,
+  DEFAULT_INPUT, addDays, clash, daysBetween, toHhmm, toMins, todayIso,
+  type StoredSession, type TimetableInput,
 } from "@/lib/timetable";
 import type { TimetableState } from "@/lib/timetable-db";
-import { Calendar } from "./calendar";
-import { OFFLINE, field, hours, label } from "./shared";
+import { Dialogs, type Actions } from "./dialogs";
+import { OFFLINE, colorOf, fmt, inDays, square, startOfWeek, type Ctx, type Dialog } from "./shared";
+import { ListView, MonthView, WeekView } from "./views";
 
-const DIFFICULTIES = ["1", "2", "3"] as const;
-const HOUR_OPTIONS = Array.from({ length: MAX_DAY_HOURS * 2 + 1 }, (_, i) => i / 2);
+const VIEWS = ["Month", "Week", "List"] as const;
+type View = (typeof VIEWS)[number];
 
-const newCourse = (): TimetableCourse => ({ id: crypto.randomUUID(), name: "", examDate: addDays(todayIso(), 28), examTime: "", difficulty: 2 });
-
-/** TimeTable: a study plan built from the student's courses, exam dates and free time, then edited on a calendar. Private to its owner. */
-export function Timetable({ initial, suggestions }: { initial: TimetableState | null; suggestions: string[] }) {
-  const [saved, setSaved] = useState(initial);
-  const [editing, setEditing] = useState(false);
-  // The calendar always comes first. Before setup it is empty, with a prompt to add courses and exam dates.
-  return editing ? (
-    <Editor
-      start={saved}
-      suggestions={suggestions}
-      onSaved={(t) => { setSaved(t); setEditing(false); }}
-      onCancel={() => setEditing(false)}
-    />
-  ) : (
-    <Calendar
-      state={saved ?? EMPTY}
-      empty={!saved}
-      setSessions={(f) => setSaved((p) => (p ? { ...p, sessions: f(p.sessions) } : p))}
-      onEdit={() => setEditing(true)}
-      onDeleted={() => setSaved(null)}
-    />
-  );
+type Json = { error?: string; input?: TimetableInput; session?: StoredSession; sessions?: StoredSession[]; added?: number };
+async function call(url: string, method: string, body?: unknown): Promise<Json> {
+  const res = await fetch(url, { method, headers: body ? { "content-type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined }).catch(() => null);
+  const json = (await res?.json().catch(() => null)) as Json | null;
+  if (!res?.ok) return { error: json?.error ?? OFFLINE };
+  return json ?? {};
 }
+const byTime = (a: StoredSession, b: StoredSession) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start);
 
-const EMPTY: TimetableState = { input: { ...DEFAULT_INPUT, courses: [] }, sessions: [] };
-
-function Editor({ start, suggestions, onSaved, onCancel }: { start: TimetableState | null; suggestions: string[]; onSaved: (t: TimetableState) => void; onCancel: () => void }) {
-  const [t, setT] = useState(start?.input ?? { ...DEFAULT_INPUT, courses: [newCourse()] });
+/**
+ * TimeTable: a private study calendar. Everything is made on the calendar itself: exams, weekly free time and
+ * study sessions are added by tapping or dragging on it, moved by dragging, and changed by tapping. "Plan my
+ * sessions" fills the free time before each exam. Every change saves at once and is undone if the save fails.
+ */
+export function Timetable({ initial, suggestions }: { initial: TimetableState | null; suggestions: string[] }) {
+  const today = todayIso();
+  const [input, setInput] = useState(initial?.input ?? DEFAULT_INPUT);
+  const [sessions, setSessions] = useState(initial?.sessions ?? []);
+  const [view, setView] = useState<View>("Week");
+  const [cursor, setCursor] = useState(today);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const setCourse = (id: string, patch: Partial<TimetableCourse>) => setT((p) => ({ ...p, courses: p.courses.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
-  const weekly = t.hours.reduce((a, b) => a + b, 0);
+  const [notice, setNotice] = useState("");
+  const [confirmClear, setConfirmClear] = useState(false);
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    const clean = cleanTimetable(t);
-    if (typeof clean === "string") return setError(clean);
-    setBusy(true);
-    setError("");
-    const res = await fetch("/api/timetable", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(clean) }).catch(() => null);
-    const json = (await res?.json().catch(() => null)) as (TimetableState & { error?: string }) | null;
-    setBusy(false);
-    if (!res?.ok || !json?.input) return setError(json?.error ?? OFFLINE);
-    onSaved(json);
+  async function saveInput(next: TimetableInput) {
+    const [prevInput, prevSessions] = [input, sessions];
+    const ids = new Set(next.courses.map((c) => c.id));
+    setInput(next);
+    setSessions((all) => all.filter((s) => ids.has(s.courseId)));
+    const r = await call("/api/timetable", "PUT", next);
+    if (!r.error) return null;
+    setInput(prevInput);
+    setSessions(prevSessions);
+    return r.error;
   }
 
+  async function addSession(f: Pick<StoredSession, "courseId" | "date" | "start" | "end">) {
+    if (clash(f, sessions)) return "That overlaps another session.";
+    const r = await call("/api/timetable/sessions", "POST", f);
+    if (r.error || !r.session) return r.error ?? OFFLINE;
+    setSessions((all) => [...all, r.session!].sort(byTime));
+    return null;
+  }
+
+  /** Changes a session, showing the change at once and undoing it if the save fails. */
+  async function updateSession(s: StoredSession, f: Pick<StoredSession, "courseId" | "date" | "start" | "end">) {
+    const next = { ...s, ...f, auto: false };
+    if (clash(next, sessions)) return "That overlaps another session.";
+    setSessions((all) => all.map((o) => (o.id === s.id ? next : o)).sort(byTime));
+    const r = await call(`/api/timetable/sessions/${s.id}`, "PATCH", f);
+    if (!r.error) return null;
+    setSessions((all) => all.map((o) => (o.id === s.id ? s : o)).sort(byTime));
+    return r.error;
+  }
+
+  async function deleteSession(s: StoredSession) {
+    const r = await call(`/api/timetable/sessions/${s.id}`, "DELETE");
+    if (r.error) return r.error;
+    setSessions((all) => all.filter((o) => o.id !== s.id));
+    return null;
+  }
+
+  async function plan(sessionMins: number, breakMins: number) {
+    if (sessionMins !== input.sessionMins || breakMins !== input.breakMins) {
+      const e = await saveInput({ ...input, sessionMins, breakMins });
+      if (e) return e;
+    }
+    const r = await call("/api/timetable/plan", "POST");
+    if (r.error || !r.sessions) return r.error ?? OFFLINE;
+    setSessions(r.sessions);
+    setNotice(r.added ? `Planned ${r.added} study session${r.added === 1 ? "" : "s"}. Drag or tap any of them to change it.` : "No free time was left before your exams, so nothing new was planned.");
+    return null;
+  }
+
+  async function clearAll() {
+    const r = await call("/api/timetable", "DELETE");
+    setConfirmClear(false);
+    if (r.error) return setError(r.error);
+    setInput(DEFAULT_INPUT);
+    setSessions([]);
+  }
+
+  /** For drags: report a refused change above the calendar rather than in a dialog. */
+  const report = async (p: Promise<string | null>) => { setError(""); setNotice(""); const e = await p; if (e) setError(e); return e; };
+
+  const actions: Actions = { saveInput, addSession, updateSession, deleteSession, plan };
+  const ctx: Ctx = {
+    input, sessions, today,
+    open: (d) => { setError(""); setDialog(d); },
+    moveSession: (s, date, startMins, endMins) => {
+      const len = (endMins ?? startMins + toMins(s.end) - toMins(s.start)) - startMins;
+      const at = Math.max(0, Math.min(24 * 60 - len, startMins));
+      if (date === s.date && at === toMins(s.start) && at + len === toMins(s.end)) return Promise.resolve(null);
+      return report(updateSession(s, { courseId: s.courseId, date, start: toHhmm(at), end: toHhmm(at + len) }));
+    },
+    moveExam: (courseId, date, time) => {
+      const c = input.courses.find((o) => o.id === courseId);
+      if (!c || (c.examDate === date && (time === undefined || time === c.examTime))) return Promise.resolve(null);
+      return report(saveInput({ ...input, courses: input.courses.map((o) => (o.id === courseId ? { ...o, examDate: date, examTime: time ?? o.examTime } : o)) }));
+    },
+  };
+
+  const shift = (n: number) => setCursor((c) => {
+    if (view === "Week") return addDays(c, 7 * n);
+    const d = new Date(Date.parse(c));
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + n);
+    return d.toISOString().slice(0, 10);
+  });
+  const weekStart = startOfWeek(cursor);
+  const heading = view === "Month" ? fmt(cursor, { month: "long", year: "numeric" })
+    : `${fmt(weekStart, { day: "numeric", month: "short" })} – ${fmt(addDays(weekStart, 6), { day: "numeric", month: "short", year: "numeric" })}`;
+  const hasExam = input.courses.some((c) => c.examDate && c.examDate > today);
+  const hasPlan = sessions.some((s) => s.auto && s.date >= today);
+  const steps = useMemo(() => [
+    { done: hasExam, title: "Put your exams on the calendar", hint: "Tap a day, or drag over a time, and choose Exam." },
+    { done: input.free.length > 0, title: "Mark when you're free", hint: "In Week view, drag over the hours you can study and choose Free time. It repeats every week." },
+    { done: hasPlan, title: "Plan my sessions", hint: "We fill your free time with study sessions up to each exam. Move or change any of them after." },
+  ], [hasExam, input.free.length, hasPlan]);
+
   return (
-    <Page max={760}>
-      <Title title="TimeTable" sub="Tell us your courses, exam dates and free time. We build a study plan around them. Only you can see it." />
-      <form onSubmit={save} className="flex flex-col gap-6">
-        <section className={`${cardCls} flex flex-col gap-4 p-5`}>
-          <div className="flex items-center justify-between gap-3">
-            <Eyebrow>Courses and exams</Eyebrow>
-            <span className="text-xs text-muted">{t.courses.length} of {MAX_COURSES}</span>
-          </div>
-          <datalist id="timetable-courses">{suggestions.map((s) => <option key={s} value={s} />)}</datalist>
-          {t.courses.map((c, i) => (
-            <div key={c.id} className="flex flex-col gap-3 border-t border-edge/[0.06] pt-4 first-of-type:border-0 first-of-type:pt-0">
-              <div className="flex items-end gap-2">
-                <span className="mb-3 size-2.5 shrink-0 rounded-full" style={{ background: COURSE_COLORS[i % COURSE_COLORS.length] }} aria-hidden />
-                <label className={`${label} flex-1`}>Course
-                  <input value={c.name} onChange={(e) => setCourse(c.id, { name: e.target.value })} list="timetable-courses" maxLength={80} placeholder="e.g. Law of Contract" required className={field} />
-                </label>
-                {t.courses.length > 1 && (
-                  <button type="button" onClick={() => setT((p) => ({ ...p, courses: p.courses.filter((o) => o.id !== c.id) }))} className="mb-1.5 h-7 rounded-md px-2 text-[13px] text-red hover:bg-fill" aria-label={`Remove ${c.name || "course"}`}>Remove</button>
-                )}
+    <Page max={1200}>
+      <Title
+        title="TimeTable"
+        sub="Tap or drag on the calendar to add exams, free time and study sessions. Drag to move them, tap to change them. Only you can see this."
+        right={<Btn onClick={() => ctx.open({ mode: "plan" })}>Plan my sessions</Btn>}
+      />
+
+      {!steps.every((s) => s.done) && (
+        <ol className={`${cardCls} m-0 grid list-none grid-cols-1 gap-4 p-5 md:grid-cols-3`}>
+          {steps.map((s, i) => (
+            <li key={s.title} className="flex gap-3">
+              <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${s.done ? "bg-green text-white" : "bg-fill text-muted"}`} aria-label={s.done ? "Done" : `Step ${i + 1}`}>{s.done ? "✓" : i + 1}</span>
+              <div className="min-w-0">
+                <div className={`text-[14px] font-semibold ${s.done ? "text-muted line-through" : ""}`}>{s.title}</div>
+                {!s.done && <div className="text-[12px] leading-snug text-muted">{s.hint}</div>}
               </div>
-              <div className="flex flex-wrap items-end gap-3 pl-4.5">
-                <label className={label}>Exam date
-                  <input type="date" value={c.examDate} min={todayIso()} onChange={(e) => setCourse(c.id, { examDate: e.target.value })} required className={field} />
-                </label>
-                <label className={label}><span>Time <span className="font-normal">(optional)</span></span>
-                  <input type="time" value={c.examTime} onChange={(e) => setCourse(c.id, { examTime: e.target.value })} className={field} />
-                </label>
-                <div className={label}>How hard is it for you?
-                  <Segmented options={DIFFICULTIES} value={String(c.difficulty) as (typeof DIFFICULTIES)[number]} onChange={(v) => setCourse(c.id, { difficulty: Number(v) as Difficulty })} labels={DIFFICULTY_LABEL} />
-                </div>
-              </div>
-            </div>
+            </li>
           ))}
-          {t.courses.length < MAX_COURSES && (
-            <div><Btn tone="plain" onClick={() => setT((p) => ({ ...p, courses: [...p.courses, newCourse()] }))}>Add course</Btn></div>
+        </ol>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2" aria-label="Courses">
+        {input.courses.map((c) => (
+          <button key={c.id} type="button" onClick={() => ctx.open({ mode: "course", courseId: c.id })}
+            className="flex h-8 items-center gap-2 rounded-full bg-surface px-3 text-[13px] shadow-[0_0_0_0.5px_var(--hairline)] hover:bg-fill">
+            <span className="size-2.5 rounded-full" style={{ background: colorOf(input.courses, c.id) }} aria-hidden />
+            <span className="font-medium">{c.name}</span>
+            <span className="text-muted">{c.examDate ? `exam ${inDays(daysBetween(today, c.examDate)).toLowerCase()}` : "no exam yet"}</span>
+          </button>
+        ))}
+        <button type="button" onClick={() => ctx.open({ mode: "course", courseId: null })} className="h-8 rounded-full px-3 text-[13px] font-medium text-blue hover:bg-fill">+ Add course</button>
+      </div>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="w-[220px]"><Segmented options={VIEWS} value={view} onChange={setView} /></div>
+          {view !== "List" && (
+            <div className="flex items-center gap-2">
+              <span className="mr-1 text-[15px] font-semibold" aria-live="polite">{heading}</span>
+              <button type="button" onClick={() => shift(-1)} aria-label={`Previous ${view.toLowerCase()}`} className={square}>‹</button>
+              <Btn tone="plain" onClick={() => setCursor(today)}>Today</Btn>
+              <button type="button" onClick={() => shift(1)} aria-label={`Next ${view.toLowerCase()}`} className={square}>›</button>
+            </div>
           )}
-        </section>
-
-        <section className={`${cardCls} flex flex-col gap-4 p-5`}>
-          <div className="flex items-center justify-between gap-3">
-            <Eyebrow>Free time each week</Eyebrow>
-            <span className="text-xs text-muted">{hours(weekly * 60)} a week</span>
-          </div>
-          <div className="grid grid-cols-4 gap-3 sm:grid-cols-7">
-            {WEEKDAYS.map((d, i) => (
-              <label key={d} className={label}>{d}
-                <select value={t.hours[i]} onChange={(e) => setT((p) => ({ ...p, hours: p.hours.map((h, j) => (j === i ? Number(e.target.value) : h)) }))} className={field}>
-                  {HOUR_OPTIONS.map((h) => <option key={h} value={h}>{h === 0 ? "Off" : `${h} h`}</option>)}
-                </select>
-              </label>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <label className={label}>Start studying at
-              <input type="time" value={t.startTime} onChange={(e) => setT((p) => ({ ...p, startTime: e.target.value }))} required className={field} />
-            </label>
-            <label className={label}>Session length
-              <select value={t.sessionMins} onChange={(e) => setT((p) => ({ ...p, sessionMins: Number(e.target.value) }))} className={field}>
-                {SESSION_MINS.map((m) => <option key={m} value={m}>{m} min</option>)}
-              </select>
-            </label>
-            <label className={label}>Break between sessions
-              <select value={t.breakMins} onChange={(e) => setT((p) => ({ ...p, breakMins: Number(e.target.value) }))} className={field}>
-                {BREAK_MINS.map((m) => <option key={m} value={m}>{m ? `${m} min` : "None"}</option>)}
-              </select>
-            </label>
-          </div>
-        </section>
-
-        {start && <p className="m-0 text-[13px] text-muted">Saving rebuilds your plan from today on. Changes you made on the calendar from today on are replaced; earlier days stay as they are.</p>}
-        {error && <p className="m-0 text-[13px] text-red" role="alert">{error}</p>}
-        <div className="flex gap-2">
-          <Btn type="submit" disabled={busy}>{busy ? "Saving…" : start ? "Save and rebuild" : "Build my timetable"}</Btn>
-          <Btn tone="plain" onClick={onCancel}>Cancel</Btn>
         </div>
-      </form>
+        {error && <p className="m-0 text-[13px] text-red" role="alert">{error}</p>}
+        {notice && <p className="m-0 text-[13px] text-muted" role="status">{notice}</p>}
+        {view === "Month" && <MonthView ctx={ctx} cursor={cursor} onDay={(d) => { setCursor(d); setView("Week"); }} />}
+        {view === "Week" && <WeekView ctx={ctx} start={weekStart} />}
+        {view === "List" && <ListView ctx={ctx} />}
+      </section>
+
+      {(input.courses.length > 0 || input.free.length > 0 || sessions.length > 0) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {confirmClear ? (
+            <>
+              <span className="text-[13px] text-muted">Remove every course, exam, free time and session?</span>
+              <Btn tone="dark" onClick={clearAll}>Clear TimeTable</Btn>
+              <Btn tone="plain" onClick={() => setConfirmClear(false)}>Keep</Btn>
+            </>
+          ) : (
+            <button type="button" onClick={() => setConfirmClear(true)} className="h-8 rounded-[7px] px-2 text-[13px] text-muted hover:bg-fill">Clear TimeTable…</button>
+          )}
+        </div>
+      )}
+
+      {dialog && <Dialogs dialog={dialog} input={input} sessions={sessions} today={today} suggestions={suggestions} actions={actions} close={() => setDialog(null)} />}
     </Page>
   );
 }

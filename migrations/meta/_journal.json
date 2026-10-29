@@ -120,6 +120,13 @@
       "when": 1793273142590,
       "tag": "0016_timetable_session",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1793274146013,
+      "tag": "0017_timetable_session_auto",
+      "breakpoints": true
     }
   ]
 }
