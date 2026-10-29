@@ -163,3 +163,20 @@ export function splitChapters(body: string, fallbackTitle: string): { title: str
   if (empty !== null) chapters.push({ title: empty, md: "" });
   return chapters.length ? chapters : [{ title: fallbackTitle, md: "" }];
 }
+
+export type Page = { chapter: number; chapterTitle: string; title: string | null; md: string };
+
+/**
+ * A topic as pages: each chapter ("## ", a Notion heading 1) splits at its sub-chapters ("### ", a heading 2), and
+ * each sub-chapter is a page. Text before a chapter's first sub-chapter is a page of its own, under the chapter's name.
+ */
+export function splitPages(body: string, fallbackTitle: string): Page[] {
+  return splitChapters(body, fallbackTitle).flatMap((c, chapter) => {
+    const parts = c.md.split(/^(?=###\s)/m).map((p) => p.trim()).filter(Boolean);
+    const pages = parts.map((p) => {
+      const m = /^###\s+(.*)\n?([\s\S]*)$/.exec(p);
+      return m ? { chapter, chapterTitle: c.title, title: m[1].trim(), md: m[2].trim() } : { chapter, chapterTitle: c.title, title: null, md: p };
+    });
+    return pages.length ? pages : [{ chapter, chapterTitle: c.title, title: null, md: "" }];
+  });
+}

@@ -2,8 +2,8 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { Btn, Gate } from "@/components/ui";
-import { Markdown, splitChapters } from "@/components/markdown";
+import { Gate } from "@/components/ui";
+import { Markdown, splitPages, type Page } from "@/components/markdown";
 import type { TopicNote } from "@/lib/notes";
 import { DEFAULT_COLOR, NOTE_COLORS, isNoteColor, type NoteColor } from "@/lib/note-colors";
 import { AddNoteButton, Composer, NotesPanel, findPassage, paint, passageOf, textMap, useTopicNotes, type Draft } from "./notes";
@@ -18,7 +18,9 @@ const PILL_W = 112; // the "Add note" pill's width, near enough, for keeping it 
 type Tab = "summary" | "notes";
 
 /**
- * A topic written in Notion (Markdown). Each "##" heading starts a chapter. On the right is a sidebar with two tabs:
+ * A topic written in Notion (Markdown), read a page at a time: each heading 1 is a chapter and each heading 2 under it
+ * a page (see splitPages). A bar at the top picks any chapter or page and steps through them; the foot of each page
+ * leads to the previous and next one. On the right is a sidebar with two tabs:
  * the AI Summary (coming soon) and Notes, where a highlighted passage can be given a note saved to the reader's
  * account. Wide screens keep the sidebar open; narrower ones show it as a card from a floating button. Along the bottom, between the app's
  * sidebar and this one, is a player bar for the topic's podcast (coming soon).
@@ -28,21 +30,22 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
   const scroller = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
 
-  const chapters = useMemo(() => splitChapters(body, title), [body, title]);
-  const total = chapters.length;
-  const ch = chapters[cur];
+  // A saved note's `chapter` is the page it was made on.
+  const pages = useMemo(() => splitPages(body, title), [body, title]);
+  const total = pages.length;
+  const page = pages[Math.min(cur, total - 1)];
+  const chapterCount = pages[total - 1].chapter + 1;
   const minutes = Math.max(1, Math.round(body.split(/\s+/).length / 200));
-  const last = cur === total - 1;
   const go = (i: number) => {
+    if (i < 0 || i >= total) return;
     setCur(i);
     setDraft(null);
     setActive(null);
     scroller.current?.scrollTo({ top: 0 });
   };
-  // Parsed once per chapter, so selecting text (which re-renders) leaves the text's DOM, and the selection, alone.
-  // A chapter's own title shows above it (a Notion heading 1), even when the topic has only the one chapter.
-  const titled = total > 1 || ch.title !== title;
-  const md = useMemo(() => <Markdown source={ch.md} from={titled ? 3 : 2} />, [ch.md, titled]);
+  // Parsed once per page, so selecting text (which re-renders) leaves the text's DOM, and the selection, alone.
+  const md = useMemo(() => <Markdown source={page.md} from={3} />, [page.md]);
+
 
   // ---- notes
   const notes = useTopicNotes(topicId);
@@ -62,6 +65,21 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
   const [popup, setPopup] = useState(false);
   const showNotes = () => { setTab("notes"); if (!wide) setPopup(true); };
   const closePopup = () => { setPopup(false); setDraft(null); };
+
+  // Left and right arrow keys turn the page, unless they are moving a caret or a selection.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.key !== "ArrowLeft" && e.key !== "ArrowRight") || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof HTMLElement && e.target.closest("input, textarea, select, [contenteditable='true'], [role=tablist]")) return;
+      setCur((c) => {
+        const next = Math.max(0, Math.min(total - 1, c + (e.key === "ArrowRight" ? 1 : -1)));
+        if (next !== c) { setDraft(null); setActive(null); scroller.current?.scrollTo({ top: 0 }); }
+        return next;
+      });
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [total]);
 
   useEffect(() => {
     const m = matchMedia(WIDE);
@@ -211,7 +229,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
   const sidebar = (
     <Sidebar tab={tab} onTab={setTab} count={notes.notes.length}>
       {tab === "summary" ? <Summary /> : topicId ? (
-        <NotesPanel status={notes.status} notes={notes.notes} chapters={chapters.map((c) => c.title)} cur={cur} active={active} missing={missing}
+        <NotesPanel status={notes.status} notes={notes.notes} chapters={pages.map((p) => p.title ?? p.chapterTitle)} cur={cur} active={active} missing={missing}
           composer={composer} onOpen={open} onEdit={notes.edit} onDelete={notes.remove} />
       ) : <p className="m-0 text-[13px] leading-snug text-muted" style={SANS}>Notes open once you can read this topic.</p>}
     </Sidebar>
@@ -225,34 +243,21 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
       <div className="flex min-w-0 flex-1 flex-col">
       <div className="relative flex min-h-0 flex-1 flex-col">
       <div ref={scroller} className="min-h-0 flex-1 overflow-auto bg-surface">
+        {total > 1 && <PageBar pages={pages} cur={cur} chapterCount={chapterCount} onGo={go} />}
         <div className="mx-auto flex max-w-[1100px] justify-center px-5 md:px-8">
         <article className="min-w-0 max-w-[720px] flex-1 pb-24 pt-8 md:pt-10 xl:pb-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>
-          <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
-            {course} · Topic {n}{total > 1 ? ` · Chapter ${cur + 1} of ${total}` : ""}
-          </div>
+          <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted" style={SANS}>{course} · Topic {n}</div>
           <h1 className="mb-2 mt-2.5 text-[28px] font-bold leading-tight tracking-[-0.01em] md:text-4xl">{title}</h1>
-          <div className="mb-5 text-[13px] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
-            {total} {total === 1 ? "chapter" : "chapters"} · {minutes} min read
+          <div className="mb-6 text-[13px] text-muted" style={SANS}>
+            {chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}{total > chapterCount ? ` · ${total} pages` : ""} · {minutes} min read
           </div>
-          {total > 1 && (
-            <div className="mb-6 flex flex-wrap gap-2" style={{ fontFamily: "var(--font-sans)" }}>
-              {chapters.map((c, i) => (
-                <button key={c.title + i} onClick={() => go(i)} aria-current={i === cur ? "step" : undefined}
-                  className="flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3.5 text-left"
-                  style={{ background: i === cur ? "#0066CC" : "var(--fill)", color: i === cur ? "#fff" : "var(--ink)" }}>
-                  <span className="flex size-6 items-center justify-center rounded-full text-xs font-bold" style={{ background: i === cur ? "#fff" : "var(--surface)", color: i === cur ? "#1d1d1f" : "var(--muted)" }}>{i + 1}</span>
-                  <span className="text-[13px] font-semibold">{c.title}</span>
-                </button>
-              ))}
-            </div>
+          {page.chapterTitle !== title && (
+            <div className="mt-8 text-[13px] font-semibold text-muted" style={SANS}>{chapterCount > 1 ? `Chapter ${page.chapter + 1} · ` : ""}{page.chapterTitle}</div>
           )}
-          {titled && <h2 className="mb-2.5 mt-7 text-[26px] font-bold tracking-[-0.01em]">{ch.title}</h2>}
+          <h2 className="mb-3 mt-1.5 text-[26px] font-bold leading-tight tracking-[-0.01em] md:text-[30px]">{page.title ?? page.chapterTitle}</h2>
           {/* Selectable so passages can be highlighted for notes; CopyGuard still blocks copy, cut, drag and right-click. */}
           <div ref={text} onClick={topicId ? onTextClick : undefined} className={topicId ? "nl-selectable" : undefined}>{md}</div>
-          <div className="mt-8 flex items-center justify-between gap-3 border-t border-edge/10 pt-5" style={{ fontFamily: "var(--font-sans)", fontSize: 14 }}>
-            {cur > 0 ? <button onClick={() => go(cur - 1)} className="h-10 rounded-[10px] bg-fill px-4 text-[14px] font-semibold">Previous chapter</button> : <span />}
-            {last ? <Btn href={`/library/${slug}`}>Back to course</Btn> : <button onClick={() => go(cur + 1)} className="flex h-10 items-center gap-1.5 rounded-[10px] bg-blue px-4 text-[14px] font-semibold text-white">Next chapter<Icon name="back" size={12} className="rotate-180" /></button>}
-          </div>
+          <Pagination pages={pages} cur={cur} back={`/library/${slug}`} onGo={go} />
         </article>
         </div>
       </div>
@@ -334,6 +339,133 @@ function Popup({ onClose, children }: { onClose: () => void; children: React.Rea
       className="absolute bottom-[88px] left-3 right-3 z-30 flex max-h-[min(520px,62%)] origin-bottom-right flex-col overflow-hidden rounded-[22px] bg-fill shadow-[0_16px_48px_rgba(0,0,0,0.22),0_0_0_0.5px_var(--hairline)] animate-[tt-pop_180ms_ease-out] sm:left-auto sm:w-[380px]">
       {children}
     </div>
+  );
+}
+
+const pageName = (p: Page) => p.title ?? p.chapterTitle;
+
+/**
+ * The bar pinned to the top of the text: a menu of every chapter and its pages, a stepper to the previous and next
+ * page, and a hairline showing how far through the topic the page is. Styled after the toolbars in Apple's apps.
+ */
+function PageBar({ pages, cur, chapterCount, onGo }: { pages: Page[]; cur: number; chapterCount: number; onGo: (i: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const page = pages[cur];
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", key);
+    // The current page in view when the menu opens.
+    box.current?.querySelector("[aria-current=page]")?.scrollIntoView({ block: "nearest" });
+    return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", key); };
+  }, [open]);
+  const pick = (i: number) => { setOpen(false); onGo(i); };
+  const chapters = [...new Set(pages.map((p) => p.chapter))];
+  const step = "flex size-10 md:size-9 items-center justify-center rounded-full text-ink transition-colors hover:bg-track/70 disabled:text-faint disabled:hover:bg-transparent";
+  return (
+    <div ref={box} className="sticky top-0 z-20 border-b border-edge/10 bg-surface/80 backdrop-blur-xl backdrop-saturate-150" style={SANS}>
+      <div className="mx-auto flex h-14 max-w-[1100px] items-center px-3 md:h-[52px] md:px-8">
+        <div className="mx-auto flex w-full max-w-[720px] items-center gap-2">
+          <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" aria-label={`Chapters and pages. Now: ${pageName(page)}`}
+            className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full bg-fill pl-3 pr-2.5 md:h-9 text-left text-[13px] transition-colors hover:bg-track/70 md:flex-none md:max-w-[460px]">
+            <Icon name="list" size={15} className="shrink-0 text-muted" />
+            <span className="min-w-0 flex-1 truncate">
+              {chapterCount > 1 && <span className="text-muted">Ch. {page.chapter + 1} · </span>}
+              <span className="font-semibold">{pageName(page)}</span>
+            </span>
+            <Icon name="chevron" size={14} className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+          </button>
+          <span className="hidden flex-1 md:block" />
+          <div className="flex shrink-0 items-center rounded-full bg-fill p-0.5">
+            <button type="button" onClick={() => onGo(cur - 1)} disabled={cur === 0} aria-label="Previous page" className={step}><Icon name="back" size={14} /></button>
+            <span className="min-w-[44px] text-center text-[13px] font-medium tabular-nums text-muted" aria-live="polite">{cur + 1} / {pages.length}</span>
+            <button type="button" onClick={() => onGo(cur + 1)} disabled={cur === pages.length - 1} aria-label="Next page" className={step}><Icon name="back" size={14} className="rotate-180" /></button>
+          </div>
+        </div>
+      </div>
+      <div className="h-[2px]" aria-hidden><div className="h-full bg-blue transition-[width] duration-300" style={{ width: `${((cur + 1) / pages.length) * 100}%` }} /></div>
+      {open && (
+        <div role="menu" aria-label="Chapters and pages"
+          className="absolute left-3 right-3 top-full mt-2 max-h-[min(70vh,520px)] origin-top overflow-y-auto overscroll-contain rounded-[16px] bg-surface p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.2),0_0_0_0.5px_var(--hairline)] animate-[tt-pop_140ms_ease-out] md:left-1/2 md:right-auto md:w-[440px] md:-translate-x-1/2">
+          {chapters.map((c) => {
+            const mine = pages.map((p, i) => ({ p, i })).filter(({ p }) => p.chapter === c);
+            const head = mine[0].p;
+            const solo = mine.length === 1 && mine[0].p.title === null;
+            return (
+              <div key={c} className="py-1 [&+&]:border-t [&+&]:border-edge/10">
+                {solo ? (
+                  <MenuRow on={mine[0].i === cur} onClick={() => pick(mine[0].i)} n={chapterCount > 1 ? c + 1 : null} strong>{head.chapterTitle}</MenuRow>
+                ) : (
+                  <>
+                    <button type="button" role="menuitem" onClick={() => pick(mine[0].i)} className="flex w-full items-baseline gap-2 rounded-[10px] px-3 pb-1 pt-2 text-left hover:bg-fill">
+                      {chapterCount > 1 && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted">Ch. {c + 1}</span>}
+                      <span className="text-[14px] font-semibold">{head.chapterTitle}</span>
+                    </button>
+                    {mine.map(({ p, i }) => <MenuRow key={i} on={i === cur} onClick={() => pick(i)} indent>{pageName(p)}</MenuRow>)}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuRow({ on, onClick, n = null, strong, indent, children }: { on: boolean; onClick: () => void; n?: number | null; strong?: boolean; indent?: boolean; children: React.ReactNode }) {
+  return (
+    <button type="button" role="menuitem" aria-current={on ? "page" : undefined} onClick={onClick}
+      className={`flex min-h-11 w-full items-center gap-2.5 rounded-[10px] py-2 pr-3 text-left text-[14px] leading-snug transition-colors ${indent ? "pl-4" : "pl-3"} ${on ? "bg-blue/10 text-blue" : "hover:bg-fill"}`}>
+      <span className="flex w-4 shrink-0 justify-center" aria-hidden>{on && <Icon name="tick" size={14} />}</span>
+      {n !== null && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted">Ch. {n}</span>}
+      <span className={`min-w-0 flex-1 ${strong || on ? "font-semibold" : ""}`}>{children}</span>
+    </button>
+  );
+}
+
+/** The foot of a page: cards to the previous and next page, Apple's page dots, and the way back to the course after the last page. */
+function Pagination({ pages, cur, back, onGo }: { pages: Page[]; cur: number; back: string; onGo: (i: number) => void }) {
+  const prev = cur > 0 ? pages[cur - 1] : null;
+  const next = cur < pages.length - 1 ? pages[cur + 1] : null;
+  const card = "group flex min-h-[72px] min-w-0 flex-col justify-center gap-0.5 rounded-[16px] bg-fill px-4 py-3 transition-colors hover:bg-track/70 active:scale-[0.99]";
+  return (
+    <nav aria-label="Pages" className="mt-10 border-t border-edge/10 pt-6" style={SANS}>
+      <div className="grid grid-cols-2 gap-3">
+        {prev ? (
+          <button type="button" onClick={() => onGo(cur - 1)} className={`${card} text-left`}>
+            <span className="flex items-center gap-1 text-[12px] font-medium text-muted"><Icon name="back" size={11} />Previous</span>
+            <span className="line-clamp-2 text-[14px] font-semibold leading-snug">{pageName(prev)}</span>
+          </button>
+        ) : <span />}
+        {next ? (
+          <button type="button" onClick={() => onGo(cur + 1)} className={`${card} items-end text-right`}>
+            <span className="flex items-center gap-1 text-[12px] font-medium text-blue">Next<Icon name="back" size={11} className="rotate-180" /></span>
+            <span className="line-clamp-2 text-[14px] font-semibold leading-snug">{pageName(next)}</span>
+          </button>
+        ) : (
+          <a href={back} className={`${card} items-end text-right`} style={{ textDecoration: "none", color: "inherit" }}>
+            <span className="flex items-center gap-1 text-[12px] font-medium text-blue">Finished<Icon name="tick" size={12} /></span>
+            <span className="text-[14px] font-semibold leading-snug">Back to course</span>
+          </a>
+        )}
+      </div>
+      {pages.length > 1 && (
+        pages.length <= 15 ? (
+          <div className="mt-5 flex items-center justify-center gap-1.5">
+            {pages.map((p, i) => (
+              <button key={i} type="button" onClick={() => onGo(i)} aria-label={`Page ${i + 1}: ${pageName(p)}`} aria-current={i === cur ? "page" : undefined}
+                className="flex h-6 items-center justify-center px-0.5">
+                <span className={`block h-2 rounded-full transition-all duration-300 ${i === cur ? "w-5 bg-ink" : "w-2 bg-track hover:bg-faint"}`} />
+              </button>
+            ))}
+          </div>
+        ) : <p className="m-0 mt-5 text-center text-[12px] tabular-nums text-muted">Page {cur + 1} of {pages.length}</p>
+      )}
+    </nav>
   );
 }
 

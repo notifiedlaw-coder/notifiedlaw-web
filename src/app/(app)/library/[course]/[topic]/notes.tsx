@@ -283,8 +283,8 @@ function NoteCard({ n, active, missing, onOpen, onEdit, onDelete }: {
 }
 
 /**
- * The Notes tab of the reader's sidebar: what the reader has noted on this topic, by chapter, with the note being
- * written on top. Notes on the open chapter come first; picking one in another chapter opens that chapter.
+ * The Notes tab of the reader's sidebar: what the reader has noted on this topic, by page, with the note being
+ * written on top. Notes on the open page come first; picking one on another page opens that page.
  */
 export function NotesPanel({ status, notes, chapters, cur, active, missing, composer, onOpen, onEdit, onDelete }: {
   status: Status; notes: TopicNote[]; chapters: string[]; cur: number; active: string | null; missing: Set<string>;
@@ -293,7 +293,7 @@ export function NotesPanel({ status, notes, chapters, cur, active, missing, comp
 }) {
   const mine = notes.filter((n) => n.chapter === cur);
   const rest = notes.filter((n) => n.chapter !== cur);
-  const title = (c: number) => chapters[c] ?? `Chapter ${c + 1}`;
+  const title = (c: number) => chapters[c] ?? `Page ${c + 1}`;
   const many = chapters.length > 1;
   const card = (n: TopicNote) => (
     <NoteCard key={n.id} n={n} active={active === n.id} missing={missing.has(n.id)} onOpen={() => onOpen(n)}
@@ -314,13 +314,13 @@ export function NotesPanel({ status, notes, chapters, cur, active, missing, comp
       )}
       {mine.length > 0 && (
         <>
-          {many && <h3 className="m-0 truncate text-[11px] font-bold uppercase tracking-[0.05em] text-muted">This chapter · {title(cur)}</h3>}
+          {many && <h3 className="m-0 truncate text-[11px] font-bold uppercase tracking-[0.05em] text-muted">This page · {title(cur)}</h3>}
           <ul className="m-0 flex list-none flex-col gap-2 p-0">{mine.map(card)}</ul>
         </>
       )}
       {rest.length > 0 && [...new Set(rest.map((n) => n.chapter))].map((c) => (
         <div key={c} className="flex flex-col gap-2">
-          <h3 className="m-0 truncate text-[11px] font-bold uppercase tracking-[0.05em] text-muted">{many ? `Chapter ${c + 1} · ${title(c)}` : "Notes"}</h3>
+          <h3 className="m-0 truncate text-[11px] font-bold uppercase tracking-[0.05em] text-muted">{many ? `Page ${c + 1} · ${title(c)}` : "Notes"}</h3>
           <ul className="m-0 flex list-none flex-col gap-2 p-0">{rest.filter((n) => n.chapter === c).map(card)}</ul>
         </div>
       ))}
