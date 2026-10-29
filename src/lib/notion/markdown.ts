@@ -34,6 +34,13 @@ export function richText(rt: RichText[] = []): string {
 
 const text = (b: Block) => richText(((b[b.type] as { rich_text?: RichText[] } | undefined)?.rich_text) ?? []);
 
+/** Blocks rendered on their own and quoted ("> "), so a callout or quote keeps everything nested inside it. */
+function quoted(blocks: Block[]): string[] {
+  const inner: string[] = [];
+  render(blocks, 0, inner);
+  return inner.join("\n").replace(/\n{3,}/g, "\n\n").trim().split("\n").map((l) => (l ? `> ${l}` : ">"));
+}
+
 function render(blocks: Block[], depth: number, out: string[]) {
   const pad = "  ".repeat(depth);
   let n = 0;
@@ -43,16 +50,19 @@ function render(blocks: Block[], depth: number, out: string[]) {
     const kids = () => (b.children?.length ? b.children : []);
     switch (b.type) {
       case "paragraph": { const t = text(b); out.push(t ? pad + t : ""); render(kids(), depth, out); break; }
-      case "heading_1": out.push(`## ${text(b)}`, ""); break; // page title is the h1, so top headings become chapters
-      case "heading_2": out.push(`## ${text(b)}`, ""); break;
-      case "heading_3": out.push(`### ${text(b)}`, ""); break;
+      // The page title is the h1, so top headings become chapters. A toggleable heading keeps what is folded under it.
+      case "heading_1": out.push(`## ${text(b)}`, ""); render(kids(), depth, out); break;
+      case "heading_2": out.push(`## ${text(b)}`, ""); render(kids(), depth, out); break;
+      case "heading_3": out.push(`### ${text(b)}`, ""); render(kids(), depth, out); break;
+      case "heading_4": out.push(`#### ${text(b)}`, ""); render(kids(), depth, out); break;
       case "bulleted_list_item": out.push(`${pad}- ${text(b)}`); render(kids(), depth + 1, out); break;
       case "numbered_list_item": out.push(`${pad}${++n}. ${text(b)}`); render(kids(), depth + 1, out); break;
       case "to_do": out.push(`${pad}- ${(b.to_do as { checked?: boolean }).checked ? "[x]" : "[ ]"} ${text(b)}`); break;
-      case "quote": out.push(`> ${text(b)}`, ""); break;
+      case "quote": out.push(`> ${text(b)}`, ...(kids().length ? [">", ...quoted(kids())] : []), ""); break;
+      // "> [!callout] title" then the blocks inside it, all quoted; the site shows it as a card (a case brief, mostly).
       case "callout": {
         const icon = (b.callout as { icon?: { emoji?: string } }).icon?.emoji;
-        out.push(`> ${icon ? icon + " " : ""}${text(b)}`, "");
+        out.push(`> [!callout] ${icon ? icon + " " : ""}${text(b)}`.trimEnd(), ...(kids().length ? [">", ...quoted(kids())] : []), "");
         break;
       }
       case "code": {

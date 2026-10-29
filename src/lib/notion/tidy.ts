@@ -5,7 +5,7 @@
 // Running it again on its own output changes nothing.
 
 /** Raise this whenever the rules below change, so the next sync reads every page from Notion again. */
-export const TIDY_VERSION = 2;
+export const TIDY_VERSION = 3;
 
 const LIGATURES: Record<string, string> = { "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st" };
 const SMALL = new Set(["a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "of", "on", "or", "the", "to", "v", "vs", "with"]);
@@ -32,8 +32,11 @@ const boldRunsOn = (a: string, b: string) => {
   return /^\d{1,2}\.?$/.test(x) || /^[a-z]/.test(y) || (!ENDS.test(x) && (SMALL.has(lastWord(a)) || /^\d{1,2}\.\s/.test(x)));
 };
 const isBoldLine = (s: string) => BOLD_LINE.test(s) && plain(s).length <= 120;
-/** A bold line that is a subheading. One with figures in it ("Falck v. Williams [1900] AC 176") is a citation. */
-const isBoldHeading = (s: string) => isBoldLine(s) && !/\d/.test(plain(s).replace(/^\d{1,2}\.\s/, ""));
+/**
+ * A bold line that is a subheading. One with figures in it ("Falck v. Williams [1900] AC 176") is a citation, and
+ * one ending in ";" or "," is a bold sentence leading into what follows.
+ */
+const isBoldHeading = (s: string) => isBoldLine(s) && !/\d/.test(plain(s).replace(/^\d{1,2}\.\s/, "")) && !/[;,]$/.test(plain(s));
 
 /** "OFFER AND ACCEPTANCE" → "Offer and Acceptance". Short all-caps words that look like abbreviations stay as they are. */
 function titleCase(s: string) {

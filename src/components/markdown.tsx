@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 
 // A small Markdown renderer for content synced from Notion. It builds React elements (no raw HTML), and only
 // links to http(s), mailto and site-relative URLs. Covers what the sync emits: headings, paragraphs, nested
-// lists, quotes, code, rules, tables, bold, italic, strikethrough, inline code and links.
+// lists, quotes, callouts ("> [!callout] title", shown as a card), code, rules, tables, bold, italic,
+// strikethrough, inline code and links. Quotes and callouts may hold any of the others.
 
 const safeHref = (u: string) => (/^(https?:|mailto:|\/)/i.test(u) ? u : "#");
 
 function inline(text: string, key = ""): ReactNode[] {
   const out: ReactNode[] = [];
-  const re = /(`[^`]+`)|(\*\*[^*]+\*\*)|(~~[^~]+~~)|(\*[^*\n]+\*)|(\[[^\]]+\]\([^)\s]+\))/g;
+  const re = /(`[^`]+`)|(\*\*\*[^*]+\*\*\*)|(\*\*[^*]+\*\*)|(~~[^~]+~~)|(\*[^*\n]+\*)|(\[[^\]]+\]\([^)\s]+\))/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;
@@ -17,9 +18,10 @@ function inline(text: string, key = ""): ReactNode[] {
     const t = m[0];
     const k = `${key}${i++}`;
     if (m[1]) out.push(<code key={k} className="rounded bg-fill px-1 py-0.5 text-[0.9em]">{t.slice(1, -1)}</code>);
-    else if (m[2]) out.push(<strong key={k}>{inline(t.slice(2, -2), k)}</strong>);
-    else if (m[3]) out.push(<s key={k}>{inline(t.slice(2, -2), k)}</s>);
-    else if (m[4]) out.push(<em key={k}>{inline(t.slice(1, -1), k)}</em>);
+    else if (m[2]) out.push(<strong key={k}><em>{inline(t.slice(3, -3), k)}</em></strong>);
+    else if (m[3]) out.push(<strong key={k}>{inline(t.slice(2, -2), k)}</strong>);
+    else if (m[4]) out.push(<s key={k}>{inline(t.slice(2, -2), k)}</s>);
+    else if (m[5]) out.push(<em key={k}>{inline(t.slice(1, -1), k)}</em>);
     else {
       const [, label, href] = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(t)!;
       out.push(<a key={k} href={safeHref(href)} style={{ color: "var(--color-link)" }}>{inline(label, k)}</a>);
@@ -100,7 +102,18 @@ export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 })
     if (line.startsWith(">")) {
       const q: string[] = [];
       for (; i < lines.length && lines[i].startsWith(">"); i++) q.push(lines[i].replace(/^>\s?/, ""));
-      out.push(<blockquote key={k} className="my-4 rounded-r-xl border-l-[3px] border-amber-soft bg-fill px-4 py-3">{q.join(" ").trim() ? inline(q.join(" "), k) : null}</blockquote>);
+      const callout = /^\[!callout\]\s*(.*)$/.exec(q[0] ?? "");
+      const last = "[&>*:last-child]:mb-0";
+      if (callout) {
+        out.push(
+          <aside key={k} className={`my-5 rounded-2xl bg-fill px-5 py-4 shadow-[inset_0_0_0_0.5px_var(--hairline)] ${last}`}>
+            {callout[1] && <p className="mb-3 font-bold leading-snug">{inline(callout[1], k)}</p>}
+            <Markdown source={q.slice(1).join("\n")} from={from} />
+          </aside>,
+        );
+      } else {
+        out.push(<blockquote key={k} className={`my-4 rounded-r-xl border-l-[3px] border-amber-soft bg-fill px-4 py-3 ${last}`}><Markdown source={q.join("\n")} from={from} /></blockquote>);
+      }
       continue;
     }
     if (/^\s*([-*+]|\d+\.)\s+/.test(line)) {
