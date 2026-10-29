@@ -1,4 +1,5 @@
-import { PLAN_PRICES, cedis } from "@/lib/content";
+// Relative, not "@/": next.config.ts imports this file, and path aliases do not resolve there.
+import { PLAN_PRICES, cedis } from "./content";
 export const SITE = {
   name: "NotifiedLaw",
   url: "https://notifiedlaw.com",
