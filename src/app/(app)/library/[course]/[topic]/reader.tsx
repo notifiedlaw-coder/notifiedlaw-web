@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { Gate } from "@/components/ui";
 import { Markdown, splitPages, type Page } from "@/components/markdown";
@@ -18,8 +18,9 @@ const PILL_W = 112; // the "Add note" pill's width, near enough, for keeping it 
 type Tab = "summary" | "notes";
 
 /**
- * A topic written in Notion (Markdown), read a page at a time: each heading 1 is a chapter, each heading 2 under it
- * a page, and each heading 3 under that a page too (see splitPages). A bar at the top picks any chapter or page and steps through them; the foot of each page
+ * A topic written in Notion (Markdown), read a page at a time: each heading 1 is a chapter starting on a new page,
+ * and its text flows across pages of about equal length (see splitPages). A bar at the top jumps to any chapter, sub-chapter
+ * or section and steps through the pages; the foot of each page
  * leads to the previous and next one. On the right is a sidebar with two tabs:
  * the AI Summary (coming soon) and Notes, where a highlighted passage can be given a note saved to the reader's
  * account. Wide screens keep the sidebar open; narrower ones show it as a card from a floating button. Along the bottom, between the app's
@@ -251,12 +252,17 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
           <div className="mb-6 text-[13px] text-muted" style={SANS}>
             {chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}{total > chapterCount ? ` · ${total} pages` : ""} · {minutes} min read
           </div>
-          {page.chapterTitle !== title && (
-            <div className="mt-8 text-[13px] font-semibold text-muted" style={SANS}>
-              {chapterCount > 1 ? `Chapter ${page.chapter + 1} · ` : ""}{page.chapterTitle}{page.parent && page.parent !== page.chapterTitle ? ` › ${page.parent}` : ""}
+          {cur === 0 || pages[cur - 1].chapter !== page.chapter ? (
+            <>
+              {chapterCount > 1 && <div className="mt-8 text-[13px] font-semibold text-muted" style={SANS}>Chapter {page.chapter + 1}</div>}
+              <h2 className="mb-3 mt-1.5 text-[26px] font-bold leading-tight tracking-[-0.01em] md:text-[30px]">{page.chapterTitle}</h2>
+            </>
+          ) : (
+            // A later page of the chapter: where the reader is, then the text carries on from the page before.
+            <div className="mb-4 mt-8 text-[13px] font-semibold text-muted" style={SANS}>
+              {chapterCount > 1 ? `Chapter ${page.chapter + 1} · ` : ""}{page.chapterTitle}{page.cont ? ` › ${page.title} (continued)` : ""}
             </div>
           )}
-          <h2 className="mb-3 mt-1.5 text-[26px] font-bold leading-tight tracking-[-0.01em] md:text-[30px]">{page.title ?? page.chapterTitle}</h2>
           {/* Selectable so passages can be highlighted for notes; CopyGuard still blocks copy, cut, drag and right-click. */}
           <div ref={text} onClick={topicId ? onTextClick : undefined} className={topicId ? "nl-selectable" : undefined}>{md}</div>
           <Pagination pages={pages} cur={cur} back={`/library/${slug}`} onGo={go} />
@@ -395,28 +401,17 @@ function PageBar({ pages, cur, chapterCount, onGo }: { pages: Page[]; cur: numbe
           {chapters.map((c) => {
             const mine = pages.map((p, i) => ({ p, i })).filter(({ p }) => p.chapter === c);
             const head = mine[0].p;
-            const solo = mine.length === 1 && mine[0].p.title === null;
+            // Each sub-chapter and section with the page it starts on; the one the current page is in is ticked.
+            const heads = mine.flatMap(({ p, i }) => p.heads.map((h) => ({ ...h, i })));
+            const here = page.chapter === c ? heads.findLastIndex((h) => h.i <= cur) : -1;
             return (
               <div key={c} className="py-1 [&+&]:border-t [&+&]:border-edge/10">
-                {solo ? (
-                  <MenuRow on={mine[0].i === cur} onClick={() => pick(mine[0].i)} n={chapterCount > 1 ? c + 1 : null} strong>{head.chapterTitle}</MenuRow>
+                {!heads.length ? (
+                  <MenuRow on={page.chapter === c} onClick={() => pick(mine[0].i)} n={chapterCount > 1 ? c + 1 : null} page={mine[0].i} strong>{head.chapterTitle}</MenuRow>
                 ) : (
                   <>
-                    <button type="button" role="menuitem" onClick={() => pick(mine[0].i)} className="flex w-full items-baseline gap-2 rounded-[10px] px-3 pb-1 pt-2 text-left hover:bg-fill">
-                      {chapterCount > 1 && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted">Ch. {c + 1}</span>}
-                      <span className="text-[14px] font-semibold">{head.chapterTitle}</span>
-                    </button>
-                    {mine.map(({ p, i }, k) => {
-                      const before = k > 0 ? mine[k - 1].p : null;
-                      // A sub-chapter whose text all sits in sections has no page of its own: its name heads them and opens the first.
-                      const label = p.parent && p.parent !== head.chapterTitle && before?.parent !== p.parent && before?.title !== p.parent;
-                      return (
-                        <Fragment key={i}>
-                          {label && <MenuRow on={false} onClick={() => pick(i)} indent={1}>{p.parent}</MenuRow>}
-                          <MenuRow on={i === cur} onClick={() => pick(i)} indent={p.parent && p.parent !== head.chapterTitle ? 2 : 1}>{pageName(p)}</MenuRow>
-                        </Fragment>
-                      );
-                    })}
+                    <MenuRow on={page.chapter === c && here < 0} onClick={() => pick(mine[0].i)} n={chapterCount > 1 ? c + 1 : null} page={mine[0].i} strong>{head.chapterTitle}</MenuRow>
+                    {heads.map((h, k) => <MenuRow key={k} on={k === here} onClick={() => pick(h.i)} page={h.i} indent={h.level === 3 ? 1 : 2}>{h.title}</MenuRow>)}
                   </>
                 )}
               </div>
@@ -428,13 +423,15 @@ function PageBar({ pages, cur, chapterCount, onGo }: { pages: Page[]; cur: numbe
   );
 }
 
-function MenuRow({ on, onClick, n = null, strong, indent = 0, children }: { on: boolean; onClick: () => void; n?: number | null; strong?: boolean; indent?: 0 | 1 | 2; children: React.ReactNode }) {
+/** `page` (0-based) shows as the page number the row opens, on the right. */
+function MenuRow({ on, onClick, n = null, page, strong, indent = 0, children }: { on: boolean; onClick: () => void; n?: number | null; page: number; strong?: boolean; indent?: 0 | 1 | 2; children: React.ReactNode }) {
   return (
     <button type="button" role="menuitem" aria-current={on ? "page" : undefined} onClick={onClick}
       className={`flex min-h-11 w-full items-center gap-2.5 rounded-[10px] py-2 pr-3 text-left leading-snug transition-colors ${["pl-3", "pl-4", "pl-9"][indent]} ${indent === 2 ? "text-[13px]" : "text-[14px]"} ${on ? "bg-blue/10 text-blue" : "hover:bg-fill"}`}>
       <span className="flex w-4 shrink-0 justify-center" aria-hidden>{on && <Icon name="tick" size={14} />}</span>
       {n !== null && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted">Ch. {n}</span>}
       <span className={`min-w-0 flex-1 ${strong || on ? "font-semibold" : ""}`}>{children}</span>
+      <span className={`shrink-0 text-[12px] tabular-nums ${on ? "" : "text-muted"}`}>{page + 1}</span>
     </button>
   );
 }

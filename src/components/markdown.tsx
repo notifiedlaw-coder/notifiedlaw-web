@@ -164,29 +164,66 @@ export function splitChapters(body: string, fallbackTitle: string): { title: str
   return chapters.length ? chapters : [{ title: fallbackTitle, md: "" }];
 }
 
-/** parent: the sub-chapter (or chapter) a section page sits under; null for a chapter or sub-chapter page. */
-export type Page = { chapter: number; chapterTitle: string; parent: string | null; title: string | null; md: string };
+/** A sub-chapter ("###", level 3) or section ("####", level 4) heading and the page it is on. */
+export type PageHead = { level: 3 | 4; title: string };
 
 /**
- * A topic as pages: each chapter ("## ", a Notion heading 1) splits at its sub-chapters ("### ", a heading 2), and
- * each sub-chapter is a page, split again at its sections ("#### ", a heading 3), each one a page of its own. Text
- * before a chapter's first sub-chapter is a page under the chapter's name.
+ * title: the sub-chapter or section the page opens in (null while still in the chapter's opening text); cont: the page
+ * opens partway through it; heads: the sub-chapter and section headings that start on the page.
+ */
+export type Page = { chapter: number; chapterTitle: string; title: string | null; cont: boolean; heads: PageHead[]; md: string };
+
+/** About how much Markdown fills a page: some 450 words, two or three minutes' reading. */
+const PAGE_CHARS = 3000;
+
+/** A body's blocks: runs of lines between blank lines, keeping a code fence whole. */
+function blocks(md: string): string[] {
+  const out: string[] = [];
+  let cur: string[] = [];
+  let fence = false;
+  for (const line of md.split("\n")) {
+    if (line.startsWith("```")) fence = !fence;
+    if (!fence && !line.trim()) { if (cur.length) out.push(cur.join("\n")); cur = []; continue; }
+    cur.push(line);
+  }
+  if (cur.length) out.push(cur.join("\n"));
+  return out;
+}
+
+const headOf = (b: string): PageHead | null => {
+  const m = /^(#{3,4})\s+(.*)$/.exec(b);
+  return m && !b.includes("\n") ? { level: m[1].length as 3 | 4, title: m[2].trim() } : null;
+};
+
+/**
+ * A topic as pages, like a book: each chapter ("## ", a Notion heading 1) starts on a new page, and its text flows
+ * across pages of about equal length (some PAGE_CHARS each), only its last page running short. Pages break between
+ * blocks (a paragraph, list, quote or card is never cut), and a heading at the foot of a page moves to the next.
  */
 export function splitPages(body: string, fallbackTitle: string): Page[] {
   return splitChapters(body, fallbackTitle).flatMap((c, chapter) => {
-    const parts = c.md.split(/^(?=###\s)/m).map((p) => p.trim()).filter(Boolean);
-    const pages = parts.flatMap((p): Page[] => {
-      const m = /^###\s+(.*)\n?([\s\S]*)$/.exec(p);
-      const title = m ? m[1].trim() : null;
-      // A sub-chapter splits again at its sections ("#### ", a heading 3); the text before the first is the sub-chapter's own page.
-      const sections = (m ? m[2] : p).split(/^(?=####\s)/m).map((s) => s.trim()).filter(Boolean);
-      const intro = sections[0] && !/^####\s/.test(sections[0]) ? sections.shift()! : "";
-      const own: Page[] = intro || !sections.length ? [{ chapter, chapterTitle: c.title, parent: null, title, md: intro }] : [];
-      return own.concat(sections.map((s) => {
-        const h = /^####\s+(.*)\n?([\s\S]*)$/.exec(s)!;
-        return { chapter, chapterTitle: c.title, parent: title ?? c.title, title: h[1].trim(), md: h[2].trim() };
-      }));
+    const bs = blocks(c.md);
+    const total = bs.reduce((n, b) => n + b.length, 0);
+    const size = total / Math.max(1, Math.round(total / PAGE_CHARS));
+    // Each block goes on the page its middle falls in, so pages come out as even as whole blocks allow.
+    const groups: string[][] = [];
+    let at = 0;
+    for (const b of bs) {
+      const i = Math.min(groups.length, Math.floor((at + b.length / 2) / size));
+      (groups[i] ??= []).push(b);
+      at += b.length;
+    }
+    for (let i = 0; i < groups.length - 1; i++) {
+      while (groups[i].length > 1 && /^#{3,5}\s/.test(groups[i][groups[i].length - 1])) groups[i + 1].unshift(groups[i].pop()!);
+    }
+    let open: string | null = null;
+    const pages = groups.filter((g) => g?.length).map((g): Page => {
+      const heads = g.map(headOf).filter((h): h is PageHead => h !== null);
+      const first = headOf(g[0]);
+      const page = { chapter, chapterTitle: c.title, title: first?.title ?? open, cont: !first && open !== null, heads, md: g.join("\n\n") };
+      if (heads.length) open = heads[heads.length - 1].title;
+      return page;
     });
-    return pages.length ? pages : [{ chapter, chapterTitle: c.title, parent: null, title: null, md: "" }];
+    return pages.length ? pages : [{ chapter, chapterTitle: c.title, title: null, cont: false, heads: [], md: "" }];
   });
 }
