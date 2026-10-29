@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { Gate } from "@/components/ui";
 import { Markdown, splitPages, type Page } from "@/components/markdown";
@@ -18,8 +18,8 @@ const PILL_W = 112; // the "Add note" pill's width, near enough, for keeping it 
 type Tab = "summary" | "notes";
 
 /**
- * A topic written in Notion (Markdown), read a page at a time: each heading 1 is a chapter and each heading 2 under it
- * a page (see splitPages). A bar at the top picks any chapter or page and steps through them; the foot of each page
+ * A topic written in Notion (Markdown), read a page at a time: each heading 1 is a chapter, each heading 2 under it
+ * a page, and each heading 3 under that a page too (see splitPages). A bar at the top picks any chapter or page and steps through them; the foot of each page
  * leads to the previous and next one. On the right is a sidebar with two tabs:
  * the AI Summary (coming soon) and Notes, where a highlighted passage can be given a note saved to the reader's
  * account. Wide screens keep the sidebar open; narrower ones show it as a card from a floating button. Along the bottom, between the app's
@@ -252,7 +252,9 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
             {chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}{total > chapterCount ? ` · ${total} pages` : ""} · {minutes} min read
           </div>
           {page.chapterTitle !== title && (
-            <div className="mt-8 text-[13px] font-semibold text-muted" style={SANS}>{chapterCount > 1 ? `Chapter ${page.chapter + 1} · ` : ""}{page.chapterTitle}</div>
+            <div className="mt-8 text-[13px] font-semibold text-muted" style={SANS}>
+              {chapterCount > 1 ? `Chapter ${page.chapter + 1} · ` : ""}{page.chapterTitle}{page.parent && page.parent !== page.chapterTitle ? ` › ${page.parent}` : ""}
+            </div>
           )}
           <h2 className="mb-3 mt-1.5 text-[26px] font-bold leading-tight tracking-[-0.01em] md:text-[30px]">{page.title ?? page.chapterTitle}</h2>
           {/* Selectable so passages can be highlighted for notes; CopyGuard still blocks copy, cut, drag and right-click. */}
@@ -404,7 +406,17 @@ function PageBar({ pages, cur, chapterCount, onGo }: { pages: Page[]; cur: numbe
                       {chapterCount > 1 && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted">Ch. {c + 1}</span>}
                       <span className="text-[14px] font-semibold">{head.chapterTitle}</span>
                     </button>
-                    {mine.map(({ p, i }) => <MenuRow key={i} on={i === cur} onClick={() => pick(i)} indent>{pageName(p)}</MenuRow>)}
+                    {mine.map(({ p, i }, k) => {
+                      const before = k > 0 ? mine[k - 1].p : null;
+                      // A sub-chapter whose text all sits in sections has no page of its own: its name heads them and opens the first.
+                      const label = p.parent && p.parent !== head.chapterTitle && before?.parent !== p.parent && before?.title !== p.parent;
+                      return (
+                        <Fragment key={i}>
+                          {label && <MenuRow on={false} onClick={() => pick(i)} indent={1}>{p.parent}</MenuRow>}
+                          <MenuRow on={i === cur} onClick={() => pick(i)} indent={p.parent && p.parent !== head.chapterTitle ? 2 : 1}>{pageName(p)}</MenuRow>
+                        </Fragment>
+                      );
+                    })}
                   </>
                 )}
               </div>
@@ -416,10 +428,10 @@ function PageBar({ pages, cur, chapterCount, onGo }: { pages: Page[]; cur: numbe
   );
 }
 
-function MenuRow({ on, onClick, n = null, strong, indent, children }: { on: boolean; onClick: () => void; n?: number | null; strong?: boolean; indent?: boolean; children: React.ReactNode }) {
+function MenuRow({ on, onClick, n = null, strong, indent = 0, children }: { on: boolean; onClick: () => void; n?: number | null; strong?: boolean; indent?: 0 | 1 | 2; children: React.ReactNode }) {
   return (
     <button type="button" role="menuitem" aria-current={on ? "page" : undefined} onClick={onClick}
-      className={`flex min-h-11 w-full items-center gap-2.5 rounded-[10px] py-2 pr-3 text-left text-[14px] leading-snug transition-colors ${indent ? "pl-4" : "pl-3"} ${on ? "bg-blue/10 text-blue" : "hover:bg-fill"}`}>
+      className={`flex min-h-11 w-full items-center gap-2.5 rounded-[10px] py-2 pr-3 text-left leading-snug transition-colors ${["pl-3", "pl-4", "pl-9"][indent]} ${indent === 2 ? "text-[13px]" : "text-[14px]"} ${on ? "bg-blue/10 text-blue" : "hover:bg-fill"}`}>
       <span className="flex w-4 shrink-0 justify-center" aria-hidden>{on && <Icon name="tick" size={14} />}</span>
       {n !== null && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-muted">Ch. {n}</span>}
       <span className={`min-w-0 flex-1 ${strong || on ? "font-semibold" : ""}`}>{children}</span>

@@ -164,19 +164,29 @@ export function splitChapters(body: string, fallbackTitle: string): { title: str
   return chapters.length ? chapters : [{ title: fallbackTitle, md: "" }];
 }
 
-export type Page = { chapter: number; chapterTitle: string; title: string | null; md: string };
+/** parent: the sub-chapter (or chapter) a section page sits under; null for a chapter or sub-chapter page. */
+export type Page = { chapter: number; chapterTitle: string; parent: string | null; title: string | null; md: string };
 
 /**
  * A topic as pages: each chapter ("## ", a Notion heading 1) splits at its sub-chapters ("### ", a heading 2), and
- * each sub-chapter is a page. Text before a chapter's first sub-chapter is a page of its own, under the chapter's name.
+ * each sub-chapter is a page, split again at its sections ("#### ", a heading 3), each one a page of its own. Text
+ * before a chapter's first sub-chapter is a page under the chapter's name.
  */
 export function splitPages(body: string, fallbackTitle: string): Page[] {
   return splitChapters(body, fallbackTitle).flatMap((c, chapter) => {
     const parts = c.md.split(/^(?=###\s)/m).map((p) => p.trim()).filter(Boolean);
-    const pages = parts.map((p) => {
+    const pages = parts.flatMap((p): Page[] => {
       const m = /^###\s+(.*)\n?([\s\S]*)$/.exec(p);
-      return m ? { chapter, chapterTitle: c.title, title: m[1].trim(), md: m[2].trim() } : { chapter, chapterTitle: c.title, title: null, md: p };
+      const title = m ? m[1].trim() : null;
+      // A sub-chapter splits again at its sections ("#### ", a heading 3); the text before the first is the sub-chapter's own page.
+      const sections = (m ? m[2] : p).split(/^(?=####\s)/m).map((s) => s.trim()).filter(Boolean);
+      const intro = sections[0] && !/^####\s/.test(sections[0]) ? sections.shift()! : "";
+      const own: Page[] = intro || !sections.length ? [{ chapter, chapterTitle: c.title, parent: null, title, md: intro }] : [];
+      return own.concat(sections.map((s) => {
+        const h = /^####\s+(.*)\n?([\s\S]*)$/.exec(s)!;
+        return { chapter, chapterTitle: c.title, parent: title ?? c.title, title: h[1].trim(), md: h[2].trim() };
+      }));
     });
-    return pages.length ? pages : [{ chapter, chapterTitle: c.title, title: null, md: "" }];
+    return pages.length ? pages : [{ chapter, chapterTitle: c.title, parent: null, title: null, md: "" }];
   });
 }
