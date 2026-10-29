@@ -9,8 +9,8 @@ import { DEMO_BILLING } from "@/lib/site";
 import { useUser } from "@/components/user";
 import { authClient } from "@/lib/auth-client";
 import { ProfileForm } from "./profile-form";
-import { UniEmail } from "./uni-email";
 import { CREDIT_NAME, PLAN_NAMES, PLANS } from "@/lib/data";
+import { STUDENT_VERIFY_DAYS } from "@/lib/student";
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="flex flex-col gap-1.5"><Eyebrow>{title}</Eyebrow><div className="overflow-hidden rounded-xl bg-surface shadow-card">{children}</div></section>
@@ -19,8 +19,10 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
   <div className="flex min-h-11 items-center justify-between gap-4 border-t border-edge/[0.06] px-4 py-2 text-sm first:border-0"><span className="font-medium">{label}</span><span>{children}</span></div>
 );
 
+const fmtDate = (ms: number) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Accra" }).format(new Date(ms));
+
 export function Settings() {
-  const { plan, setPlan, credits, allowance, profile, setLevel, onTrial, trialEndsAt } = usePlan();
+  const { plan, setPlan, credits, allowance, profile, setLevel, student } = usePlan();
   const { theme, setTheme } = useTheme();
   const user = useUser();
 
@@ -34,9 +36,15 @@ export function Settings() {
         <Row label="Level"><LevelSelect value={profile?.level || "200"} onChange={setLevel} /></Row>
       </Group>
       {profile && <ProfileForm profile={profile} />}
-      {profile && <UniEmail />}
+      {student && (
+        <Group title="Student">
+          <Row label="University">{student.university}</Row>
+          <Row label="Student ID">{student.studentId || "Not set"}</Row>
+          <Row label="Verified until">{student.eligible ? fmtDate(student.verifiedAt + STUDENT_VERIFY_DAYS * 86_400_000) : "Expired, sign in again with your university email"}</Row>
+        </Group>
+      )}
       <Group title="Subscription">
-        <Row label="Current plan">{PLAN_NAMES[plan]}{onTrial && trialEndsAt ? ` · trial until ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Accra" }).format(new Date(trialEndsAt))}` : ""}</Row>
+        <Row label="Current plan">{PLAN_NAMES[plan]}</Row>
         <Row label={CREDIT_NAME}>{credits} available{allowance > 0 ? ` · ${allowance} monthly` : ""}</Row>
         <Row label="Payment method">MTN MoMo · •• •• 0123</Row>
         <Link href="/plans" className="block border-t border-edge/[0.06] px-4 py-3 text-sm" style={{ textDecoration: "none" }}>Change plan</Link>

@@ -26,7 +26,7 @@ export async function GET() {
     `- Senior Judicial: ${cedis(PLAN_PRICES.Pro)} per month, the full library plus Notified AI`,
     `- Supreme Justice: ${cedis(PLAN_PRICES["Pro Max"])} per month, everything including Pre-Bar, the Bar Course and exam prep`,
     "- No free plan; the first 2 topics of every course are open as a preview.",
-    "- Payment: MTN MoMo, Telecel Cash, AT Money. Law students with a university email get a 7-day Senior Judicial trial.",
+    "- Payment: MTN MoMo, Telecel Cash, AT Money. The Student plan is for students who verify a university email.",
     "",
     "## Articles",
     ...articles.map((a) => `- [${a.title}](${abs(`/articles/${a.slug}`)})${a.summary ? `: ${a.summary}` : ""}`),

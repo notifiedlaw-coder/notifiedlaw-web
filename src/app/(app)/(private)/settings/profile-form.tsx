@@ -9,7 +9,7 @@ import { GENDERS, GOALS, MIN_DOB, profileErrors, type Profile } from "@/lib/prof
 
 
 export function ProfileForm({ profile }: { profile: Profile }) {
-  const { setProfile } = usePlan();
+  const { setProfile, student } = usePlan();
   const [f, setF] = useState(profile);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState("");
@@ -55,10 +55,15 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           <select value={f.gender} onChange={(e) => { setStatus("idle"); setF((p) => ({ ...p, gender: e.target.value })); }} className={field}>{GENDERS.map((g) => <option key={g}>{g}</option>)}</select>
         </label>
         <label className={label}><span>Phone number <span className="font-normal text-muted">(optional, for MoMo payments)</span></span><input type="tel" inputMode="tel" value={f.phone} onChange={set("phone")} onBlur={blur("phone")} maxLength={30} aria-invalid={bad("phone")} autoComplete="tel" className={field} />{err("phone")}</label>
-        <div className={label}>Which fits you best?
-          <StatusPicker value={f} onChange={patch} errors={errors} />
-        </div>
-        <StatusQuestions value={f} onChange={patch} errors={errors} />
+        {/* A student account's status and university come from its university email, so they are not edited here. */}
+        {!student && (
+          <>
+            <div className={label}>Which fits you best?
+              <StatusPicker value={f} onChange={patch} errors={errors} />
+            </div>
+            <StatusQuestions value={f} onChange={patch} errors={errors} />
+          </>
+        )}
         <div className={label}>Interests
           <div className="flex flex-wrap gap-2">{GOALS.map((g) => {
             const on = f.goals.includes(g);

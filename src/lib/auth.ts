@@ -1,33 +1,100 @@
 import { headers } from "next/headers";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { magicLink } from "better-auth/plugins/magic-link";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { isPaidPlan, type Plan } from "@/lib/data";
+import { sendEmail, studentLinkMessage } from "@/lib/email";
+import { limitedBy } from "@/lib/rate-limit";
+import { DAILY_SENDS, LINK_MINUTES, RESEND_SECONDS, checkStudentEmail, studentEligible, universityOf } from "@/lib/student";
 import type { Me } from "@/lib/profile";
 
 /** Built per request: the D1 binding and secrets only exist inside a Worker request. */
 export function getAuth() {
   const { env } = getCloudflareContext();
+  const db = drizzle(env.DB, { schema });
   return betterAuth({
-    database: drizzleAdapter(drizzle(env.DB), { provider: "sqlite", schema }),
+    database: drizzleAdapter(db, { provider: "sqlite", schema }),
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
+    // Professionals sign up with Google. Students sign up and sign in with a link sent to their university email.
     socialProviders: {
       google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET },
     },
+    plugins: [
+      magicLink({
+        expiresIn: LINK_MINUTES * 60,
+        storeToken: "hashed",
+        sendMagicLink: async ({ email, token }, ctx) => sendStudentLink(db, email, token, ctx?.request?.headers ?? ctx?.headers),
+      }),
+    ],
+    databaseHooks: {
+      session: {
+        // Any sign-in to an account whose email is on a university domain proves the mailbox is still live,
+        // whether it came from the emailed link or from Google on a Workspace university.
+        create: { after: async (s) => { await recordStudent(db, s.userId); } },
+      },
+    },
     user: {
-      // Settings > Delete account. Accounts sign in with Google, so there is no password to ask for: Better Auth
-      // instead refuses unless the session was created in the last day (freshAge). D1 rows go by cascade; the
-      // R2 objects are removed afterwards, by the user's key prefix. The import is lazy because files.ts imports this file.
+      // Settings > Delete account. Accounts have no password, so Better Auth instead refuses unless the session
+      // was created in the last day (freshAge). D1 rows go by cascade; the R2 objects are removed afterwards,
+      // by the user's key prefix. The import is lazy because files.ts imports this file.
       deleteUser: {
         enabled: true,
         afterDelete: async (u) => { await (await import("@/lib/files")).purgeUserObjects(u.id); },
       },
     },
   });
+}
+
+type Db = ReturnType<typeof drizzle<typeof schema>>;
+const refuse = (message: string, status: "BAD_REQUEST" | "TOO_MANY_REQUESTS" = "BAD_REQUEST") => new APIError(status, { message });
+
+/**
+ * Emails a student sign-in link. Only normalised addresses at a supported university get one. Limits: one link a
+ * minute and DAILY_SENDS a day per address (D1), plus RL_UNI_EMAIL per address and per IP, so nobody can flood
+ * an inbox or probe addresses quickly. The link opens /verify-email, which signs in only on a button press, so
+ * mail scanners that fetch links do not use up the token.
+ */
+async function sendStudentLink(db: Db, email: string, token: string, h?: Headers) {
+  const checked = checkStudentEmail(email);
+  if ("error" in checked) throw refuse(checked.error);
+  if (checked.email !== email) throw refuse("Enter your university email without capitals or a +tag.");
+  const burst = await limitedBy("UNI_EMAIL", [`to:${email}`, `ip:${h?.get("cf-connecting-ip") ?? "anon"}`]);
+  if (burst) throw refuse("Too many requests. Wait a minute and try again.", "TOO_MANY_REQUESTS");
+  const now = new Date();
+  const [last] = await db.select().from(schema.studentLink).where(eq(schema.studentLink.email, email));
+  if (last && now.getTime() - last.sentAt.getTime() < RESEND_SECONDS * 1000)
+    throw refuse("A link was just sent. Wait a minute before sending another.", "TOO_MANY_REQUESTS");
+  const fresh = !last || now.getTime() - last.windowStart.getTime() >= 86_400_000;
+  const sends = fresh ? 1 : last.sends + 1;
+  if (sends > DAILY_SENDS) throw refuse(`This address has had ${DAILY_SENDS} links today. Try again tomorrow.`, "TOO_MANY_REQUESTS");
+  const row = { sentAt: now, sends, windowStart: fresh ? now : last.windowStart };
+  await db.insert(schema.studentLink).values({ email, ...row }).onConflictDoUpdate({ target: schema.studentLink.email, set: row });
+
+  // The configured origin, never the request's: a link built from Host could send the token somewhere else.
+  const link = `${new URL(getCloudflareContext().env.BETTER_AUTH_URL).origin}/verify-email?token=${encodeURIComponent(token)}`;
+  if (process.env.NODE_ENV !== "production") console.info(`[student] sign-in link for ${email}: ${link}`);
+  try {
+    await sendEmail({ to: email, ...studentLinkMessage(link, checked.university, LINK_MINUTES) });
+  } catch (e) {
+    console.error("[student] send failed", (e as { code?: string }).code, (e as Error).message);
+    throw refuse("We could not send the email. Check the address and try again shortly.");
+  }
+}
+
+/** Marks the user a student, or refreshes their proof, when their verified email is on a university domain. */
+async function recordStudent(db: Db, userId: string) {
+  const [u] = await db.select({ email: schema.user.email, verified: schema.user.emailVerified }).from(schema.user).where(eq(schema.user.id, userId));
+  const university = u?.verified ? universityOf(u.email) : null;
+  if (!university) return;
+  const now = new Date();
+  await db.insert(schema.student).values({ userId, email: u.email.toLowerCase(), university, verifiedAt: now })
+    .onConflictDoUpdate({ target: schema.student.userId, set: { verifiedAt: now } });
 }
 
 /** The signed-in user for this request, or null. Cheap enough to call from layouts and pages. */
@@ -41,39 +108,41 @@ export function getDb() {
   return drizzle(getCloudflareContext().env.DB, { schema });
 }
 
-/** The plan a subscription row grants now: its paid plan, Pro while a university-email trial runs, else None. */
-export function planOf(row: { plan: string; trialEndsAt: Date | null } | undefined, now = new Date()): Plan {
-  if (row && isPaidPlan(row.plan)) return row.plan;
-  return row?.trialEndsAt && row.trialEndsAt > now ? "Pro" : "None";
-}
+/** The plan a subscription row grants: its paid plan, else None. */
+export const planOf = (row: { plan: string } | undefined): Plan => (row && isPaidPlan(row.plan) ? row.plan : "None");
 
 /** The signed-in user's plan from D1; None for guests and for users who have not paid. */
 export async function getPlan(): Promise<Plan> {
   const s = await getSession();
   if (!s) return "None";
-  const [row] = await getDb().select({ plan: schema.subscription.plan, trialEndsAt: schema.subscription.trialEndsAt }).from(schema.subscription).where(eq(schema.subscription.userId, s.user.id));
+  const [row] = await getDb().select({ plan: schema.subscription.plan }).from(schema.subscription).where(eq(schema.subscription.userId, s.user.id));
   return planOf(row);
 }
 
-/** Everything the client shell needs about a user besides their name: profile and subscription. */
+/** The user's student record, or null for professional accounts. */
+export async function studentOf(userId: string) {
+  const [row] = await getDb().select().from(schema.student).where(eq(schema.student.userId, userId));
+  return row ?? null;
+}
+
+/** Everything the client shell needs about a user besides their name: profile, subscription and student status. */
 export async function meFor(userId: string): Promise<Me> {
   const db = getDb();
-  const [[p], [s], [verified], [pending]] = await Promise.all([
+  const [[p], [s], st] = await Promise.all([
     db.select().from(schema.profile).where(eq(schema.profile.userId, userId)),
     db.select().from(schema.subscription).where(eq(schema.subscription.userId, userId)),
-    db.select().from(schema.uniEmail).where(eq(schema.uniEmail.userId, userId)),
-    db.select().from(schema.uniEmailRequest).where(eq(schema.uniEmailRequest.userId, userId)),
+    studentOf(userId),
   ]);
-  const trialEndsAt = s?.trialEndsAt ?? null;
-  const onTrial = !isPaidPlan(s?.plan) && !!trialEndsAt && trialEndsAt > new Date();
   return {
     profile: p ? {
       ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",
       jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
     } as Me["profile"] : null,
-    subscription: { plan: planOf(s), creditsUsed: s?.creditsUsed ?? 0, trialEndsAt: trialEndsAt?.getTime() ?? null, onTrial },
-    uniEmail: verified ? { email: verified.email, university: verified.university, verified: true, sentAt: null }
-      : pending ? { email: pending.email, university: pending.university, verified: false, sentAt: pending.sentAt.getTime() } : null,
+    subscription: { plan: planOf(s), creditsUsed: s?.creditsUsed ?? 0 },
+    student: st ? {
+      email: st.email, university: st.university, studentId: st.studentId ?? "",
+      verifiedAt: st.verifiedAt.getTime(), eligible: studentEligible(st.verifiedAt.getTime()),
+    } : null,
   };
 }
 

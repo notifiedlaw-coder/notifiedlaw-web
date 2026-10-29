@@ -1,0 +1,68 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { fieldCls } from "@/components/profile-fields";
+import { authClient } from "@/lib/auth-client";
+import { UNIVERSITIES } from "@/lib/content";
+import { LINK_MINUTES, RESEND_SECONDS, checkStudentEmail } from "@/lib/student";
+
+/** Seconds left until `until` (epoch ms), ticking once a second; 0 when there is nothing to wait for. */
+function useSecondsLeft(until: number) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!until) return;
+    const t = setInterval(() => {
+      const n = Date.now();
+      setNow(n);
+      if (n >= until) clearInterval(t);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [until]);
+  return Math.min(RESEND_SECONDS, Math.max(0, Math.ceil((until - now) / 1000)));
+}
+
+/** Sends a sign-in link to a university email. Signs students up the first time and signs them in after that. */
+export function StudentEmailForm({ cta }: { cta: string }) {
+  const [value, setValue] = useState("");
+  const [sent, setSent] = useState<{ email: string; at: number } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const left = useSecondsLeft(sent ? sent.at + RESEND_SECONDS * 1000 : 0);
+
+  const send = async (raw: string) => {
+    const checked = checkStudentEmail(raw);
+    if ("error" in checked) { setError(checked.error); return; }
+    setBusy(true);
+    setError("");
+    const { error: e } = await authClient.signIn.magicLink({ email: checked.email }).catch(() => ({ error: { message: "" } }));
+    setBusy(false);
+    if (e) { setError(e.message || "Could not reach NotifiedLaw. Check your connection and try again."); return; }
+    setSent({ email: checked.email, at: Date.now() });
+  };
+
+  if (sent)
+    return (
+      <div className="flex flex-col gap-3 rounded-xl bg-fill p-4 text-sm">
+        <p className="m-0"><b>Check your inbox.</b> We sent a link to <b>{sent.email}</b>. Open it within {LINK_MINUTES} minutes, on any device. Check your junk folder if you do not see it.</p>
+        {error && <p className="m-0 text-red" role="alert">{error}</p>}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button type="button" className="text-muted" onClick={() => { setValue(sent.email); setSent(null); setError(""); }}>Use a different email</button>
+          <button type="button" className="font-semibold text-blue disabled:opacity-50" disabled={busy || left > 0} onClick={() => void send(sent.email)}>{busy ? "Sending…" : left > 0 ? `Resend in ${left}s` : "Resend link"}</button>
+        </div>
+      </div>
+    );
+
+  return (
+    <form className="flex flex-col gap-2.5" onSubmit={(e) => { e.preventDefault(); void send(value); }}>
+      <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-ink">University email
+        <input type="email" inputMode="email" autoComplete="email" value={value} onChange={(e) => { setValue(e.target.value); setError(""); }} maxLength={254} placeholder="you@st.ug.edu.gh" aria-invalid={!!error} className={fieldCls} />
+      </label>
+      {error && <p className="m-0 text-sm text-red" role="alert">{error}</p>}
+      <button type="submit" disabled={busy || !value.trim()} className="h-11 rounded-full bg-blue px-4 text-[15px] font-semibold text-white disabled:opacity-50">{busy ? "Sending…" : cta}</button>
+      <details className="text-xs text-muted">
+        <summary className="cursor-pointer">Supported universities</summary>
+        <p className="m-0 mt-1.5">{UNIVERSITIES.map((u) => u.name).join(", ")}. Not listed? Email notifiedlaw@gmail.com.</p>
+      </details>
+    </form>
+  );
+}

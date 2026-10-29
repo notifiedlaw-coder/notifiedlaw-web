@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { usePlan } from "@/components/plan";
+import { authClient } from "@/lib/auth-client";
 import { PLAN_PRICES, cedis } from "@/lib/content";
 import { CREDIT_NAME, PAID_PLANS, PLAN_CREDITS, PLAN_NAMES, type PaidPlan } from "@/lib/data";
 
@@ -13,8 +15,17 @@ const TIERS: { plan: PaidPlan; blurb: string; feats: [boolean, string][]; badge?
 
 export function Plans() {
   const router = useRouter();
-  const { plan: current, paid } = usePlan();
+  const { plan: current, paid, student } = usePlan();
   const rank = (p: string) => PAID_PLANS.indexOf(p as PaidPlan);
+  // Student needs a student account whose university mailbox was proven within the last year. The server
+  // checks the same thing before it changes a plan.
+  const [relink, setRelink] = useState<"idle" | "busy" | "sent" | "error">("idle");
+  const reverify = async () => {
+    if (!student) return;
+    setRelink("busy");
+    const { error } = await authClient.signIn.magicLink({ email: student.email }).catch(() => ({ error: {} }));
+    setRelink(error ? "error" : "sent");
+  };
 
   return (
     <div className="mx-auto flex max-w-[1040px] flex-col items-center gap-6 px-5 pb-12 pt-10 text-center md:px-10">
@@ -26,7 +37,8 @@ export function Plans() {
       <div className="grid w-full gap-4 text-left md:grid-cols-3">
         {TIERS.map((t) => {
           const isCur = t.plan === current;
-          const featured = t.plan === "Pro Max";
+          const featured = t.plan === (student ? "Student" : "Pro Max");
+          const locked = t.plan === "Student" && !isCur && !student?.eligible;
           return (
             <div key={t.plan} className={`relative flex flex-col gap-3 rounded-[20px] bg-surface p-6 shadow-card ${featured ? "ring-2 ring-blue" : ""}`}>
               {t.badge && <span className="absolute -top-2.5 left-6 rounded-full bg-blue px-2.5 py-0.5 text-[10px] font-bold text-white">{t.badge}</span>}
@@ -39,16 +51,30 @@ export function Plans() {
               <ul className="flex flex-1 flex-col gap-2 text-[13px]">
                 {t.feats.map(([on, f]) => <li key={f} className="flex gap-2" style={{ opacity: on ? 1 : 0.45 }}><span className={on ? "text-green" : ""}>{on ? "✓" : "—"}</span>{f}</li>)}
               </ul>
-              <button disabled={isCur} onClick={() => router.push(`/checkout?plan=${encodeURIComponent(t.plan)}`)}
-                className={`h-9 rounded-lg text-[13px] font-semibold ${isCur ? "bg-fill text-muted" : featured ? "bg-blue text-white" : "bg-strong text-strong-fg"}`}>
-                {isCur ? "Current plan" : `${!paid ? "Choose" : rank(t.plan) < rank(current) ? "Switch to" : "Upgrade to"} ${PLAN_NAMES[t.plan].split(" (")[0]}`}
-              </button>
+              {locked && student ? (
+                <div className="flex flex-col gap-1.5">
+                  <button disabled={relink === "busy" || relink === "sent"} onClick={() => void reverify()} className="h-9 rounded-lg bg-blue text-[13px] font-semibold text-white disabled:opacity-50">
+                    {relink === "sent" ? "Link sent" : relink === "busy" ? "Sending…" : "Re-verify student status"}
+                  </button>
+                  <p className="m-0 text-xs text-muted">{relink === "sent" ? `Open the link we sent to ${student.email}.` : relink === "error" ? "Could not send the link. Try again in a minute." : "Your student verification is over a year old."}</p>
+                </div>
+              ) : locked ? (
+                <div className="flex flex-col gap-1.5">
+                  <button disabled className="h-9 rounded-lg bg-fill text-[13px] font-semibold text-muted">Students only</button>
+                  <p className="m-0 text-xs text-muted">Needs an account created with a university email.</p>
+                </div>
+              ) : (
+                <button disabled={isCur} onClick={() => router.push(`/checkout?plan=${encodeURIComponent(t.plan)}`)}
+                  className={`h-9 rounded-lg text-[13px] font-semibold ${isCur ? "bg-fill text-muted" : featured ? "bg-blue text-white" : "bg-strong text-strong-fg"}`}>
+                  {isCur ? "Current plan" : `${!paid ? "Choose" : rank(t.plan) < rank(current) ? "Switch to" : "Upgrade to"} ${PLAN_NAMES[t.plan].split(" (")[0]}`}
+                </button>
+              )}
             </div>
           );
         })}
       </div>
       <p className="w-full rounded-xl bg-fill px-4 py-3 text-left text-[13px] text-ink/80"><b>Pre-Bar and Bar Course are Supreme Justice (Max) only.</b> Student and Senior Judicial (Pro) cover Levels 100 to 400.</p>
-      <p className="text-xs text-muted">{CREDIT_NAME} power Notified AI. One message costs 1 credit, and your allowance resets each month. Verify with your university email for a 7-day Senior Judicial (Pro) trial.</p>
+      <p className="text-xs text-muted">{CREDIT_NAME} power Notified AI. One message costs 1 credit, and your allowance resets each month. The Student plan is for accounts verified with a university email, and is checked again each year.</p>
     </div>
   );
 }

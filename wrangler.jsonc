@@ -27,7 +27,7 @@
   "durable_objects": { "bindings": [{ "name": "SCANNER", "class_name": "Scanner" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Scanner"] }],
   "send_email": [
-    // Cloudflare Email Service: university email verification. Sends from notifiedlaw.com, which must be
+    // Cloudflare Email Service: student sign-in links. Sends from notifiedlaw.com, which must be
     // onboarded to Email Sending (wrangler email sending enable notifiedlaw.com). Simulated under local dev.
     { "name": "EMAIL" }
   ],
@@ -37,7 +37,7 @@
     { "name": "RL_READS", "namespace_id": "1002", "simple": { "limit": 120, "period": 60 } },
     { "name": "RL_ADMIN", "namespace_id": "1003", "simple": { "limit": 5, "period": 60 } },
     { "name": "RL_MEDIA", "namespace_id": "1004", "simple": { "limit": 300, "period": 60 } },
-    // University email links: per account, per IP and per recipient (src/app/api/uni-email).
+    // Student sign-in links: per recipient and per IP (sendStudentLink in src/lib/auth.ts).
     { "name": "RL_UNI_EMAIL", "namespace_id": "1005", "simple": { "limit": 3, "period": 60 } }
   ],
   "vars": {

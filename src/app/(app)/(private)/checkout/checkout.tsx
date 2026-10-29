@@ -19,7 +19,7 @@ export function Checkout() {
   const target: PaidPlan = isPaidPlan(asked) ? asked : "Pro Max";
   const price = cedis(PLAN_PRICES[target]);
   const item = PLAN_NAMES[target];
-  const { setPlan } = usePlan();
+  const { setPlan, student } = usePlan();
   const [net, setNet] = useState(0);
   const [phone, setPhone] = useState("24 555 0123");
   const [phoneTouched, setPhoneTouched] = useState(false);
@@ -36,6 +36,15 @@ export function Checkout() {
       setStage("done");
     }, 1800);
   };
+
+  if (target === "Student" && !student?.eligible)
+    return (
+      <div className="mx-auto flex max-w-[480px] flex-col items-center gap-3 px-5 py-20 text-center">
+        <h1 className="text-2xl font-bold">The Student plan needs a verified student account</h1>
+        <p className="text-sm text-muted">{student ? "Your student verification is over a year old. Re-verify from Plans." : "Create a student account with your university email to choose it."}</p>
+        <Btn href="/plans">Back to plans</Btn>
+      </div>
+    );
 
   if (stage !== "form")
     return (

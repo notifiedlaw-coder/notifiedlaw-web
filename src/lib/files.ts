@@ -25,9 +25,9 @@ export const CONTENT_TYPES: Record<FileKind, string> = {
 /** Object key for an upload: the owner's id, then the row id. Never built from the file name. */
 export const fileKey = (userId: string, id: string) => `users/${userId}/${id}`;
 
-/** Storage the user's plan includes now (a running university trial counts as Pro). */
+/** Storage the user's plan includes now. */
 export async function quotaFor(userId: string) {
-  const [row] = await getDb().select({ plan: subscription.plan, trialEndsAt: subscription.trialEndsAt }).from(subscription).where(eq(subscription.userId, userId));
+  const [row] = await getDb().select({ plan: subscription.plan }).from(subscription).where(eq(subscription.userId, userId));
   return PLAN_STORAGE[planOf(row)];
 }
 

@@ -74,7 +74,7 @@ export default function Landing() {
           className="group flex max-w-full items-center gap-3 rounded-[22px] bg-[#F5F5F7] py-1.5 pl-1.5 pr-4 text-left text-sm leading-snug text-[#1D1D1F]! no-underline transition-colors hover:bg-[#EBEBF0] hover:text-[#1D1D1F]! sm:rounded-full"
         >
           <span className="shrink-0 rounded-full bg-[#1D1D1F] px-3 py-1.5 text-xs font-semibold text-white">For law students</span>
-          <span><b className="font-semibold">Try Supreme Justice free for 7 days</b> with your university email</span>
+          <span><b className="font-semibold">Student plan from {cedis(PLAN_PRICES.Student)} a month</b> with your university email</span>
           <span aria-hidden className="shrink-0 text-lg leading-none text-[#6E6E73] transition-transform group-hover:translate-x-0.5">›</span>
         </a>
       </div>

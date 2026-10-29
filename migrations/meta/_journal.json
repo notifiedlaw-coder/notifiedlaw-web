@@ -78,6 +78,20 @@
       "when": 1793234426561,
       "tag": "0010_drop_credits_extra",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1793235051886,
+      "tag": "0011_drop_uni_email_trial",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1793235052371,
+      "tag": "0012_student_signup",
+      "breakpoints": true
     }
   ]
 }

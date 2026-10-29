@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 
 export const metadata = {
   title: "Create account",
-  description: "Join NotifiedLaw and start studying Ghanaian law. Law students with a university email get a 7-day Senior Judicial trial.",
+  description: "Join NotifiedLaw and start studying Ghanaian law. Students verify with their university email; professionals sign up with Google.",
   alternates: { canonical: "/signup" },
 };
 

@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 // The four tables Better Auth needs. App data (plans, progress, streaks) gets its own tables below.
 export const user = sqliteTable("user", {
@@ -74,33 +74,28 @@ export const subscription = sqliteTable("subscription", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
   plan: text("plan").notNull().default("None"), // None | Student | Pro | Pro Max
   creditsUsed: integer("credits_used").notNull().default(0),
-  // Set once, when a university email is verified: Pro until this time. Never cleared, so it also records
-  // that the account has had its one trial.
-  trialEndsAt: integer("trial_ends_at", { mode: "timestamp_ms" }),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 
-// Verified university emails. The address is the key, so each one can back only one account, ever: there is
-// no foreign key to user, so deleting the account does not free the address for a second trial.
-export const uniEmail = sqliteTable("uni_email", {
-  email: text("email").primaryKey(), // normalised: lower-case, no +tag
-  userId: text("user_id").notNull().unique(), // one verified address per account
-  university: text("university").notNull(),
-  verifiedAt: integer("verified_at", { mode: "timestamp_ms" }).notNull(),
-});
-
-// A verification link waiting to be clicked; at most one per user. Only a hash of the token is stored.
-// Pending rows do not reserve the address, so nobody can block someone else's email by requesting it first.
-export const uniEmailRequest = sqliteTable("uni_email_request", {
+// Student accounts: the account's own email is on a university's domain. The row is written, and verifiedAt
+// moved on, every time the user proves they still hold that mailbox by signing in (an emailed link, or Google
+// for universities on Google Workspace). The Student plan needs a proof from the last STUDENT_VERIFY_DAYS.
+// A student ID can back only one account per university; it stays null until onboarding asks for it.
+export const student = sqliteTable("student", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
-  email: text("email").notNull(),
+  email: text("email").notNull().unique(),
   university: text("university").notNull(),
-  tokenHash: text("token_hash").notNull().unique(),
-  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  studentId: text("student_id"),
+  verifiedAt: integer("verified_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [uniqueIndex("student_university_student_id").on(t.university, t.studentId)]);
+
+// Sign-in links sent to each university address, for the resend wait and the daily cap. Keyed on the
+// recipient, not an account, because the account does not exist until the first link is used.
+export const studentLink = sqliteTable("student_link", {
+  email: text("email").primaryKey(),
   sentAt: integer("sent_at", { mode: "timestamp_ms" }).notNull(),
-  // Daily cap on links: how many were sent since windowStart. Kept when the address is changed.
-  sends: integer("sends").notNull().default(1),
-  windowStart: integer("window_start", { mode: "timestamp_ms" }), // null: rows from before the cap
+  sends: integer("sends").notNull().default(1), // links sent since windowStart
+  windowStart: integer("window_start", { mode: "timestamp_ms" }).notNull(),
 });
 
 // Content synced from the Notion "LAW DATABASE". One flexible table for every kind of page so a new Notion

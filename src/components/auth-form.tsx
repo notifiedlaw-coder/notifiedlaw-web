@@ -3,7 +3,9 @@
 import { Roboto } from "next/font/google";
 import Link from "next/link";
 import { useState } from "react";
+import { StudentEmailForm } from "@/components/student-email-form";
 import { authClient } from "@/lib/auth-client";
+import { PLAN_PRICES, cedis } from "@/lib/content";
 
 const BULLETS = ["Notes for every Level", "Hot Topics podcast write-ups", "Case briefs, articles and exam prep"];
 // Google's sign-in branding asks for Roboto Medium on the button.
@@ -21,16 +23,75 @@ function GoogleG() {
   );
 }
 
+type Path = "choose" | "student" | "professional";
+
 export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const login = mode === "login";
-  const next = login ? "/dashboard" : "/onboarding";
+  const [path, setPath] = useState<Path>(login ? "professional" : "choose");
   const [busy, setBusy] = useState(false);
   const google = async () => {
     setBusy(true);
-    // Both screens use Google; new users land in onboarding either way, and returning users skip it.
-    const { error } = await authClient.signIn.social({ provider: "google", callbackURL: next, newUserCallbackURL: "/onboarding" });
+    // New users land in onboarding; returning users go to the dashboard.
+    const { error } = await authClient.signIn.social({ provider: "google", callbackURL: "/dashboard", newUserCallbackURL: "/onboarding" });
     if (error) setBusy(false);
   };
+  const googleBtn = (
+    <button type="button" onClick={google} disabled={busy} className={`google-btn ${roboto.className} flex h-11 cursor-pointer items-center justify-center gap-2.5 rounded-full px-4 text-[15px] disabled:opacity-60`}>
+      <GoogleG />
+      {busy ? "Redirecting to Google…" : "Continue with Google"}
+    </button>
+  );
+  const back = <button type="button" onClick={() => setPath("choose")} className="self-start text-sm text-muted">← Back</button>;
+
+  let body: React.ReactNode;
+  if (login) {
+    body = (
+      <>
+        <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">Sign in to NotifiedLaw</h2>
+        <p className="m-0 text-sm text-muted">Professionals sign in with Google.</p>
+        {googleBtn}
+        <div className="my-1 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-edge/10" />Students<span className="h-px flex-1 bg-edge/10" /></div>
+        <StudentEmailForm cta="Email me a sign-in link" />
+      </>
+    );
+  } else if (path === "choose") {
+    body = (
+      <>
+        <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">Create your account</h2>
+        <p className="m-0 text-sm text-muted">Which describes you?</p>
+        <div className="flex flex-col gap-2">
+          {([
+            ["student", "I’m a student", `Student plan from ${cedis(PLAN_PRICES.Student)} a month. Needs your university email.`],
+            ["professional", "I’m a professional", "Senior Judicial (Pro) or Supreme Justice (Max). Sign up with Google."],
+          ] as const).map(([id, title, hint]) => (
+            <button key={id} type="button" onClick={() => setPath(id)} className="rounded-xl bg-surface px-4 py-3.5 text-left shadow-[0_0_0_0.5px_var(--hairline)] hover:shadow-[0_0_0_2px_#007AFF]">
+              <div className="text-[15px] font-semibold">{title}</div>
+              <div className="text-xs text-muted">{hint}</div>
+            </button>
+          ))}
+        </div>
+      </>
+    );
+  } else if (path === "student") {
+    body = (
+      <>
+        {back}
+        <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">Verify you’re a student</h2>
+        <p className="m-0 text-sm text-muted">Enter the email your university gave you. We’ll send a link to confirm it, then you’ll set up your profile and choose your plan.</p>
+        <StudentEmailForm cta="Send verification link" />
+      </>
+    );
+  } else {
+    body = (
+      <>
+        {back}
+        <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">Sign up as a professional</h2>
+        <p className="m-0 text-sm text-muted">Continue with your Google account, set up your profile, then choose Senior Judicial (Pro) or Supreme Justice (Max).</p>
+        {googleBtn}
+      </>
+    );
+  }
+
   return (
     <div className="grid min-h-dvh md:grid-cols-[1.1fr_1fr]">
       <div className="relative flex flex-col justify-end overflow-hidden bg-ink-dark px-5 py-5 text-white sm:px-8 md:min-h-dvh md:p-14">
@@ -58,12 +119,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
       <main id="main" tabIndex={-1} className="relative flex items-start justify-center bg-surface px-5 py-6 sm:px-6 md:items-center md:py-10">
         <Link href="/" className="absolute right-5 top-5 hidden text-sm font-medium md:block" style={{ color: "var(--color-link)", textDecoration: "none" }}>← Back to home</Link>
         <div className="flex w-full max-w-[360px] flex-col gap-3">
-          <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">{login ? "Sign in to NotifiedLaw" : "Create your account"}</h2>
-          <p className="text-sm text-muted">Use your student email to get a 7-day Senior Judicial (Pro) trial.</p>
-          <button type="button" onClick={google} disabled={busy} className={`google-btn ${roboto.className} mt-2 flex h-11 cursor-pointer items-center justify-center gap-2.5 rounded-full px-4 text-[15px] disabled:opacity-60`}>
-            <GoogleG />
-            {busy ? "Redirecting to Google…" : "Continue with Google"}
-          </button>
+          {body}
           <p className="text-center text-sm text-muted">
             {login ? "New here? " : "Already have an account? "}
             <Link href={login ? "/signup" : "/login"} style={{ color: "var(--color-link)" }}>{login ? "Create an account" : "Sign in"}</Link>

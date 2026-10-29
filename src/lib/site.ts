@@ -21,7 +21,7 @@ export const abs = (path = "/") => new URL(path, SITE.url).toString();
 /** Routes behind the app shell that hold per-user state. Kept out of search and AI indexes. */
 export const PRIVATE_PATHS = [
   "/dashboard", "/settings", "/checkout", "/onboarding", "/exam-prep", "/hot-topics", "/plans", "/login",
-  "/ai", "/flashcards", "/leaderboard", "/files", "/verify-uni",
+  "/ai", "/flashcards", "/leaderboard", "/files", "/verify-email",
 ] as const;
 
 export const FAQ = [
@@ -42,8 +42,8 @@ export const FAQ = [
     a: "Yes. NotifiedLaw accepts MTN MoMo, Telecel Cash and AT Money.",
   },
   {
-    q: "Is there a free trial for law students?",
-    a: "Yes. Law students who sign up with a university email get a 7-day Senior Judicial trial.",
+    q: "How do students get the Student plan?",
+    a: "Choose Student when you sign up and enter your university email. We email you a link to confirm it, then you add your name and student ID and choose your plan. Each university email and student ID can be used for one account, and student status is checked again each year.",
   },
   {
     q: "How does exam marking work?",
