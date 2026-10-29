@@ -164,3 +164,11 @@ export const userFile = sqliteTable("user_file", {
   sha256: text("sha256").notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [index("user_file_user").on(t.userId, t.createdAt)]);
+
+// Study TimeTable: one per user, private to its owner. `input` is the JSON TimetableInput from lib/timetable
+// (courses with exam dates, weekly hours, session length); the day-by-day plan is generated from it on view.
+export const timetable = sqliteTable("timetable", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  input: text("input").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

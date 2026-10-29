@@ -13,6 +13,7 @@ const PATHS: Record<string, string> = {
   lock: "M4.5 7h7a1.5 1.5 0 0 1 1.5 1.5v4A1.5 1.5 0 0 1 11.5 14h-7A1.5 1.5 0 0 1 3 12.5v-4A1.5 1.5 0 0 1 4.5 7zM5.5 7V5a2.5 2.5 0 0 1 5 0v2",
   back: "M10 3 5 8l5 5",
   headphones: "M3 10V8a5 5 0 0 1 10 0v2M3.5 10h1.5v4H3.5zM11 10h1.5v4H11z",
+  calendar: "M3.5 3h9A1.5 1.5 0 0 1 14 4.5v8a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12.5v-8A1.5 1.5 0 0 1 3.5 3zM2 6.5h12M5.5 1.5v3M10.5 1.5v3",
 };
 
 export function Icon({

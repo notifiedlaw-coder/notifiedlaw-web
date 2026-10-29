@@ -16,6 +16,7 @@ export const NAV_STUDY: NavItem[] = [
   { href: "/library", label: "Library", icon: "book" },
   { href: "/flashcards", label: "Flashcards", icon: "cards" },
   { href: "/exam-prep", label: "Exam Prep", icon: "check" },
+  { href: "/timetable", label: "TimeTable", icon: "calendar" },
   { href: "/leaderboard", label: "Leaderboard", icon: "trophy", proLock: true },
 ];
 
@@ -34,6 +35,7 @@ export function titleFor(pathname: string): { title: string; sub: string } {
     ["/library", "Library", "Course notes by level"],
     ["/flashcards", "Flashcards", "Review key points by course"],
     ["/exam-prep", "Exam Prep", "Mock questions"],
+    ["/timetable", "TimeTable", "Your personal study plan"],
     ["/leaderboard", "Leaderboard", "Weekly quiz"],
     ["/case-law", "Case Law", "Case briefs"],
     ["/files", "My Files", "Your uploaded notes"],
