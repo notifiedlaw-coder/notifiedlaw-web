@@ -3,7 +3,7 @@ import { limited } from "@/lib/rate-limit";
 import { readBytes } from "@/lib/http";
 import { MAX_FILE_BYTES } from "@/lib/data";
 import { checkFile, cleanFileName } from "@/lib/file-check";
-import { CONTENT_TYPES, dropRow, fileKey, filesBucket, filesFor, quotaFor, reserve } from "@/lib/files";
+import { CONTENT_TYPES, dropRow, fileKey, filesBucket, filesFor, foldersOf, quotaFor, reserve } from "@/lib/files";
 
 const noStore = { "cache-control": "private, no-store" };
 
@@ -17,7 +17,8 @@ export async function GET(req: Request) {
 }
 
 /**
- * Uploads one file. The body is the raw file and the x-file-name header its name, URI-encoded. The bytes are
+ * Uploads one file. The body is the raw file, the x-file-name header its name (URI-encoded) and x-folder-id the
+ * folder it goes in (none: top level). The bytes are
  * checked (src/lib/file-check.ts), space is reserved against the plan's quota, then the file goes to R2.
  */
 export async function POST(req: Request) {
@@ -39,9 +40,12 @@ export async function POST(req: Request) {
   const name = cleanFileName(rawName, check.kind);
   if (!name) return Response.json({ error: `This file's name says one type but it is really a ${check.kind.toUpperCase()}. Rename it and try again.` }, { status: 422 });
 
+  const folderId = req.headers.get("x-folder-id") || null;
+  if (folderId && !(await foldersOf(userId)).some((f) => f.id === folderId)) return Response.json({ error: "Folder not found." }, { status: 404 });
+
   const id = crypto.randomUUID();
   const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
-  const row = { id, userId, key: fileKey(userId, id), name, kind: check.kind, size: bytes.length, sha256, createdAt: new Date() };
+  const row = { id, userId, key: fileKey(userId, id), name, kind: check.kind, folderId, size: bytes.length, sha256, createdAt: new Date() };
   if (!(await reserve(row, quota))) return Response.json({ error: "Your storage is full. Delete some files or upgrade your plan for more space." }, { status: 413 });
   try {
     await filesBucket().put(row.key, bytes, { httpMetadata: { contentType: CONTENT_TYPES[check.kind] }, customMetadata: { userId }, sha256 });
@@ -49,5 +53,5 @@ export async function POST(req: Request) {
     await dropRow(id);
     return Response.json({ error: "The upload failed. Try again." }, { status: 502 });
   }
-  return Response.json({ id, name, kind: check.kind, size: row.size, createdAt: row.createdAt.getTime() }, { status: 201, headers: noStore });
+  return Response.json({ id, name, kind: check.kind, size: row.size, folderId, createdAt: row.createdAt.getTime() }, { status: 201, headers: noStore });
 }

@@ -1,7 +1,10 @@
-import { userIdFrom } from "@/lib/auth";
-import type { FileKind } from "@/lib/file-check";
+import { and, eq } from "drizzle-orm";
+import { getDb, userIdFrom } from "@/lib/auth";
+import { userFile } from "@/db/schema";
+import { cleanFileName, type FileKind } from "@/lib/file-check";
+import { readJson } from "@/lib/http";
 import { limited } from "@/lib/rate-limit";
-import { CONTENT_TYPES, dropRow, filesBucket, ownFile } from "@/lib/files";
+import { CONTENT_TYPES, dropFiles, filesBucket, foldersOf, ownFile } from "@/lib/files";
 
 /** Header value for the download name: an ASCII fallback plus the exact name, RFC 6266 style. */
 function disposition(type: "inline" | "attachment", name: string) {
@@ -41,7 +44,33 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if (rl) return rl;
   const row = await ownFile(userId, (await params).id);
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
-  await filesBucket().delete(row.key);
-  await dropRow(row.id);
+  await dropFiles([row]);
   return Response.json({ ok: true });
+}
+
+/** Renames a file (its extension stays) and/or moves it to another of the user's folders (folderId null: top level). */
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const userId = await userIdFrom(req);
+  if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
+  const rl = await limited(req, "WRITES", userId);
+  if (rl) return rl;
+  const row = await ownFile(userId, (await params).id);
+  if (!row) return Response.json({ error: "Not found" }, { status: 404 });
+  const body = (await readJson(req)) as { name?: unknown; folderId?: unknown } | null;
+  const set: { name?: string; folderId?: string | null } = {};
+  if (body?.name !== undefined) {
+    const kind = row.kind as FileKind;
+    const raw = typeof body.name === "string" ? body.name.trim() : "";
+    const name = raw && cleanFileName(raw.toLowerCase().endsWith(`.${kind}`) ? raw : `${raw}.${kind}`, kind);
+    if (!name) return Response.json({ error: "Give the file a name." }, { status: 400 });
+    set.name = name;
+  }
+  if (body?.folderId !== undefined) {
+    const folderId = typeof body.folderId === "string" ? body.folderId : null;
+    if (folderId && !(await foldersOf(userId)).some((f) => f.id === folderId)) return Response.json({ error: "Folder not found." }, { status: 404 });
+    set.folderId = folderId;
+  }
+  if (!Object.keys(set).length) return Response.json({ error: "Nothing to change." }, { status: 400 });
+  await getDb().update(userFile).set(set).where(and(eq(userFile.id, row.id), eq(userFile.userId, userId)));
+  return Response.json({ ok: true, ...set });
 }
