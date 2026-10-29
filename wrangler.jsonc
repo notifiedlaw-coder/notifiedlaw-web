@@ -1,7 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "notifiedlaw",
-  "main": ".open-next/worker.js",
+  // OpenNext's handler plus the Scanner container class.
+  "main": "custom-worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
@@ -19,6 +20,12 @@
     // Users, sessions and (later) progress. Schema lives in src/db/schema.ts; migrations in ./migrations.
     { "binding": "DB", "database_name": "notifiedlaw-db", "database_id": "0a0b819f-d1f9-4c76-89ba-f2f9e330b1ae", "migrations_dir": "migrations" }
   ],
+  // ClamAV for My Files uploads (scanner/Dockerfile, src/lib/scan.ts). standard-1 (4 GiB) fits clamd's signatures.
+  "containers": [
+    { "class_name": "Scanner", "image": "./scanner/Dockerfile", "instance_type": "standard-1", "max_instances": 1 }
+  ],
+  "durable_objects": { "bindings": [{ "name": "SCANNER", "class_name": "Scanner" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Scanner"] }],
   "send_email": [
     // Cloudflare Email Service: university email verification. Sends from notifiedlaw.com, which must be
     // onboarded to Email Sending (wrangler email sending enable notifiedlaw.com). Simulated under local dev.

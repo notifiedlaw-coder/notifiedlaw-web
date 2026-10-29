@@ -3,6 +3,7 @@ import { limited } from "@/lib/rate-limit";
 import { readBytes } from "@/lib/http";
 import { MAX_FILE_BYTES } from "@/lib/data";
 import { checkFile, cleanFileName } from "@/lib/file-check";
+import { scanFile } from "@/lib/scan";
 import { CONTENT_TYPES, dropRow, fileKey, filesBucket, filesFor, foldersOf, quotaFor, reserve } from "@/lib/files";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -18,8 +19,8 @@ export async function GET(req: Request) {
 
 /**
  * Uploads one file. The body is the raw file, the x-file-name header its name (URI-encoded) and x-folder-id the
- * folder it goes in (none: top level). The bytes are
- * checked (src/lib/file-check.ts), space is reserved against the plan's quota, then the file goes to R2.
+ * folder it goes in (none: top level). The bytes are checked (src/lib/file-check.ts) and virus scanned
+ * (src/lib/scan.ts), space is reserved against the plan's quota, then the file goes to R2.
  */
 export async function POST(req: Request) {
   const userId = await userIdFrom(req);
@@ -37,6 +38,8 @@ export async function POST(req: Request) {
   if (!bytes) return Response.json({ error: `Files can be up to ${MAX_FILE_BYTES / 1024 / 1024} MB.` }, { status: 413 });
   const check = await checkFile(bytes);
   if (!check.ok) return Response.json({ error: check.error }, { status: 422 });
+  const scan = await scanFile(bytes);
+  if (!scan.ok) return Response.json({ error: scan.error }, { status: scan.infected ? 422 : 503 });
   const name = cleanFileName(rawName, check.kind);
   if (!name) return Response.json({ error: `This file's name says one type but it is really a ${check.kind.toUpperCase()}. Rename it and try again.` }, { status: 422 });
 
