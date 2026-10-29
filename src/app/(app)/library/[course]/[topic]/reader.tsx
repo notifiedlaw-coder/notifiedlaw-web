@@ -40,7 +40,9 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     scroller.current?.scrollTo({ top: 0 });
   };
   // Parsed once per chapter, so selecting text (which re-renders) leaves the text's DOM, and the selection, alone.
-  const md = useMemo(() => <Markdown source={ch.md} from={total > 1 ? 3 : 2} />, [ch.md, total]);
+  // A chapter's own title shows above it (a Notion heading 1), even when the topic has only the one chapter.
+  const titled = total > 1 || ch.title !== title;
+  const md = useMemo(() => <Markdown source={ch.md} from={titled ? 3 : 2} />, [ch.md, titled]);
 
   // ---- notes
   const notes = useTopicNotes(topicId);
@@ -244,7 +246,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
               ))}
             </div>
           )}
-          {total > 1 && <h2 className="mb-2.5 mt-7 text-[26px] font-bold tracking-[-0.01em]">{ch.title}</h2>}
+          {titled && <h2 className="mb-2.5 mt-7 text-[26px] font-bold tracking-[-0.01em]">{ch.title}</h2>}
           {/* Selectable so passages can be highlighted for notes; CopyGuard still blocks copy, cut, drag and right-click. */}
           <div ref={text} onClick={topicId ? onTextClick : undefined} className={topicId ? "nl-selectable" : undefined}>{md}</div>
           <div className="mt-8 flex items-center justify-between gap-3 border-t border-edge/10 pt-5" style={{ fontFamily: "var(--font-sans)", fontSize: 14 }}>

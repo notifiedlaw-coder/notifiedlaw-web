@@ -89,11 +89,12 @@ export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 })
       out.push(<pre key={k} className="my-4 overflow-x-auto rounded-xl bg-fill p-4 text-[14px] leading-relaxed"><code>{code.join("\n")}</code></pre>);
       continue;
     }
-    const h = /^(#{1,4})\s+(.*)$/.exec(line);
+    const h = /^(#{1,5})\s+(.*)$/.exec(line);
     if (h) {
       const level = h[1].length;
-      const cls = ["", "mb-3 mt-8 text-[28px] font-bold", "mb-2.5 mt-7 text-[26px] font-bold", "mb-2 mt-6 text-[21px] font-bold", "mb-2 mt-5 text-[18px] font-bold"][level];
-      const Tag = `h${level >= 4 ? from + 1 : from}` as "h3";
+      const cls = ["", "mb-3 mt-8 text-[28px] font-bold", "mb-2.5 mt-7 text-[26px] font-bold", "mb-2 mt-7 text-[22px] font-bold", "mb-2 mt-6 text-[19px] font-bold", "mb-2 mt-5 text-[17px] font-semibold"][level];
+      // "###" (a sub-chapter) is the `from` level; deeper ones step down from it.
+      const Tag = `h${Math.min(6, from + Math.max(0, level - 3))}` as "h3";
       out.push(<Tag key={k} className={`${cls} tracking-[-0.01em]`}>{inline(h[2], k)}</Tag>);
       i++;
       continue;
@@ -136,7 +137,7 @@ export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 })
       continue;
     }
     const para: string[] = [];
-    for (; i < lines.length && lines[i].trim() && !/^(#{1,4}\s|>|```|\s*([-*+]|\d+\.)\s+|-{3,}\s*$)/.test(lines[i]); i++) para.push(lines[i]);
+    for (; i < lines.length && lines[i].trim() && !/^(#{1,5}\s|>|```|\s*([-*+]|\d+\.)\s+|-{3,}\s*$)/.test(lines[i]); i++) para.push(lines[i]);
     out.push(<p key={k} className="mb-4">{inline(para.join(" "), k)}</p>);
   }
   return <>{out}</>;

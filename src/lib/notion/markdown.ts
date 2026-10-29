@@ -50,11 +50,12 @@ function render(blocks: Block[], depth: number, out: string[]) {
     const kids = () => (b.children?.length ? b.children : []);
     switch (b.type) {
       case "paragraph": { const t = text(b); out.push(t ? pad + t : ""); render(kids(), depth, out); break; }
-      // The page title is the h1, so top headings become chapters. A toggleable heading keeps what is folded under it.
+      // A heading 1 is a chapter ("##", since the page title is the h1) and a heading 2 a sub-chapter; heading 3 and 4
+      // nest below. A toggleable heading keeps what is folded under it.
       case "heading_1": out.push(`## ${text(b)}`, ""); render(kids(), depth, out); break;
-      case "heading_2": out.push(`## ${text(b)}`, ""); render(kids(), depth, out); break;
-      case "heading_3": out.push(`### ${text(b)}`, ""); render(kids(), depth, out); break;
-      case "heading_4": out.push(`#### ${text(b)}`, ""); render(kids(), depth, out); break;
+      case "heading_2": out.push(`### ${text(b)}`, ""); render(kids(), depth, out); break;
+      case "heading_3": out.push(`#### ${text(b)}`, ""); render(kids(), depth, out); break;
+      case "heading_4": out.push(`##### ${text(b)}`, ""); render(kids(), depth, out); break;
       case "bulleted_list_item": out.push(`${pad}- ${text(b)}`); render(kids(), depth + 1, out); break;
       case "numbered_list_item": out.push(`${pad}${++n}. ${text(b)}`); render(kids(), depth + 1, out); break;
       case "to_do": out.push(`${pad}- ${(b.to_do as { checked?: boolean }).checked ? "[x]" : "[ ]"} ${text(b)}`); break;

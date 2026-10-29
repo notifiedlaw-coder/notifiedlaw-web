@@ -5,13 +5,13 @@
 // Running it again on its own output changes nothing.
 
 /** Raise this whenever the rules below change, so the next sync reads every page from Notion again. */
-export const TIDY_VERSION = 3;
+export const TIDY_VERSION = 4;
 
 const LIGATURES: Record<string, string> = { "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st" };
 const SMALL = new Set(["a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "of", "on", "or", "the", "to", "v", "vs", "with"]);
 
 /** Lines Markdown gives a meaning of their own, which are never joined to the text around them. */
-const BLOCK = /^(#{1,4}\s|>|```|\||!\[|-{3,}\s*$)/;
+const BLOCK = /^(#{1,5}\s|>|```|\||!\[|-{3,}\s*$)/;
 /** A list item: a bullet, or a one- or two-digit number (so "2005. She wrote" is not taken for item 2005). */
 const LIST = /^\s*([-*+]|\d{1,2}\.)\s/;
 const BOLD_LINE = /^\*\*([^*]+)\*\*$/;
@@ -77,7 +77,7 @@ export function tidyMarkdown(md: string): string {
   return out.map((p) => {
     // A Notion heading made bold, or all caps, arrives as "## **NATURE OF CONTRACT**": headings are bold
     // already, so the markers go, and capitals become title case like the headings made from plain lines.
-    const h = /^(#{1,4})\s+(.*)$/.exec(p);
+    const h = /^(#{1,5})\s+(.*)$/.exec(p);
     if (h && !p.includes("\n")) {
       const t = h[2].replace(/\*\*/g, "").replace(/^[*_](.*)[*_]$/, "$1").trim();
       return `${h[1]} ${(isCaps(t) ? titleCase(t) : t).replace(/[.:]$/, "")}`;
