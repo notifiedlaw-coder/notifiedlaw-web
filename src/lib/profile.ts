@@ -25,7 +25,7 @@ export type ProfileInput = {
   goals: string[];
 };
 export type Profile = ProfileInput;
-export type SubscriptionState = { plan: Plan; creditsUsed: number; creditsExtra: number };
+export type SubscriptionState = { plan: Plan; creditsUsed: number };
 /** A verified university email, or the one a link was last sent to. Times are epoch ms. */
 export type UniEmailState = { email: string; university: string; verified: boolean; sentAt: number | null };
 export type Me = {
@@ -134,8 +134,6 @@ export function parseSubscription(b: unknown): Partial<SubscriptionState> | stri
   const o = (b ?? {}) as Record<string, unknown>;
   const out: Partial<SubscriptionState> = {};
   if (o.plan !== undefined) { if (!isPlan(o.plan)) return "Unknown plan."; out.plan = o.plan; }
-  for (const k of ["creditsUsed", "creditsExtra"] as const) {
-    if (o[k] !== undefined) { const n = count(o[k]); if (n === null) return `${k} must be a whole number.`; out[k] = n; }
-  }
+  if (o.creditsUsed !== undefined) { const n = count(o.creditsUsed); if (n === null) return "creditsUsed must be a whole number."; out.creditsUsed = n; }
   return out;
 }

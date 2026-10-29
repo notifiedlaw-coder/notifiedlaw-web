@@ -53,10 +53,3 @@ export const NETWORKS = [
 export const PLAN_PRICES = { Student: 60, Pro: 160, "Pro Max": 360 } as const;
 export const cedis = (n: number) => `GH₵${n}`;
 
-/** Extra Notify Credits any plan can buy. They never expire. Placeholder prices. */
-export const CREDIT_PACKS = [
-  { id: "50", credits: 50, price: "GH₵15" },
-  { id: "150", credits: 150, price: "GH₵40", tag: "BEST VALUE" },
-  { id: "400", credits: 400, price: "GH₵95" },
-];
-

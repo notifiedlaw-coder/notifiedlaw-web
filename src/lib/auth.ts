@@ -71,7 +71,7 @@ export async function meFor(userId: string): Promise<Me> {
       ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",
       jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
     } as Me["profile"] : null,
-    subscription: { plan: planOf(s), creditsUsed: s?.creditsUsed ?? 0, creditsExtra: s?.creditsExtra ?? 0, trialEndsAt: trialEndsAt?.getTime() ?? null, onTrial },
+    subscription: { plan: planOf(s), creditsUsed: s?.creditsUsed ?? 0, trialEndsAt: trialEndsAt?.getTime() ?? null, onTrial },
     uniEmail: verified ? { email: verified.email, university: verified.university, verified: true, sentAt: null }
       : pending ? { email: pending.email, university: pending.university, verified: false, sentAt: pending.sentAt.getTime() } : null,
   };

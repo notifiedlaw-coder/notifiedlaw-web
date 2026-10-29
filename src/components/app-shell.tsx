@@ -86,8 +86,8 @@ function PlanBlock() {
       </div>
       <div className="flex items-center gap-2">
         <Link
-          href="/plans#credits"
-          title={`${CREDIT_NAME}: buy more`}
+          href="/plans"
+          title={CREDIT_NAME}
           className={`${pill} flex-1 tabular-nums`}
           style={{ textDecoration: "none", color: "inherit" }}
         >

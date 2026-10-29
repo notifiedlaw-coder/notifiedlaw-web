@@ -8,9 +8,9 @@ import { DEMO_BILLING } from "@/lib/site";
 type Ctx = {
   /** `paid`: any plan, Student up. `pro`: Senior Judicial (Pro) or Supreme Justice (Max). */
   plan: Plan; setPlan: (p: Plan) => void; paid: boolean; pro: boolean; max: boolean;
-  /** Total Notify Credits available: what is left of the monthly allowance plus purchased extras. */
-  credits: number; allowance: number; extra: number;
-  spend: (n: number) => boolean; addCredits: (n: number) => void;
+  /** Notify Credits available: what is left of the monthly allowance. */
+  credits: number; allowance: number;
+  spend: (n: number) => boolean;
   /** Onboarding answers; null for guests, before they load, or if onboarding is not done. */
   profile: Profile | null;
   setLevel: (l: Level) => void;
@@ -20,7 +20,7 @@ type Ctx = {
   trialEndsAt: number | null; onTrial: boolean;
   uniEmail: UniEmailState | null; setUniEmail: (u: UniEmailState) => void;
 };
-const PlanCtx = createContext<Ctx>({ plan: "None", setPlan: () => {}, paid: false, pro: false, max: false, credits: 0, allowance: 0, extra: 0, spend: () => false, addCredits: () => {}, profile: null, setLevel: () => {}, setProfile: () => {}, trialEndsAt: null, onTrial: false, uniEmail: null, setUniEmail: () => {} });
+const PlanCtx = createContext<Ctx>({ plan: "None", setPlan: () => {}, paid: false, pro: false, max: false, credits: 0, allowance: 0, spend: () => false, profile: null, setLevel: () => {}, setProfile: () => {}, trialEndsAt: null, onTrial: false, uniEmail: null, setUniEmail: () => {} });
 
 const send = (url: string, method: string, body: unknown) =>
   void fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
@@ -28,36 +28,26 @@ const send = (url: string, method: string, body: unknown) =>
 // Plan, credits and profile live in D1 and are read on the server for each request (AppFrame), so the
 // first paint already shows the right plan. Guests (null) have no plan.
 export function PlanProvider({ me, children }: { me: Me | null; children: React.ReactNode }) {
-  const [state, setState] = useState<{ plan: Plan; used: number; extra: number; profile: Profile | null; uniEmail: UniEmailState | null }>(() => ({
+  const [state, setState] = useState<{ plan: Plan; used: number; profile: Profile | null; uniEmail: UniEmailState | null }>(() => ({
     plan: me && isPlan(me.subscription.plan) ? me.subscription.plan : "None",
     used: me?.subscription.creditsUsed ?? 0,
-    extra: me?.subscription.creditsExtra ?? 0,
     profile: me?.profile ?? null,
     uniEmail: me?.uniEmail ?? null,
   }));
-  const { plan, used, extra, profile, uniEmail } = state;
+  const { plan, used, profile, uniEmail } = state;
   const trialEndsAt = me?.subscription.trialEndsAt ?? null;
   const onTrial = me?.subscription.onTrial ?? false;
   // The trial unlocks Pro content but no monthly Notify Credits.
   const allowance = onTrial ? 0 : PLAN_CREDITS[plan];
-  const monthly = Math.max(0, allowance - used);
-  const credits = monthly + extra;
+  const credits = Math.max(0, allowance - used);
 
   // Demo-only: the real balance will be debited server-side with each AI request.
-  // The monthly allowance is spent first so purchased credits last.
   const spend = useCallback((n: number) => {
     if (credits < n) return false;
-    const fromMonthly = Math.min(monthly, n);
-    const next = { used: used + fromMonthly, extra: extra - (n - fromMonthly) };
-    setState((s) => ({ ...s, ...next }));
-    if (DEMO_BILLING) send("/api/subscription", "PUT", { creditsUsed: next.used, creditsExtra: next.extra });
+    setState((s) => ({ ...s, used: used + n }));
+    if (DEMO_BILLING) send("/api/subscription", "PUT", { creditsUsed: used + n });
     return true;
-  }, [credits, monthly, used, extra]);
-  const addCredits = useCallback((n: number) => {
-    if (!DEMO_BILLING) return; // production balances come from the server
-    setState((s) => ({ ...s, extra: s.extra + n }));
-    send("/api/subscription", "PUT", { creditsExtra: extra + n });
-  }, [extra]);
+  }, [credits, used]);
   const setPlan = useCallback((p: Plan) => {
     if (!DEMO_BILLING) return; // production plans come from the database
     setState((s) => ({ ...s, plan: p }));
@@ -72,8 +62,8 @@ export function PlanProvider({ me, children }: { me: Me | null; children: React.
 
   // Memoised so the many consumers only re-render when the plan or balance actually changes.
   const value = useMemo(
-    () => ({ plan, setPlan, paid: plan !== "None", pro: plan === "Pro" || plan === "Pro Max", max: plan === "Pro Max", credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile, trialEndsAt, onTrial, uniEmail, setUniEmail }),
-    [plan, setPlan, credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile, trialEndsAt, onTrial, uniEmail, setUniEmail],
+    () => ({ plan, setPlan, paid: plan !== "None", pro: plan === "Pro" || plan === "Pro Max", max: plan === "Pro Max", credits, allowance, spend, profile, setLevel, setProfile, trialEndsAt, onTrial, uniEmail, setUniEmail }),
+    [plan, setPlan, credits, allowance, spend, profile, setLevel, setProfile, trialEndsAt, onTrial, uniEmail, setUniEmail],
   );
   return <PlanCtx.Provider value={value}>{children}</PlanCtx.Provider>;
 }

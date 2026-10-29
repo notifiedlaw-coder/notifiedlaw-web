@@ -20,7 +20,7 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
 );
 
 export function Settings() {
-  const { plan, setPlan, credits, allowance, extra, profile, setLevel, onTrial, trialEndsAt } = usePlan();
+  const { plan, setPlan, credits, allowance, profile, setLevel, onTrial, trialEndsAt } = usePlan();
   const { theme, setTheme } = useTheme();
   const user = useUser();
 
@@ -37,8 +37,7 @@ export function Settings() {
       {profile && <UniEmail />}
       <Group title="Subscription">
         <Row label="Current plan">{PLAN_NAMES[plan]}{onTrial && trialEndsAt ? ` · trial until ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Accra" }).format(new Date(trialEndsAt))}` : ""}</Row>
-        <Row label={CREDIT_NAME}>{credits} available{allowance > 0 ? ` · ${allowance} monthly` : ""}{extra > 0 ? ` · ${extra} extra` : ""}</Row>
-        <Link href="/plans#credits" className="block border-t border-edge/[0.06] px-4 py-3 text-sm" style={{ textDecoration: "none" }}>Buy more credits</Link>
+        <Row label={CREDIT_NAME}>{credits} available{allowance > 0 ? ` · ${allowance} monthly` : ""}</Row>
         <Row label="Payment method">MTN MoMo · •• •• 0123</Row>
         <Link href="/plans" className="block border-t border-edge/[0.06] px-4 py-3 text-sm" style={{ textDecoration: "none" }}>Change plan</Link>
       </Group>

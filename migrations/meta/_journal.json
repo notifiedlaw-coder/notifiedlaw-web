@@ -71,6 +71,13 @@
       "when": 1793232361979,
       "tag": "0009_file_folders",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793234426561,
+      "tag": "0010_drop_credits_extra",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { usePlan } from "@/components/plan";
-import { CREDIT_PACKS, PLAN_PRICES, cedis } from "@/lib/content";
+import { PLAN_PRICES, cedis } from "@/lib/content";
 import { CREDIT_NAME, PAID_PLANS, PLAN_CREDITS, PLAN_NAMES, type PaidPlan } from "@/lib/data";
 
 const TIERS: { plan: PaidPlan; blurb: string; feats: [boolean, string][]; badge?: string }[] = [
@@ -48,23 +48,6 @@ export function Plans() {
         })}
       </div>
       <p className="w-full rounded-xl bg-fill px-4 py-3 text-left text-[13px] text-ink/80"><b>Pre-Bar and Bar Course are Supreme Justice (Max) only.</b> Student and Senior Judicial (Pro) cover Levels 100 to 400.</p>
-      <section id="credits" className="flex w-full scroll-mt-6 flex-col gap-3 text-left">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-[-0.01em]">Need more {CREDIT_NAME}?</h2>
-          <p className="mt-1 text-sm text-muted">Buy a pack on any plan. Extra credits never expire and are used after your monthly allowance.</p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {CREDIT_PACKS.map((p) => (
-            <button key={p.id} onClick={() => router.push(`/checkout?credits=${p.id}`)}
-              className="relative flex flex-col items-start gap-1 rounded-2xl bg-surface p-5 text-left shadow-card transition-shadow hover:shadow-card-hover">
-              {p.tag && <span className="absolute -top-2 right-4 rounded-full bg-amber px-2 py-0.5 text-[10px] font-bold text-white">{p.tag}</span>}
-              <span className="text-3xl font-bold tracking-tight">{p.credits}</span>
-              <span className="text-[13px] text-muted">{CREDIT_NAME}</span>
-              <span className="mt-2 text-lg font-semibold">{p.price}</span>
-            </button>
-          ))}
-        </div>
-      </section>
       <p className="text-xs text-muted">{CREDIT_NAME} power Notified AI. One message costs 1 credit, and your allowance resets each month. Verify with your university email for a 7-day Senior Judicial (Pro) trial.</p>
     </div>
   );

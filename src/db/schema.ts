@@ -74,7 +74,6 @@ export const subscription = sqliteTable("subscription", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
   plan: text("plan").notNull().default("None"), // None | Student | Pro | Pro Max
   creditsUsed: integer("credits_used").notNull().default(0),
-  creditsExtra: integer("credits_extra").notNull().default(0),
   // Set once, when a university email is verified: Pro until this time. Never cleared, so it also records
   // that the account has had its one trial.
   trialEndsAt: integer("trial_ends_at", { mode: "timestamp_ms" }),

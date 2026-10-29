@@ -5,8 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { usePlan } from "@/components/plan";
 import { Btn } from "@/components/ui";
-import { CREDIT_PACKS, NETWORKS, PLAN_PRICES, cedis } from "@/lib/content";
-import { CREDIT_NAME, PLAN_NAMES, isPaidPlan, type PaidPlan } from "@/lib/data";
+import { NETWORKS, PLAN_PRICES, cedis } from "@/lib/content";
+import { PLAN_NAMES, isPaidPlan, type PaidPlan } from "@/lib/data";
 import { DEMO_BILLING } from "@/lib/site";
 import { normalizePhone } from "@/lib/profile";
 
@@ -17,10 +17,9 @@ export function Checkout() {
   // The plan comes from the URL, so only a known paid plan is accepted; anything else checks out Max.
   const asked = params.get("plan");
   const target: PaidPlan = isPaidPlan(asked) ? asked : "Pro Max";
-  const pack = CREDIT_PACKS.find((p) => p.id === params.get("credits"));
-  const price = pack ? pack.price : cedis(PLAN_PRICES[target]);
-  const item = pack ? `${pack.credits} ${CREDIT_NAME}` : PLAN_NAMES[target];
-  const { setPlan, addCredits } = usePlan();
+  const price = cedis(PLAN_PRICES[target]);
+  const item = PLAN_NAMES[target];
+  const { setPlan } = usePlan();
   const [net, setNet] = useState(0);
   const [phone, setPhone] = useState("24 555 0123");
   const [phoneTouched, setPhoneTouched] = useState(false);
@@ -33,8 +32,7 @@ export function Checkout() {
     if (!momo) { setPhoneTouched(true); return; }
     setStage("wait");
     timer.current = setTimeout(() => {
-      if (pack) addCredits(pack.credits);
-      else setPlan(target);
+      setPlan(target);
       setStage("done");
     }, 1800);
   };
@@ -43,8 +41,8 @@ export function Checkout() {
     return (
       <div className="mx-auto flex max-w-[480px] flex-col items-center gap-3 px-5 py-20 text-center">
         <div className="flex size-16 items-center justify-center rounded-full text-3xl text-white" style={{ background: stage === "done" ? "#34C759" : "#FF9500" }}>{stage === "done" ? "✓" : "…"}</div>
-        <h1 className="text-2xl font-bold" aria-live="polite">{stage === "done" ? (pack ? `${pack.credits} ${CREDIT_NAME} added` : `You’re on ${PLAN_NAMES[target]}`) : "Approve the prompt on your phone"}</h1>
-        <p className="text-sm text-muted">{stage === "done" ? (pack ? "Your credits are ready in Notified AI." : "Everything is unlocked. Happy studying.") : `We sent a ${NETWORKS[net].label} request to +233 ${phone}.`}</p>
+        <h1 className="text-2xl font-bold" aria-live="polite">{stage === "done" ? `You’re on ${PLAN_NAMES[target]}` : "Approve the prompt on your phone"}</h1>
+        <p className="text-sm text-muted">{stage === "done" ? "Everything is unlocked. Happy studying." : `We sent a ${NETWORKS[net].label} request to +233 ${phone}.`}</p>
         {stage === "done" && <Btn href="/dashboard">Go to Home</Btn>}
       </div>
     );
@@ -53,7 +51,7 @@ export function Checkout() {
     <div className="mx-auto grid max-w-[880px] gap-6 px-5 pb-12 pt-8 md:px-10 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
       <section className="flex flex-col gap-5">
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.02em]">{pack ? `Buy ${item}` : `Subscribe to ${PLAN_NAMES[target]}`}</h1>
+          <h1 className="text-[28px] font-bold tracking-[-0.02em]">Subscribe to {item}</h1>
           <p className="mt-1 text-sm text-muted">Pay securely with Mobile Money or card.</p>
         </div>
         <div className="flex flex-col gap-2">
@@ -83,7 +81,7 @@ export function Checkout() {
       <aside className="h-fit rounded-2xl bg-surface p-5 shadow-card">
         <div className="text-xs font-semibold text-muted">Order summary</div>
         <div className="mt-2 flex justify-between text-sm"><span>{item}</span><span className="font-semibold">{price}</span></div>
-        <div className="mt-1 text-xs text-muted">{pack ? "One-off purchase · never expires" : "Monthly · cancel anytime"}</div>
+        <div className="mt-1 text-xs text-muted">Monthly · cancel anytime</div>
         <div className="mt-3 border-t border-edge/10 pt-3 text-xs text-muted">Changed your mind? <Link href="/plans">Back to plans</Link></div>
       </aside>
     </div>
