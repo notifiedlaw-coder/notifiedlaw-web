@@ -59,7 +59,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
         <Link href="/" className="absolute right-5 top-5 hidden text-sm font-medium md:block" style={{ color: "var(--color-link)", textDecoration: "none" }}>← Back to home</Link>
         <div className="flex w-full max-w-[360px] flex-col gap-3">
           <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">{login ? "Sign in to NotifiedLaw" : "Create your account"}</h2>
-          <p className="text-sm text-muted">Use your student email to get 7 days of Supreme Justice (Max) free.</p>
+          <p className="text-sm text-muted">Use your student email to get a 7-day Senior Judicial (Pro) trial.</p>
           <button type="button" onClick={google} disabled={busy} className={`google-btn ${roboto.className} mt-2 flex h-11 cursor-pointer items-center justify-center gap-2.5 rounded-full px-4 text-[15px] disabled:opacity-60`}>
             <GoogleG />
             {busy ? "Redirecting to Google…" : "Continue with Google"}

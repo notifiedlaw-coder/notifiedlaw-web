@@ -5,8 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { usePlan } from "@/components/plan";
 import { Btn } from "@/components/ui";
-import { CREDIT_PACKS, NETWORKS, PRICES } from "@/lib/content";
-import { CREDIT_NAME, PLAN_NAMES, isPlan, type Plan } from "@/lib/data";
+import { CREDIT_PACKS, NETWORKS, PLAN_PRICES, cedis } from "@/lib/content";
+import { CREDIT_NAME, PLAN_NAMES, isPaidPlan, type PaidPlan } from "@/lib/data";
 import { DEMO_BILLING } from "@/lib/site";
 import { normalizePhone } from "@/lib/profile";
 
@@ -16,10 +16,9 @@ export function Checkout() {
   const params = useSearchParams();
   // The plan comes from the URL, so only a known paid plan is accepted; anything else checks out Max.
   const asked = params.get("plan");
-  const target: Plan = isPlan(asked) && asked !== "Free" ? asked : "Pro Max";
-  const billing = params.get("billing") === "month" ? "month" : "semester";
+  const target: PaidPlan = isPaidPlan(asked) ? asked : "Pro Max";
   const pack = CREDIT_PACKS.find((p) => p.id === params.get("credits"));
-  const price = pack ? pack.price : PRICES[billing][target === "Pro" ? "pro" : "max"];
+  const price = pack ? pack.price : cedis(PLAN_PRICES[target]);
   const item = pack ? `${pack.credits} ${CREDIT_NAME}` : PLAN_NAMES[target];
   const { setPlan, addCredits } = usePlan();
   const [net, setNet] = useState(0);
@@ -54,7 +53,7 @@ export function Checkout() {
     <div className="mx-auto grid max-w-[880px] gap-6 px-5 pb-12 pt-8 md:px-10 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
       <section className="flex flex-col gap-5">
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.02em]">{pack ? `Buy ${item}` : `Upgrade to ${PLAN_NAMES[target]}`}</h1>
+          <h1 className="text-[28px] font-bold tracking-[-0.02em]">{pack ? `Buy ${item}` : `Subscribe to ${PLAN_NAMES[target]}`}</h1>
           <p className="mt-1 text-sm text-muted">Pay securely with Mobile Money or card.</p>
         </div>
         <div className="flex flex-col gap-2">
@@ -84,7 +83,7 @@ export function Checkout() {
       <aside className="h-fit rounded-2xl bg-surface p-5 shadow-card">
         <div className="text-xs font-semibold text-muted">Order summary</div>
         <div className="mt-2 flex justify-between text-sm"><span>{item}</span><span className="font-semibold">{price}</span></div>
-        <div className="mt-1 text-xs text-muted">{pack ? "One-off purchase · never expires" : `${billing === "month" ? "Monthly" : "Per semester"} · cancel anytime`}</div>
+        <div className="mt-1 text-xs text-muted">{pack ? "One-off purchase · never expires" : "Monthly · cancel anytime"}</div>
         <div className="mt-3 border-t border-edge/10 pt-3 text-xs text-muted">Changed your mind? <Link href="/plans">Back to plans</Link></div>
       </aside>
     </div>

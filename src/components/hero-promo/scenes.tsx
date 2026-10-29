@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { PLAN_PRICES, cedis } from "@/lib/content";
 
 // The promo is drawn as live DOM, not video, so text and shapes stay sharp at any size.
 // Two stages share one timeline: "wide" (16:9, desktop/tablet) and "tall" (2:3, phones).
@@ -227,9 +228,9 @@ function HotTopics({ p, c }: { p: number; c: boolean }) {
 
 type PlanData = { name: string; price: string; blurb: string; color: string; dark?: boolean; badge?: string; credits: string; perks: string[] };
 const PLANS: PlanData[] = [
-  { name: "Attorney", price: "Free", blurb: "Try NotifiedLaw with starter content.", color: "#1D1D1F", credits: "No Notify Credits", perks: ["First 2 topics of every course", "Starter flashcard decks"] },
-  { name: "Senior Judicial", price: "GH₵45", blurb: "The full library, with AI to help it stick.", color: "#0071E3", credits: "150 Notify Credits / month", perks: ["All topics, at every level", "AI summaries for every note", "Unlimited AI flashcards"] },
-  { name: "Supreme Justice", price: "GH₵85", blurb: "Everything, plus AI that listens, talks and tutors.", color: "#BF5AF2", dark: true, badge: "Most complete", credits: "500 Notify Credits / month", perks: ["AI podcast of any note", "Personal AI tutor", "Exam mode with expert marking"] },
+  { name: "Student", price: cedis(PLAN_PRICES.Student), blurb: "The full library, Levels 100 to 400.", color: "#1D1D1F", credits: "No Notify Credits", perks: ["Every topic, Levels 100 to 400", "Starter flashcard decks"] },
+  { name: "Senior Judicial", price: cedis(PLAN_PRICES.Pro), blurb: "The full library, with AI to help it stick.", color: "#0071E3", credits: "150 Notify Credits / month", perks: ["Everything in Student", "AI summaries for every note", "Unlimited AI flashcards"] },
+  { name: "Supreme Justice", price: cedis(PLAN_PRICES["Pro Max"]), blurb: "Everything, plus AI that listens, talks and tutors.", color: "#BF5AF2", dark: true, badge: "Most complete", credits: "500 Notify Credits / month", perks: ["AI podcast of any note", "Personal AI tutor", "Exam mode with expert marking"] },
 ];
 
 function PlanCard({ d }: { d: PlanData }) {
@@ -240,7 +241,7 @@ function PlanCard({ d }: { d: PlanData }) {
         <div style={{ fontSize: 21, fontWeight: 600, color: d.color }}>{d.name}</div>
         {d.badge && <div style={{ fontSize: 12, fontWeight: 600, color: NL.amber }}>{d.badge}</div>}
       </div>
-      <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-0.03em" }}>{d.price}<span style={{ fontSize: 15, fontWeight: 400, opacity: 0.6 }}>{d.price === "Free" ? "" : " / month"}</span></div>
+      <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-0.03em" }}>{d.price}<span style={{ fontSize: 15, fontWeight: 400, opacity: 0.6 }}>{" / month"}</span></div>
       <div style={{ fontSize: 17, lineHeight: 1.35, color: dark ? "#A1A1A6" : "#6E6E73", minHeight: 46 }}>{d.blurb}</div>
       <div style={{ borderRadius: 8, padding: "8px 12px", background: dark ? "rgba(255,255,255,0.1)" : "#FFF", fontSize: 14, fontWeight: 600 }}>{d.credits}</div>
       {d.perks.map((k) => <div key={k} style={{ fontSize: 16 }}>{k}</div>)}
@@ -255,7 +256,7 @@ function PlanRow({ d }: { d: PlanData }) {
     <div style={{ width: 540, height: 150, overflow: "hidden", background: dark ? "#1D1D1F" : NL.bg, color: dark ? NL.bg : NL.ink, borderRadius: 24, padding: "16px 20px", ...row(14), boxShadow: "0 24px 60px rgba(0,0,0,0.35)" }}>
       <div style={{ width: 180, flexShrink: 0, ...col(4) }}>
         <div style={{ fontSize: 19, fontWeight: 600, color: d.color }}>{d.name}</div>
-        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.03em" }}>{d.price}<span style={{ fontSize: 13, fontWeight: 400, opacity: 0.6 }}>{d.price === "Free" ? "" : " / month"}</span></div>
+        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.03em" }}>{d.price}<span style={{ fontSize: 13, fontWeight: 400, opacity: 0.6 }}>{" / month"}</span></div>
         {d.badge ? <div style={{ fontSize: 12, fontWeight: 600, color: NL.amber }}>{d.badge}</div> : <div style={{ fontSize: 13, color: "#6E6E73" }}>{d.credits}</div>}
       </div>
       <div style={{ flex: 1, ...col(6), justifyContent: "center" }}>

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { Btn, Chevron, Empty, LevelSelect, Page, Title } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { usePlan, useStudyLevel } from "@/components/plan";
-import { bySemester, FREE_TOPICS, isMaxLevel, LEVEL_LABEL, type Course, type Level, type TopicInfo } from "@/lib/data";
+import { bySemester, PREVIEW_TOPICS, isMaxLevel, LEVEL_LABEL, type Course, type Level, type TopicInfo } from "@/lib/data";
 
-export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial (Pro)" }: { slug: string; i: number; topic: TopicInfo; locked: boolean; lockLabel?: string }) {
+export function TopicRow({ slug, i, topic, locked, preview = false, lockLabel = "Student" }: { slug: string; i: number; topic: TopicInfo; locked: boolean; preview?: boolean; lockLabel?: string }) {
   const body = (
     <>
       <span className="w-[22px] text-[13px] tabular-nums text-ink/40">{i + 1}</span>
@@ -25,8 +25,8 @@ export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial 
       {body}
       {locked ? (
         <span className="flex items-center gap-1.5 text-xs text-faint"><Icon name="lock" size={12} />{lockLabel}</span>
-      ) : i < FREE_TOPICS ? (
-        <span className="rounded-[5px] bg-green/15 px-[7px] py-0.5 text-[11px] font-semibold text-[#248A3D]">FREE</span>
+      ) : preview && i < PREVIEW_TOPICS ? (
+        <span className="rounded-[5px] bg-green/15 px-[7px] py-0.5 text-[11px] font-semibold text-[#248A3D]">PREVIEW</span>
       ) : null}
       <Chevron />
     </Link>
@@ -35,7 +35,7 @@ export function TopicRow({ slug, i, topic, locked, lockLabel = "Senior Judicial 
 
 export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
   const [level, setLevel] = useStudyLevel();
-  const { pro, max } = usePlan();
+  const { paid, max } = usePlan();
   const maxOnly = isMaxLevel(level) && !max;
   return (
     <Page>
@@ -44,17 +44,17 @@ export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
         sub="Course notes by level"
         right={<LevelSelect value={level} onChange={setLevel} />}
       />
-      {!pro && (
+      {!paid && (
         <div className="hidden flex-wrap items-center gap-3 rounded-xl bg-surface px-4 py-3 shadow-card md:flex">
           <Icon name="lock" size={14} />
           <div className="min-w-0 flex-1 text-[13px]">
-            <b>You’re on Attorney (Free).</b>{" "}
-            <span className="text-ink/70">The first two topics of every course are open. Senior Judicial (Pro) unlocks all levels from 100 to 400. Pre-Bar and the Bar Course come with Supreme Justice (Max).</span>
+            <b>You don’t have a plan yet.</b>{" "}
+            <span className="text-ink/70">The first two topics of every course are open as a preview. Student unlocks every topic from Level 100 to 400. Pre-Bar and the Bar Course come with Supreme Justice (Max).</span>
           </div>
           <Btn href="/plans">See plans</Btn>
         </div>
       )}
-      {maxOnly && pro && (
+      {maxOnly && paid && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl bg-surface px-4 py-3 shadow-card">
           <Icon name="lock" size={14} />
           <div className="min-w-0 flex-1 text-[13px]"><b>{LEVEL_LABEL[level]} is a Supreme Justice (Max) course.</b> <span className="text-ink/70">Upgrade to open every topic.</span></div>
@@ -77,7 +77,7 @@ export function LibraryView({ courses }: { courses: Record<Level, Course[]> }) {
             </Link>
             <div className="overflow-hidden rounded-xl bg-surface shadow-card">
               {c.topics.map((t, i) => (
-                <TopicRow key={t.title + i} slug={c.slug} i={i} topic={t} locked={maxOnly || (!pro && i >= FREE_TOPICS)} lockLabel={maxOnly ? "Supreme Justice (Max)" : undefined} />
+                <TopicRow key={t.title + i} slug={c.slug} i={i} topic={t} locked={maxOnly || (!paid && i >= PREVIEW_TOPICS)} preview={!paid} lockLabel={maxOnly ? "Supreme Justice (Max)" : undefined} />
               ))}
               {c.topics.length === 0 && <div className="px-4 py-3.5 text-[13px] text-muted">Topics will appear here once they are added.</div>}
             </div>

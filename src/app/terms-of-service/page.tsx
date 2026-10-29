@@ -21,7 +21,7 @@ export default function Page() {
           "You must be at least 16 years old, or have a parent or guardian's permission, to use NotifiedLaw.",
         ] },
         { h: "Plans and payments", p: [
-          "The Attorney plan is free. Senior Judicial and Supreme Justice are paid plans billed monthly or per semester, as shown on the pricing page at the time you buy.",
+          "Student, Senior Judicial and Supreme Justice are paid plans billed monthly, at the prices shown on the pricing page at the time you buy. There is no free plan; some content is open to everyone as a preview.",
           "Payments are processed by third-party providers, including mobile money. Prices are in Ghana cedis (GH₵) and may change with notice for future purchases.",
           "Unless the law requires otherwise, payments are non-refundable once access has been provided. Contact us if you believe you were charged in error.",
         ] },

@@ -8,23 +8,28 @@ export const LEVEL_LABEL: Record<Level, string> = {
 export const LEVEL_SHORT: Record<Level, string> = {
   "100": "100", "200": "200", "300": "300", "400": "400", "pre-bar": "Pre-Bar", bar: "Bar Course",
 };
-export type Plan = "Free" | "Pro" | "Pro Max";
-export const PLANS: readonly Plan[] = ["Free", "Pro", "Pro Max"];
+/** "None" is an account that has not paid: it can preview the library but not use the app. */
+export type Plan = "None" | "Student" | "Pro" | "Pro Max";
+export type PaidPlan = Exclude<Plan, "None">;
+export const PLANS: readonly Plan[] = ["None", "Student", "Pro", "Pro Max"];
+export const PAID_PLANS: readonly PaidPlan[] = ["Student", "Pro", "Pro Max"];
 /** Narrows untrusted input (a URL parameter, a stored value) to a known plan. */
 export const isPlan = (v: unknown): v is Plan => PLANS.includes(v as Plan);
+export const isPaidPlan = (v: unknown): v is PaidPlan => PAID_PLANS.includes(v as PaidPlan);
 
 export const PLAN_NAMES: Record<Plan, string> = {
-  Free: "Attorney (Free)",
+  None: "No plan",
+  Student: "Student",
   Pro: "Senior Judicial (Pro)",
   "Pro Max": "Supreme Justice (Max)",
 };
 
 /** Notify Credits: the AI allowance each plan includes per month. Placeholder amounts, to be set before launch. */
 export const CREDIT_NAME = "Notify Credits";
-export const PLAN_CREDITS: Record<Plan, number> = { Free: 0, Pro: 150, "Pro Max": 500 };
+export const PLAN_CREDITS: Record<Plan, number> = { None: 0, Student: 0, Pro: 150, "Pro Max": 500 };
 /** My Files storage each plan includes, in bytes. */
 const MB = 1024 * 1024;
-export const PLAN_STORAGE: Record<Plan, number> = { Free: 500 * MB, Pro: 5 * 1024 * MB, "Pro Max": 10 * 1024 * MB };
+export const PLAN_STORAGE: Record<Plan, number> = { None: 0, Student: 500 * MB, Pro: 5 * 1024 * MB, "Pro Max": 10 * 1024 * MB };
 /** Largest single upload. The Worker holds the whole file in memory while it checks it. */
 export const MAX_FILE_BYTES = 25 * MB;
 
@@ -36,13 +41,13 @@ export const LEVELS: Level[] = ["100", "200", "300", "400", "pre-bar", "bar"];
 /** Pre-Bar and the Bar Course are included only with Supreme Justice (Max). */
 export const isMaxLevel = (l: Level) => l === "pre-bar" || l === "bar";
 
-/** How many topics of each course the Free plan opens. */
-export const FREE_TOPICS = 2;
+/** How many topics of each course are open without a plan, as a preview (and for search engines). */
+export const PREVIEW_TOPICS = 2;
 
 /** The plan topic `n` (1-based) needs when `plan` cannot read it, else null. The topic page enforces this on the server. */
-export function topicLock(plan: Plan, level: Level, n: number): "Pro" | "Pro Max" | null {
+export function topicLock(plan: Plan, level: Level, n: number): "Student" | "Pro Max" | null {
   if (isMaxLevel(level) && plan !== "Pro Max") return "Pro Max";
-  if (plan === "Free" && n > FREE_TOPICS) return "Pro";
+  if (plan === "None" && n > PREVIEW_TOPICS) return "Student";
   return null;
 }
 

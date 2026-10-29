@@ -1,6 +1,7 @@
 import { JsonLd } from "@/components/json-ld";
 import { FAQ, SITE, abs } from "@/lib/site";
 import Landing from "./landing";
+import { PLAN_PRICES } from "@/lib/content";
 
 export const metadata = {
   title: { absolute: "NotifiedLaw — The Law at Your Fingertips" },
@@ -40,11 +41,9 @@ const schema = [
     audience: { "@type": "EducationalAudience", educationalRole: "student", audienceType: "Law students in Ghana" },
     image: abs(SITE.ogImage),
     offers: [
-      { "@type": "Offer", name: "Attorney", price: "0", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
-      { "@type": "Offer", name: "Senior Judicial (monthly)", price: "45", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
-      { "@type": "Offer", name: "Senior Judicial (per semester)", price: "150", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
-      { "@type": "Offer", name: "Supreme Justice (monthly)", price: "85", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
-      { "@type": "Offer", name: "Supreme Justice (per semester)", price: "290", priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" },
+      ...([["Student", PLAN_PRICES.Student], ["Senior Judicial", PLAN_PRICES.Pro], ["Supreme Justice", PLAN_PRICES["Pro Max"]]] as const).map(([name, price]) => (
+        { "@type": "Offer", name: `${name} (monthly)`, price: String(price), priceCurrency: "GHS", url: abs("/#pricing"), availability: "https://schema.org/InStock" }
+      )),
     ],
   },
 ];

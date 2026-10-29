@@ -1,3 +1,4 @@
+import { PLAN_PRICES, cedis } from "@/lib/content";
 export const SITE = {
   name: "NotifiedLaw",
   url: "https://notifiedlaw.com",
@@ -33,7 +34,7 @@ export const FAQ = [
   },
   {
     q: "How much does NotifiedLaw cost?",
-    a: "The Attorney plan is free and includes the first 2 topics of every course. Senior Judicial costs GH₵45 per month or GH₵150 per semester. Supreme Justice costs GH₵85 per month or GH₵290 per semester.",
+    a: `There is no free plan. Student costs ${cedis(PLAN_PRICES.Student)} per month and opens every topic from Level 100 to 400. Senior Judicial costs ${cedis(PLAN_PRICES.Pro)} per month and adds Notified AI. Supreme Justice costs ${cedis(PLAN_PRICES["Pro Max"])} per month and adds Pre-Bar, the Bar Course and exam prep. The first 2 topics of every course are open to everyone as a preview.`,
   },
   {
     q: "Can I pay with mobile money?",
@@ -41,7 +42,7 @@ export const FAQ = [
   },
   {
     q: "Is there a free trial for law students?",
-    a: "Yes. Law students who sign up with a university email get a 7-day Supreme Justice trial.",
+    a: "Yes. Law students who sign up with a university email get a 7-day Senior Judicial trial.",
   },
   {
     q: "How does exam marking work?",

@@ -6,7 +6,8 @@ import type { Me, Profile, UniEmailState } from "@/lib/profile";
 import { DEMO_BILLING } from "@/lib/site";
 
 type Ctx = {
-  plan: Plan; setPlan: (p: Plan) => void; pro: boolean; max: boolean;
+  /** `paid`: any plan, Student up. `pro`: Senior Judicial (Pro) or Supreme Justice (Max). */
+  plan: Plan; setPlan: (p: Plan) => void; paid: boolean; pro: boolean; max: boolean;
   /** Total Notify Credits available: what is left of the monthly allowance plus purchased extras. */
   credits: number; allowance: number; extra: number;
   spend: (n: number) => boolean; addCredits: (n: number) => void;
@@ -19,16 +20,16 @@ type Ctx = {
   trialEndsAt: number | null; onTrial: boolean;
   uniEmail: UniEmailState | null; setUniEmail: (u: UniEmailState) => void;
 };
-const PlanCtx = createContext<Ctx>({ plan: "Free", setPlan: () => {}, pro: false, max: false, credits: 0, allowance: 0, extra: 0, spend: () => false, addCredits: () => {}, profile: null, setLevel: () => {}, setProfile: () => {}, trialEndsAt: null, onTrial: false, uniEmail: null, setUniEmail: () => {} });
+const PlanCtx = createContext<Ctx>({ plan: "None", setPlan: () => {}, paid: false, pro: false, max: false, credits: 0, allowance: 0, extra: 0, spend: () => false, addCredits: () => {}, profile: null, setLevel: () => {}, setProfile: () => {}, trialEndsAt: null, onTrial: false, uniEmail: null, setUniEmail: () => {} });
 
 const send = (url: string, method: string, body: unknown) =>
   void fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
 
 // Plan, credits and profile live in D1 and are read on the server for each request (AppFrame), so the
-// first paint already shows the right plan. Guests (null) are treated as Free.
+// first paint already shows the right plan. Guests (null) have no plan.
 export function PlanProvider({ me, children }: { me: Me | null; children: React.ReactNode }) {
   const [state, setState] = useState<{ plan: Plan; used: number; extra: number; profile: Profile | null; uniEmail: UniEmailState | null }>(() => ({
-    plan: me && isPlan(me.subscription.plan) ? me.subscription.plan : "Free",
+    plan: me && isPlan(me.subscription.plan) ? me.subscription.plan : "None",
     used: me?.subscription.creditsUsed ?? 0,
     extra: me?.subscription.creditsExtra ?? 0,
     profile: me?.profile ?? null,
@@ -71,7 +72,7 @@ export function PlanProvider({ me, children }: { me: Me | null; children: React.
 
   // Memoised so the many consumers only re-render when the plan or balance actually changes.
   const value = useMemo(
-    () => ({ plan, setPlan, pro: plan !== "Free", max: plan === "Pro Max", credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile, trialEndsAt, onTrial, uniEmail, setUniEmail }),
+    () => ({ plan, setPlan, paid: plan !== "None", pro: plan === "Pro" || plan === "Pro Max", max: plan === "Pro Max", credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile, trialEndsAt, onTrial, uniEmail, setUniEmail }),
     [plan, setPlan, credits, allowance, extra, spend, addCredits, profile, setLevel, setProfile, trialEndsAt, onTrial, uniEmail, setUniEmail],
   );
   return <PlanCtx.Provider value={value}>{children}</PlanCtx.Provider>;
@@ -89,9 +90,4 @@ export function useStudyLevel(): [Level, (l: Level) => void] {
 /** Renders children only while the viewer is below Supreme Justice (Max). */
 export function ShowUnlessMax({ children }: { children: React.ReactNode }) {
   return usePlan().max ? null : <>{children}</>;
-}
-
-/** Renders children only for the Free plan, which has no Notify Credits. */
-export function ShowIfFree({ children }: { children: React.ReactNode }) {
-  return usePlan().pro ? null : <>{children}</>;
 }

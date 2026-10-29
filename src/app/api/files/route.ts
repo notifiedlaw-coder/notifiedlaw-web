@@ -25,6 +25,8 @@ export async function POST(req: Request) {
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
   const rl = await limited(req, "WRITES", userId);
   if (rl) return rl;
+  const quota = await quotaFor(userId);
+  if (!quota) return Response.json({ error: "Choose a plan to upload files." }, { status: 402 });
 
   let rawName = "";
   try { rawName = decodeURIComponent(req.headers.get("x-file-name") ?? ""); } catch { /* falls through to the name check */ }
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
   const id = crypto.randomUUID();
   const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
   const row = { id, userId, key: fileKey(userId, id), name, kind: check.kind, size: bytes.length, sha256, createdAt: new Date() };
-  if (!(await reserve(row, await quotaFor(userId)))) return Response.json({ error: "Your storage is full. Delete some files or upgrade your plan for more space." }, { status: 413 });
+  if (!(await reserve(row, quota))) return Response.json({ error: "Your storage is full. Delete some files or upgrade your plan for more space." }, { status: 413 });
   try {
     await filesBucket().put(row.key, bytes, { httpMetadata: { contentType: CONTENT_TYPES[check.kind] }, customMetadata: { userId }, sha256 });
   } catch {

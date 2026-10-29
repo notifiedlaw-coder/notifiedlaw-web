@@ -5,7 +5,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import * as schema from "@/db/schema";
-import { isPlan, type Plan } from "@/lib/data";
+import { isPaidPlan, type Plan } from "@/lib/data";
 import type { Me } from "@/lib/profile";
 
 /** Built per request: the D1 binding and secrets only exist inside a Worker request. */
@@ -32,16 +32,16 @@ export function getDb() {
   return drizzle(getCloudflareContext().env.DB, { schema });
 }
 
-/** The plan a subscription row grants now: its paid plan, or Pro while a university-email trial runs. */
+/** The plan a subscription row grants now: its paid plan, Pro while a university-email trial runs, else None. */
 export function planOf(row: { plan: string; trialEndsAt: Date | null } | undefined, now = new Date()): Plan {
-  const paid = row && isPlan(row.plan) ? row.plan : "Free";
-  return paid === "Free" && row?.trialEndsAt && row.trialEndsAt > now ? "Pro" : paid;
+  if (row && isPaidPlan(row.plan)) return row.plan;
+  return row?.trialEndsAt && row.trialEndsAt > now ? "Pro" : "None";
 }
 
-/** The signed-in user's plan from D1; Free for guests and for users with no subscription row. */
+/** The signed-in user's plan from D1; None for guests and for users who have not paid. */
 export async function getPlan(): Promise<Plan> {
   const s = await getSession();
-  if (!s) return "Free";
+  if (!s) return "None";
   const [row] = await getDb().select({ plan: schema.subscription.plan, trialEndsAt: schema.subscription.trialEndsAt }).from(schema.subscription).where(eq(schema.subscription.userId, s.user.id));
   return planOf(row);
 }
@@ -56,7 +56,7 @@ export async function meFor(userId: string): Promise<Me> {
     db.select().from(schema.uniEmailRequest).where(eq(schema.uniEmailRequest.userId, userId)),
   ]);
   const trialEndsAt = s?.trialEndsAt ?? null;
-  const onTrial = s?.plan === "Free" && !!trialEndsAt && trialEndsAt > new Date();
+  const onTrial = !isPaidPlan(s?.plan) && !!trialEndsAt && trialEndsAt > new Date();
   return {
     profile: p ? {
       ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",

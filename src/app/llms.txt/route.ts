@@ -1,6 +1,7 @@
 import { getArticles, getCaseBriefs, getCourses } from "@/lib/cms";
 import { LEVELS, LEVEL_LABEL } from "@/lib/data";
 import { FAQ, SITE, abs } from "@/lib/site";
+import { PLAN_PRICES, cedis } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,11 @@ export async function GET() {
     `- [Case Law](${abs("/case-law")}): case briefs with ratio and holding`,
     "",
     "## Pricing",
-    "- Attorney: free, first 2 topics of every course",
-    "- Senior Judicial: GH₵45 per month or GH₵150 per semester, the full library",
-    "- Supreme Justice: GH₵85 per month or GH₵290 per semester, everything including Pre-Bar, the Bar Course and exam prep",
-    "- Payment: MTN MoMo, Telecel Cash, AT Money. Law students with a university email get a 7-day Supreme Justice trial.",
+    `- Student: ${cedis(PLAN_PRICES.Student)} per month, every topic from Level 100 to 400`,
+    `- Senior Judicial: ${cedis(PLAN_PRICES.Pro)} per month, the full library plus Notified AI`,
+    `- Supreme Justice: ${cedis(PLAN_PRICES["Pro Max"])} per month, everything including Pre-Bar, the Bar Course and exam prep`,
+    "- No free plan; the first 2 topics of every course are open as a preview.",
+    "- Payment: MTN MoMo, Telecel Cash, AT Money. Law students with a university email get a 7-day Senior Judicial trial.",
     "",
     "## Articles",
     ...articles.map((a) => `- [${a.title}](${abs(`/articles/${a.slug}`)})${a.summary ? `: ${a.summary}` : ""}`),

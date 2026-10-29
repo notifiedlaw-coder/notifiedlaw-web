@@ -9,7 +9,7 @@ import { useUser } from "@/components/user";
 import { authClient } from "@/lib/auth-client";
 import { ProfileForm } from "./profile-form";
 import { UniEmail } from "./uni-email";
-import { CREDIT_NAME, PLAN_NAMES, type Plan } from "@/lib/data";
+import { CREDIT_NAME, PLAN_NAMES, PLANS } from "@/lib/data";
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="flex flex-col gap-1.5"><Eyebrow>{title}</Eyebrow><div className="overflow-hidden rounded-xl bg-surface shadow-card">{children}</div></section>
@@ -46,7 +46,7 @@ export function Settings() {
       </Group>
       {DEMO_BILLING && (
         <Group title="Demo">
-          <Row label="Preview as plan"><Segmented options={["Free", "Pro", "Pro Max"] as readonly Plan[]} value={plan} onChange={setPlan} /></Row>
+          <Row label="Preview as plan"><Segmented options={PLANS} value={plan} onChange={setPlan} labels={{ None: "Unpaid", "Pro Max": "Max" }} /></Row>
         </Group>
       )}
       <button onClick={() => authClient.signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } })} className="cursor-pointer rounded-xl border-0 bg-surface py-3 text-center text-sm font-medium text-red shadow-card" style={{ color: "#FF3B30" }}>Sign Out</button>

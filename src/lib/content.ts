@@ -49,10 +49,9 @@ export const NETWORKS = [
   { label: "AT Money", mark: "AT", bg: "#0066B3", fg: "#FFFFFF" },
 ];
 
-export const PRICES = {
-  month: { pro: "GH₵45", max: "GH₵85", per: "/ month" },
-  semester: { pro: "GH₵150", max: "GH₵290", per: "/ semester" },
-};
+/** Monthly price of each plan, in Ghana cedis. There is no free plan; "None" accounts only preview the library. */
+export const PLAN_PRICES = { Student: 60, Pro: 160, "Pro Max": 360 } as const;
+export const cedis = (n: number) => `GH₵${n}`;
 
 /** Extra Notify Credits any plan can buy. They never expire. Placeholder prices. */
 export const CREDIT_PACKS = [

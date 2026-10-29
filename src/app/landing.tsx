@@ -6,14 +6,11 @@ import { AUDIO_SRC, HeroPromo } from "@/components/hero-promo";
 import { LandingLoader } from "@/components/landing-loader";
 import { LawyerMascot } from "@/components/lawyer-mascot";
 import { SiteNav } from "@/components/site-nav";
+import { PLAN_PRICES, cedis } from "@/lib/content";
 import { FAQ } from "@/lib/site";
 
 const LOGIN = "/login";
 const SIGNUP = "/signup";
-const PRICES = {
-  month: { pro: "GH₵45", max: "GH₵85", per: "/ month" },
-  semester: { pro: "GH₵150", max: "GH₵290", per: "/ semester" },
-};
 // Everything the loader waits for (the hero poster is only a fallback, so it is left out).
 const IMAGES = ["exam"].map((s) => `/landing/${s}.jpg`);
 
@@ -61,10 +58,8 @@ function Tier({ name, color, price, per, blurb, items, cta, dark, ctaCls, badge 
 }
 
 export default function Landing() {
-  const [billing, setBilling] = useState<"month" | "semester">("month");
   const [ready, setReady] = useState(false);
   const [audio, setAudio] = useState<string | null>(null);
-  const p = PRICES[billing];
 
   return (
     <div className="nl-light bg-white text-[17px] leading-[1.47] tracking-[-0.022em] text-[#1D1D1F]" style={{ colorScheme: "light" }}>
@@ -136,17 +131,12 @@ export default function Landing() {
         <div className="mx-auto flex max-w-[1024px] flex-col items-center gap-9">
           <div className="flex flex-col items-center gap-3 text-center">
             <h2 id="pricing-h" className={h2}>Which plan is right for you?</h2>
-            <p className="m-0 text-[19px] text-[#6E6E73]">Student pricing. Pay with MTN MoMo, Telecel Cash or AT Money.</p>
-          </div>
-          <div role="group" aria-label="Billing period" className="flex rounded-full bg-[#E8E8ED] p-[3px]">
-            {([["month", "Monthly"], ["semester", "Per semester"]] as const).map(([k, l]) => (
-              <button key={k} type="button" aria-pressed={billing === k} onClick={() => setBilling(k)} className={`h-[34px] rounded-full border-0 px-5 text-sm font-medium text-[#1D1D1F] ${billing === k ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)]" : "bg-transparent"}`}>{l}</button>
-            ))}
+            <p className="m-0 text-[19px] text-[#6E6E73]">Billed monthly. Pay with MTN MoMo, Telecel Cash or AT Money.</p>
           </div>
           <div tabIndex={0} role="region" aria-label="Plans and pricing" className={`${rail} w-[calc(100%+44px)] max-w-none md:w-full md:grid-cols-3`}>
-            <Tier name="Attorney" price="Free" blurb="Try NotifiedLaw with starter content." items={["First 2 topics of every course"]} cta="Start free" ctaCls="border border-[#0066CC] text-[#0066CC]! hover:text-[#0066CC]! hover:bg-[#0066CC]/5" />
-            <Tier name="Senior Judicial" color="#0066CC" price={p.pro} per={p.per} blurb="The full library." items={["All topics, at every level"]} cta="Choose Pro" ctaCls="bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]" />
-            <Tier dark name="Supreme Justice" color="#BF5AF2" badge="Most complete" price={p.max} per={p.per} blurb="Everything, including Pre-Bar and the Bar Course." items={["Everything in Senior Judicial", "Pre-Bar and Bar Course notes", "Exam prep questions"]} cta="Choose Max" ctaCls="bg-[#F5F5F7] text-[#1D1D1F]! hover:text-[#1D1D1F]! hover:bg-white" />
+            <Tier name="Student" price={cedis(PLAN_PRICES.Student)} per="/ month" blurb="The full library, Levels 100 to 400." items={["Every topic, Levels 100 to 400", "500 MB of file storage"]} cta="Choose Student" ctaCls="border border-[#0066CC] text-[#0066CC]! hover:text-[#0066CC]! hover:bg-[#0066CC]/5" />
+            <Tier name="Senior Judicial" color="#0066CC" price={cedis(PLAN_PRICES.Pro)} per="/ month" blurb="The full library, with AI to help it stick." items={["Everything in Student", "150 Notify Credits a month", "5 GB of file storage"]} cta="Choose Pro" ctaCls="bg-[#0071E3] text-white! hover:text-white! hover:bg-[#0077ED]" />
+            <Tier dark name="Supreme Justice" color="#BF5AF2" badge="Most complete" price={cedis(PLAN_PRICES["Pro Max"])} per="/ month" blurb="Everything, including Pre-Bar and the Bar Course." items={["Everything in Senior Judicial", "Pre-Bar and Bar Course notes", "Exam prep questions", "10 GB of file storage"]} cta="Choose Max" ctaCls="bg-[#F5F5F7] text-[#1D1D1F]! hover:text-[#1D1D1F]! hover:bg-white" />
           </div>
         </div>
       </section>
