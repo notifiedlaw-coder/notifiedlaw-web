@@ -32,6 +32,12 @@ const MB = 1024 * 1024;
 export const PLAN_STORAGE: Record<Plan, number> = { None: 0, Student: 500 * MB, Pro: 5 * 1024 * MB, "Pro Max": 10 * 1024 * MB };
 /** Largest single upload. The Worker holds the whole file in memory while it checks it. */
 export const MAX_FILE_BYTES = 25 * MB;
+/**
+ * Uploads one user may start in a UTC day, and their total size. Every upload is virus scanned by the one shared
+ * scanner, so this keeps a single account from keeping it busy (and billed) around the clock.
+ */
+export const DAILY_UPLOADS = 100;
+export const DAILY_UPLOAD_BYTES = 1024 * MB;
 
 /** Credits one Notified AI message costs. */
 export const AI_MESSAGE_COST = 1;

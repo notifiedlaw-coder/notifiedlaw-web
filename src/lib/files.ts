@@ -1,8 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, planOf } from "@/lib/auth";
-import { subscription, userFile, userFolder } from "@/db/schema";
-import { PLAN_STORAGE } from "@/lib/data";
+import { subscription, uploadDay, userFile, userFolder } from "@/db/schema";
+import { DAILY_UPLOADS, DAILY_UPLOAD_BYTES, PLAN_STORAGE } from "@/lib/data";
 import type { FileKind } from "@/lib/file-check";
 
 /** A file as the client sees it. Times are epoch ms. */
@@ -52,6 +52,23 @@ export async function reserve(row: typeof userFile.$inferInsert, quota: number) 
     INSERT INTO ${userFile} (id, user_id, key, name, kind, folder_id, size, sha256, created_at)
     SELECT ${row.id}, ${row.userId}, ${row.key}, ${row.name}, ${row.kind}, ${row.folderId ?? null}, ${row.size}, ${row.sha256}, ${row.createdAt.getTime()}
     WHERE (SELECT COALESCE(SUM(size), 0) FROM ${userFile} WHERE user_id = ${row.userId}) + ${row.size} <= ${quota}`);
+  return res.meta.changes > 0;
+}
+
+/**
+ * Counts one upload of `size` bytes against today's allowance, in one statement so parallel uploads cannot both slip
+ * under it. False when the user is out of uploads or bytes for today. Counted before the virus scan, since a
+ * refused file still used the scanner.
+ */
+export async function countUpload(userId: string, size: number) {
+  const day = new Date().toISOString().slice(0, 10);
+  const res = await getDb().run(sql`
+    INSERT INTO ${uploadDay} (user_id, day, files, bytes) VALUES (${userId}, ${day}, 1, ${size})
+    ON CONFLICT (user_id) DO UPDATE SET
+      files = CASE WHEN day = excluded.day THEN files + 1 ELSE 1 END,
+      bytes = CASE WHEN day = excluded.day THEN bytes + excluded.bytes ELSE excluded.bytes END,
+      day = excluded.day
+    WHERE day <> excluded.day OR (files < ${DAILY_UPLOADS} AND bytes + excluded.bytes <= ${DAILY_UPLOAD_BYTES})`);
   return res.meta.changes > 0;
 }
 

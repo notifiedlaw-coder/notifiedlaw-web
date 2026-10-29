@@ -98,6 +98,14 @@ export const studentLink = sqliteTable("student_link", {
   windowStart: integer("window_start", { mode: "timestamp_ms" }).notNull(),
 });
 
+// Uploads each user started today (UTC), for DAILY_UPLOADS and DAILY_UPLOAD_BYTES. One row per user, reset on a new day.
+export const uploadDay = sqliteTable("upload_day", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  day: text("day").notNull(), // YYYY-MM-DD
+  files: integer("files").notNull(),
+  bytes: integer("bytes").notNull(),
+});
+
 // Content synced from the Notion "LAW DATABASE". One flexible table for every kind of page so a new Notion
 // section needs no migration. Only rows with published = 1 are shown on the site.
 export const cmsEntry = sqliteTable("cms_entry", {

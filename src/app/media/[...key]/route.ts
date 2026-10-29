@@ -11,9 +11,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
   const type = TYPES[key.split(".").pop() ?? ""];
   if (!type || key.length > 300 || key.includes("..") || /[\\\x00-\x1f]/.test(key)) return new Response("Not found", { status: 404 });
 
-  // Per signed-in session, else per IP: a shared campus IP does not run every student out of media together.
+  // Per signed-in user, else per IP: a shared campus IP does not run every student out of media together.
   const { env } = getCloudflareContext();
-  const rl = await limitedBy("MEDIA", [await clientKey(request, env.BETTER_AUTH_SECRET)]);
+  const rl = await limitedBy("MEDIA", [await clientKey(request, env)]);
   if (rl) return rl;
 
   const bucket = env.VIDEOS;

@@ -1,10 +1,10 @@
 import { userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
 import { readBytes } from "@/lib/http";
-import { MAX_FILE_BYTES } from "@/lib/data";
+import { DAILY_UPLOADS, DAILY_UPLOAD_BYTES, MAX_FILE_BYTES } from "@/lib/data";
 import { checkFile, cleanFileName } from "@/lib/file-check";
 import { scanFile } from "@/lib/scan";
-import { CONTENT_TYPES, dropRow, fileKey, filesBucket, filesFor, foldersOf, quotaFor, reserve } from "@/lib/files";
+import { CONTENT_TYPES, countUpload, dropRow, fileKey, filesBucket, filesFor, foldersOf, quotaFor, reserve } from "@/lib/files";
 
 const noStore = { "cache-control": "private, no-store" };
 
@@ -19,8 +19,8 @@ export async function GET(req: Request) {
 
 /**
  * Uploads one file. The body is the raw file, the x-file-name header its name (URI-encoded) and x-folder-id the
- * folder it goes in (none: top level). The bytes are checked (src/lib/file-check.ts) and virus scanned
- * (src/lib/scan.ts), space is reserved against the plan's quota, then the file goes to R2.
+ * folder it goes in (none: top level). The bytes are checked (src/lib/file-check.ts), counted against the daily
+ * upload allowance and virus scanned (src/lib/scan.ts), space is reserved against the plan's quota, then the file goes to R2.
  */
 export async function POST(req: Request) {
   const userId = await userIdFrom(req);
@@ -38,6 +38,8 @@ export async function POST(req: Request) {
   if (!bytes) return Response.json({ error: `Files can be up to ${MAX_FILE_BYTES / 1024 / 1024} MB.` }, { status: 413 });
   const check = await checkFile(bytes);
   if (!check.ok) return Response.json({ error: check.error }, { status: 422 });
+  if (!(await countUpload(userId, bytes.length)))
+    return Response.json({ error: `You have reached today's upload limit (${DAILY_UPLOADS} files or ${DAILY_UPLOAD_BYTES / 1024 ** 3} GB). Try again tomorrow.` }, { status: 429 });
   const scan = await scanFile(bytes);
   if (!scan.ok) return Response.json({ error: scan.error }, { status: scan.infected ? 422 : 503 });
   const name = cleanFileName(rawName, check.kind);

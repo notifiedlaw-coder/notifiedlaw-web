@@ -39,7 +39,7 @@
     { "name": "RL_MEDIA", "namespace_id": "1004", "simple": { "limit": 300, "period": 60 } },
     // Student sign-in links: per recipient and per IP (sendStudentLink in src/lib/auth.ts).
     { "name": "RL_UNI_EMAIL", "namespace_id": "1005", "simple": { "limit": 3, "period": 60 } },
-    // Every Worker request, per signed-in session or else per IP (custom-worker.ts). High enough for a shared
+    // Every Worker request, per signed-in user or else per IP (custom-worker.ts). High enough for a shared
     // campus or mobile IP of guests; going over it blocks that session or IP for 10 minutes.
     { "name": "RL_PAGES", "namespace_id": "1006", "simple": { "limit": 600, "period": 60 } }
   ],

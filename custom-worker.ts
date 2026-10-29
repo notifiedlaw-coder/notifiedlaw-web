@@ -15,13 +15,13 @@ const tooMany = (seconds: number) =>
 
 /**
  * Every request that reaches the Worker (pages, RSC fetches, API, media) counts against RL_PAGES, per signed-in
- * session or else per IP (src/lib/client-key.ts). Static assets are served before the Worker runs and are free,
+ * user or else per IP (src/lib/client-key.ts). Static assets are served before the Worker runs and are free,
  * so they never count. Going over blocks the key for BLOCK_MS, answered here before Next.js runs, so a flood costs
  * only the request itself. The per-route limits in src/lib/rate-limit.ts still apply on top.
  */
 export default {
   async fetch(req, env, ctx) {
-    const key = await clientKey(req, env.BETTER_AUTH_SECRET);
+    const key = await clientKey(req, env);
     const now = Date.now();
     const until = blocked.get(key);
     if (until && until > now) return tooMany(Math.ceil((until - now) / 1000));
