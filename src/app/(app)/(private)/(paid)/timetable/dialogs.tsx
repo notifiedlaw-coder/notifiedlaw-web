@@ -111,7 +111,8 @@ function Popover({ close, onSubmit, anchor, label, children }: { close: () => vo
       {!sheet && pos && pos.side !== "none" && (
         <span aria-hidden className={`absolute size-3 rotate-45 bg-surface ${pos.side === "right" ? "-left-1.5 shadow-[-1px_1px_0_rgba(0,0,0,0.08)]" : "-right-1.5 shadow-[1px_-1px_0_rgba(0,0,0,0.08)]"}`} style={{ top: pos.arrow - 6 }} />
       )}
-      <div className={sheet ? "contents" : "flex max-h-[calc(100dvh-44px)] flex-col gap-3 overflow-y-auto"}>{children}</div>
+      {/* Padding inside, cancelled by the margin, so focus rings at the edges are not clipped by the scroll. */}
+      <div className={sheet ? "contents" : "-m-1.5 flex max-h-[calc(100dvh-32px)] flex-col gap-3 overflow-y-auto p-1.5"}>{children}</div>
     </form>
   );
   return createPortal(
