@@ -25,7 +25,8 @@ function GoogleG() {
 
 type Path = "choose" | "student" | "professional";
 
-export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
+/** `elsewhere`: this device was signed out because the account signed in on another one (src/lib/auth.ts). */
+export default function AuthForm({ mode, elsewhere = false }: { mode: "login" | "signup"; elsewhere?: boolean }) {
   const login = mode === "login";
   const [path, setPath] = useState<Path>(login ? "professional" : "choose");
   const [busy, setBusy] = useState(false);
@@ -119,6 +120,11 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
       <main id="main" tabIndex={-1} className="relative flex items-start justify-center bg-surface px-5 py-6 sm:px-6 md:items-center md:py-10">
         <Link href="/" className="absolute right-5 top-5 hidden text-sm font-medium md:block" style={{ color: "var(--color-link)", textDecoration: "none" }}>← Back to home</Link>
         <div className="flex w-full max-w-[360px] flex-col gap-3">
+          {elsewhere && (
+            <p role="status" className="m-0 rounded-xl bg-fill p-4 text-sm">
+              <b>You were signed out because you signed in on another device.</b> An account can be signed in on one device at a time. Sign in again to use NotifiedLaw here; that signs out the other device.
+            </p>
+          )}
           {body}
           <p className="text-center text-sm text-muted">
             {login ? "New here? " : "Already have an account? "}

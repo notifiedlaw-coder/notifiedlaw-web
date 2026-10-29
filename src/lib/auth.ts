@@ -3,9 +3,10 @@ import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins/magic-link";
+import { getSessionCookie } from "better-auth/cookies";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, lt, ne } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { isPaidPlan, type Plan } from "@/lib/data";
 import { sendEmail, studentLinkMessage } from "@/lib/email";
@@ -36,11 +37,11 @@ export function getAuth() {
     databaseHooks: {
       session: {
         // One device at a time: a new sign-in ends every other session of the account, so the old device is
-        // signed out on its next request. Any sign-in to an account whose email is on a university domain also
+        // signed out on its next request and /login tells it why (signedOutElsewhere). Any sign-in to an account whose email is on a university domain also
         // proves the mailbox is still live, whether it came from the emailed link or from Google on a Workspace university.
         create: {
           after: async (s) => {
-            await db.delete(schema.session).where(and(eq(schema.session.userId, s.userId), ne(schema.session.id, s.id)));
+            await endOtherSessions(db, s.userId, s.id);
             await recordStudent(db, s.userId);
           },
         },
@@ -95,6 +96,43 @@ async function sendStudentLink(db: Db, email: string, token: string, h?: Headers
     console.error("[student] send failed", (e as { code?: string }).code, (e as Error).message);
     throw refuse("We could not send the email. Check the address and try again shortly.");
   }
+}
+
+const ENDED_KEEP_MS = 30 * 86_400_000; // longer than any session lasts
+
+const sha256 = async (s: string) =>
+  [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+/** Deletes the user's sessions other than `keepId`, noting each one's token hash for signedOutElsewhere. */
+async function endOtherSessions(db: Db, userId: string, keepId: string) {
+  const others = await db.select({ id: schema.session.id, token: schema.session.token }).from(schema.session)
+    .where(and(eq(schema.session.userId, userId), ne(schema.session.id, keepId)));
+  const now = new Date();
+  await db.delete(schema.endedSession).where(lt(schema.endedSession.endedAt, new Date(now.getTime() - ENDED_KEEP_MS)));
+  if (!others.length) return;
+  // D1 binds at most 100 values per query; a user rarely has more than one other session.
+  for (let i = 0; i < others.length; i += 40) {
+    const part = others.slice(i, i + 40);
+    const rows = await Promise.all(part.map(async (o) => ({ tokenHash: await sha256(o.token), endedAt: now })));
+    await db.insert(schema.endedSession).values(rows).onConflictDoNothing();
+    await db.delete(schema.session).where(inArray(schema.session.id, part.map((o) => o.id)));
+  }
+}
+
+/**
+ * True when this browser's session cookie belongs to a session that was ended because the account signed in on
+ * another device. Only call it once getSession found no session.
+ */
+export async function signedOutElsewhere() {
+  const raw = getSessionCookie(await headers());
+  if (!raw) return false;
+  let value = raw;
+  try { value = decodeURIComponent(raw); } catch { /* use as is */ }
+  const dot = value.lastIndexOf(".");
+  if (dot < 1) return false;
+  const [row] = await getDb().select({ endedAt: schema.endedSession.endedAt }).from(schema.endedSession)
+    .where(eq(schema.endedSession.tokenHash, await sha256(value.slice(0, dot))));
+  return !!row;
 }
 
 /** Marks the user a student, or refreshes their proof, when their verified email is on a university domain. */

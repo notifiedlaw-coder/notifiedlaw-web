@@ -98,6 +98,13 @@ export const studentLink = sqliteTable("student_link", {
   windowStart: integer("window_start", { mode: "timestamp_ms" }).notNull(),
 });
 
+// Sessions ended because the account signed in on another device, by SHA-256 of the session token, so the old
+// device can be told why it was signed out. Rows older than the longest session lifetime are pruned on sign-in.
+export const endedSession = sqliteTable("ended_session", {
+  tokenHash: text("token_hash").primaryKey(),
+  endedAt: integer("ended_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 // Uploads each user started today (UTC), for DAILY_UPLOADS and DAILY_UPLOAD_BYTES. One row per user, reset on a new day.
 export const uploadDay = sqliteTable("upload_day", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),

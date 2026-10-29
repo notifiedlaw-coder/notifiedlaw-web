@@ -99,6 +99,13 @@
       "when": 1793238033992,
       "tag": "0013_upload_day",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1793238872155,
+      "tag": "0014_ended_session",
+      "breakpoints": true
     }
   ]
 }
