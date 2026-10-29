@@ -210,22 +210,16 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
       {lock === "Pro Max" && <Gate title="Pre-Bar and Bar Course come with Supreme Justice (Max)" body="Upgrade to read every note." cta="Unlock with Supreme Justice (Max)" color="#AF52DE" />}
       {lock === "Student" && <Gate title="Choose a plan to keep reading" body="The first two topics of every course are open as a preview. Student unlocks every topic from Level 100 to 400." cta="See plans" />}
       <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col">
       <div ref={scroller} className="min-h-0 flex-1 overflow-auto bg-surface">
         <div className="mx-auto flex max-w-[1100px] justify-center px-5 md:px-8">
-        <article className="min-w-0 max-w-[720px] flex-1 py-8 md:py-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>
+        <article className="min-w-0 max-w-[720px] flex-1 pb-24 pt-8 md:pt-10 xl:pb-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>
           <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
             {course} · Topic {n}{total > 1 ? ` · Chapter ${cur + 1} of ${total}` : ""}
           </div>
           <h1 className="mb-2 mt-2.5 text-[28px] font-bold leading-tight tracking-[-0.01em] md:text-4xl">{title}</h1>
-          <div className="mb-5 flex items-center gap-3 text-[13px] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
-            <span className="flex-1">{total} {total === 1 ? "chapter" : "chapters"} · {minutes} min read</span>
-            {!wide && (
-              <button type="button" onClick={() => setDrawer(true)} aria-label="Open AI Summary and Notes" aria-expanded={drawer}
-                className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-fill px-3 text-[13px] font-semibold text-ink">
-                <Icon name="sidebar" size={14} />Summary &amp; Notes
-                {notes.notes.length > 0 && <span className="rounded-full bg-surface px-1.5 text-[11px] tabular-nums text-muted">{notes.notes.length}</span>}
-              </button>
-            )}
+          <div className="mb-5 text-[13px] text-muted" style={{ fontFamily: "var(--font-sans)" }}>
+            {total} {total === 1 ? "chapter" : "chapters"} · {minutes} min read
           </div>
           {total > 1 && (
             <div className="mb-6 flex flex-wrap gap-2" style={{ fontFamily: "var(--font-sans)" }}>
@@ -248,6 +242,10 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
           </div>
         </article>
         </div>
+      </div>
+      {!wide && !drawer && (
+        <Fab count={notes.notes.length} onClick={() => setDrawer(true)} />
+      )}
       </div>
       <Podcast title={title} minutes={minutes} />
       </div>
@@ -301,6 +299,19 @@ function Sidebar({ tab, onTab, count, onClose, children }: { tab: Tab; onTab: (t
       </div>
       <div id="sidebar-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-1">{children}</div>
     </>
+  );
+}
+
+/** The button that opens the sidebar on screens too narrow to keep it open, floating just above the player bar. */
+function Fab({ count, onClick }: { count: number; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={`Open AI Summary and Notes${count ? `, ${count} ${count === 1 ? "note" : "notes"}` : ""}`}
+      className="absolute bottom-4 right-4 z-20 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-[#FFD60A] to-[#FF9F0A] text-white shadow-[0_8px_24px_rgba(255,159,10,0.4),0_2px_6px_rgba(0,0,0,0.15)] transition-transform active:scale-95 animate-[tt-pop_160ms_ease-out]">
+      <Icon name="note" size={24} />
+      {count > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[11px] font-bold tabular-nums text-surface shadow-[0_0_0_2px_var(--surface)]" style={SANS}>{count}</span>
+      )}
+    </button>
   );
 }
 
