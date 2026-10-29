@@ -37,7 +37,7 @@ export function titleFor(pathname: string): { title: string; sub: string } {
     ["/exam-prep", "Exam Prep", "Mock questions"],
     ["/timetable", "TimeTable", "Your personal study plan"],
     ["/leaderboard", "Leaderboard", "Weekly quiz"],
-    ["/case-law", "Case Law", "Case briefs"],
+    ["/case-law", "Case Law", "Case Briefs on Cases"],
     ["/files", "My Files", "Your uploaded notes"],
     ["/settings", "Settings", "Profile and preferences"],
     ["/plans", "Plans", "Choose how you study"],

@@ -246,7 +246,9 @@ function NoteCard({ n, active, missing, onOpen, onEdit, onDelete }: {
   const [error, setError] = useState<string | null>(null);
   const run = async (f: () => Promise<string | null>) => { setBusy(true); const err = await f(); setBusy(false); setError(err); return err; };
   return (
-    <li id={`note-${n.id}`} className={`flex flex-col gap-2 rounded-[14px] bg-surface p-3 shadow-[0_0_0_0.5px_var(--hairline)] transition-shadow ${active ? "ring-2 ring-[#FFCC00]" : ""}`}>
+    // Anywhere on the card goes to the passage, except its own buttons and the editor.
+    <li id={`note-${n.id}`} onClick={(e) => { if (mode === "view" && !(e.target as Element).closest("button, textarea, input, a")) onOpen(); }}
+      className={`flex flex-col gap-2 rounded-[14px] bg-surface p-3 shadow-[0_0_0_0.5px_var(--hairline)] transition-shadow ${mode === "view" ? "cursor-pointer hover:shadow-[0_0_0_0.5px_var(--hairline),0_2px_8px_rgba(0,0,0,0.06)]" : ""} ${active ? "ring-2 ring-[#FFCC00]" : ""}`}>
       <button type="button" onClick={onOpen} className="flex flex-col gap-2 text-left" aria-label={`Go to the passage: ${n.quote.slice(0, 80)}`}>
         <Quote text={n.quote} color={n.color} clamp={!active} />
         {missing && <span className="text-[11px] text-faint">This passage has changed since you noted it.</span>}

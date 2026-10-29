@@ -20,7 +20,7 @@ export function CaseLaw({ cases: all }: { cases: CmsCase[] }) {
 
   return (
     <Page>
-      <Title title="Case Law" sub="Case briefs on Ghanaian cases" />
+      <Title title="Case Law" sub="Case Briefs on Cases" />
       {all.length === 0 ? (
         <Empty title="No case briefs yet">Case briefs appear here once they are published.</Empty>
       ) : (
