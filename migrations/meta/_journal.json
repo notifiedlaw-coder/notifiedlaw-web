@@ -141,6 +141,13 @@
       "when": 1793279706780,
       "tag": "0019_topic_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1793281404293,
+      "tag": "0020_topic_note_color",
+      "breakpoints": true
     }
   ]
 }

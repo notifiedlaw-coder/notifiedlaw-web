@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import type { TopicNote } from "@/lib/notes";
+import { NOTE_COLORS, swatchOf, type NoteColor } from "@/lib/note-colors";
 
 const SANS = { fontFamily: "var(--font-sans)" };
 const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
 const MAX_NOTE = 2000;
 const BEFORE = 60;
 
-export type Draft = { chapter: number; quote: string; before: string; range: Range };
+export type Draft = { chapter: number; quote: string; before: string; color: NoteColor; range: Range };
 type Status = "loading" | "ready" | "signedOut" | "error";
 
 // ---------------------------------------------------------------- finding passages in the text
@@ -126,8 +127,8 @@ export function useTopicNotes(topicId: string | null) {
       if (j.note) setNotes((ns) => [...ns, j.note!].sort(order));
       return j.error ?? null;
     },
-    edit: async (id: string, note: string) => {
-      const j = await call(`/api/notes/${id}`, "PATCH", { note });
+    edit: async (id: string, patch: { note?: string; color?: NoteColor }) => {
+      const j = await call(`/api/notes/${id}`, "PATCH", patch);
       if (j.note) setNotes((ns) => ns.map((n) => (n.id === id ? j.note! : n)));
       return j.error ?? null;
     },
@@ -141,23 +142,37 @@ export function useTopicNotes(topicId: string | null) {
 
 // ---------------------------------------------------------------- UI
 
-/** The pill that appears over a selection in the text. Pressing it does not clear the selection. */
-export function AddNoteButton({ rect, onAdd }: { rect: DOMRect; onAdd: () => void }) {
-  const coarse = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
-  // Below the selection on touch screens, where the system's own menu sits above it.
-  const below = coarse || rect.top < 70;
-  const x = Math.min(Math.max(rect.left + rect.width / 2, 70), innerWidth - 70);
+/** The pill that appears by a selection in the text, at a point on screen. Pressing it does not clear the selection. */
+export function AddNoteButton({ left, top, onAdd }: { left: number; top: number; onAdd: () => void }) {
   return (
     <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={onAdd}
-      className="fixed z-40 flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full bg-ink px-3.5 text-[13px] font-semibold text-surface shadow-[0_6px_20px_rgba(0,0,0,0.25)] animate-[tt-pop_140ms_ease-out]"
-      style={{ ...SANS, left: x, top: below ? rect.bottom + 10 : rect.top - 46 }}>
+      className="fixed z-40 flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-ink px-3.5 text-[13px] font-semibold text-surface shadow-[0_6px_20px_rgba(0,0,0,0.25)] animate-[tt-pop_140ms_ease-out]"
+      style={{ ...SANS, left, top }}>
       <Icon name="note" size={14} />Add note
     </button>
   );
 }
 
-const Quote = ({ text, clamp = true }: { text: string; clamp?: boolean }) => (
-  <blockquote className={`m-0 border-l-[3px] border-[#FFCC00] pl-2.5 text-[13px] italic leading-snug text-muted ${clamp ? "line-clamp-3" : "line-clamp-6"}`} style={{ fontFamily: SERIF }}>
+/** The highlight colours as a row of swatches; picking one calls onPick. */
+function ColorPicker({ value, onPick, disabled }: { value: NoteColor; onPick: (c: NoteColor) => void; disabled?: boolean }) {
+  return (
+    <div role="radiogroup" aria-label="Highlight colour" className="flex items-center gap-1.5">
+      {NOTE_COLORS.map((c) => {
+        const on = c.id === value;
+        return (
+          <button key={c.id} type="button" role="radio" aria-checked={on} aria-label={c.label} title={c.label} disabled={disabled} onClick={() => onPick(c.id)}
+            className="flex size-7 items-center justify-center rounded-full disabled:opacity-50">
+            <span className={`block size-5 rounded-full transition-shadow ${on ? "shadow-[0_0_0_2px_var(--surface),0_0_0_4px_var(--color)]" : "shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]"}`}
+              style={{ background: c.swatch, ["--color" as string]: c.swatch }} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const Quote = ({ text, color, clamp = true }: { text: string; color: NoteColor; clamp?: boolean }) => (
+  <blockquote style={{ borderColor: swatchOf(color), fontFamily: SERIF }} className={`m-0 border-l-[3px] pl-2.5 text-[13px] italic leading-snug text-muted ${clamp ? "line-clamp-3" : "line-clamp-6"}`}>
     {text}
   </blockquote>
 );
@@ -196,12 +211,13 @@ function NoteField({ initial = "", busy, error, label, onSave, onCancel }: { ini
 }
 
 /** The note being written for a freshly highlighted passage. */
-export function Composer({ draft, signedOut, onSave, onCancel }: { draft: Draft; signedOut: boolean; onSave: (note: string) => Promise<string | null>; onCancel: () => void }) {
+export function Composer({ draft, signedOut, onColor, onSave, onCancel }: { draft: Draft; signedOut: boolean; onColor: (c: NoteColor) => void; onSave: (note: string) => Promise<string | null>; onCancel: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="flex flex-col gap-2.5 rounded-[14px] bg-surface p-3 shadow-[0_2px_10px_rgba(0,0,0,0.06),0_0_0_0.5px_var(--hairline)]">
-      <Quote text={draft.quote} />
+      <Quote text={draft.quote} color={draft.color} />
+      {!signedOut && <ColorPicker value={draft.color} onPick={onColor} />}
       {signedOut ? (
         <div className="flex flex-col gap-2">
           <p className="m-0 text-[13px] text-muted">Sign in to save notes to your account.</p>
@@ -222,7 +238,7 @@ const shortDate = (ms: number) => new Intl.DateTimeFormat("en-GB", { day: "numer
 
 function NoteCard({ n, active, missing, onOpen, onEdit, onDelete }: {
   n: TopicNote; active: boolean; missing: boolean; onOpen: () => void;
-  onEdit: (t: string) => Promise<string | null>; onDelete: () => Promise<string | null>;
+  onEdit: (patch: { note?: string; color?: NoteColor }) => Promise<string | null>; onDelete: () => Promise<string | null>;
 }) {
   const [mode, setMode] = useState<"view" | "edit" | "delete">("view");
   const [busy, setBusy] = useState(false);
@@ -231,12 +247,15 @@ function NoteCard({ n, active, missing, onOpen, onEdit, onDelete }: {
   return (
     <li id={`note-${n.id}`} className={`flex flex-col gap-2 rounded-[14px] bg-surface p-3 shadow-[0_0_0_0.5px_var(--hairline)] transition-shadow ${active ? "ring-2 ring-[#FFCC00]" : ""}`}>
       <button type="button" onClick={onOpen} className="flex flex-col gap-2 text-left" aria-label={`Go to the passage: ${n.quote.slice(0, 80)}`}>
-        <Quote text={n.quote} clamp={!active} />
+        <Quote text={n.quote} color={n.color} clamp={!active} />
         {missing && <span className="text-[11px] text-faint">This passage has changed since you noted it.</span>}
       </button>
       {mode === "edit" ? (
-        <NoteField initial={n.note} label="Edit note" busy={busy} error={error} onCancel={() => { setMode("view"); setError(null); }}
-          onSave={async (t) => { if (!(await run(() => onEdit(t)))) setMode("view"); }} />
+        <>
+          <ColorPicker value={n.color} disabled={busy} onPick={(color) => { if (color !== n.color) run(() => onEdit({ color })); }} />
+          <NoteField initial={n.note} label="Edit note" busy={busy} error={error} onCancel={() => { setMode("view"); setError(null); }}
+            onSave={async (t) => { if (!(await run(() => onEdit({ note: t })))) setMode("view"); }} />
+        </>
       ) : (
         <>
           <p className="m-0 whitespace-pre-wrap break-words text-[14px] leading-snug text-ink">{n.note}</p>
@@ -251,7 +270,7 @@ function NoteCard({ n, active, missing, onOpen, onEdit, onDelete }: {
               </>
             ) : (
               <>
-                <button type="button" onClick={() => setMode("edit")} aria-label="Edit note" className="flex size-7 items-center justify-center rounded-full text-muted hover:bg-fill hover:text-ink"><Icon name="pencil" size={14} /></button>
+                <button type="button" onClick={() => setMode("edit")} aria-label="Edit note or colour" className="flex size-7 items-center justify-center rounded-full text-muted hover:bg-fill hover:text-ink"><Icon name="pencil" size={14} /></button>
                 <button type="button" onClick={() => setMode("delete")} aria-label="Delete note" className="flex size-7 items-center justify-center rounded-full text-muted hover:bg-fill hover:text-red"><Icon name="trash" size={14} /></button>
               </>
             )}
@@ -269,7 +288,7 @@ function NoteCard({ n, active, missing, onOpen, onEdit, onDelete }: {
 export function NotesPanel({ status, notes, chapters, cur, active, missing, composer, onOpen, onEdit, onDelete }: {
   status: Status; notes: TopicNote[]; chapters: string[]; cur: number; active: string | null; missing: Set<string>;
   composer?: React.ReactNode;
-  onOpen: (n: TopicNote) => void; onEdit: (id: string, t: string) => Promise<string | null>; onDelete: (id: string) => Promise<string | null>;
+  onOpen: (n: TopicNote) => void; onEdit: (id: string, patch: { note?: string; color?: NoteColor }) => Promise<string | null>; onDelete: (id: string) => Promise<string | null>;
 }) {
   const mine = notes.filter((n) => n.chapter === cur);
   const rest = notes.filter((n) => n.chapter !== cur);
@@ -277,7 +296,7 @@ export function NotesPanel({ status, notes, chapters, cur, active, missing, comp
   const many = chapters.length > 1;
   const card = (n: TopicNote) => (
     <NoteCard key={n.id} n={n} active={active === n.id} missing={missing.has(n.id)} onOpen={() => onOpen(n)}
-      onEdit={(t) => onEdit(n.id, t)} onDelete={() => onDelete(n.id)} />
+      onEdit={(patch) => onEdit(n.id, patch)} onDelete={() => onDelete(n.id)} />
   );
   return (
     <div className="flex flex-col gap-3" style={SANS}>

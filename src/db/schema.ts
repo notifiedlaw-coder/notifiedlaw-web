@@ -99,6 +99,8 @@ export const topicNote = sqliteTable("topic_note", {
   quote: text("quote").notNull(),
   before: text("before").notNull().default(""),
   note: text("note").notNull(),
+  // A highlight colour from NOTE_COLORS.
+  color: text("color").notNull().default("yellow"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [index("topic_note_user_topic").on(t.userId, t.topicId)]);

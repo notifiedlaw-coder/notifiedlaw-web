@@ -1,0 +1,1 @@
+ALTER TABLE `topic_note` ADD `color` text DEFAULT 'yellow' NOT NULL;

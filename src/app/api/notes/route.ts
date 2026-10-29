@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   return Response.json({ notes: await notesFor(userId, topicId) });
 }
 
-/** POST /api/notes { topicId, chapter, quote, before, note }: pins a note to a highlighted passage of a topic. */
+/** POST /api/notes { topicId, chapter, quote, before, note, color? }: pins a note to a highlighted passage of a topic. */
 export async function POST(req: Request) {
   const userId = await userIdFrom(req);
   if (!userId) return Response.json({ error: "Sign in to keep notes." }, { status: 401 });

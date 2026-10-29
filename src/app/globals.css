@@ -289,9 +289,18 @@ main:focus {
 @keyframes nl-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { [class*="animate-[nl-pop"], [class*="animate-[nl-fade"] { animation: none !important; } }
 
-/* Passages the reader has noted in a library topic (painted with the CSS Custom Highlight API). */
-::highlight(nl-note) { background-color: rgba(255, 204, 0, 0.32); }
-::highlight(nl-note-active) { background-color: rgba(255, 159, 10, 0.5); }
+/* Passages the reader has noted in a library topic (painted with the CSS Custom Highlight API), one pair per
+   colour in src/lib/note-colors.ts: the plain mark, and the stronger "-on" mark for the note that is picked. */
+::highlight(nl-yellow) { background-color: rgba(255, 204, 0, 0.32); }
+::highlight(nl-yellow-on) { background-color: rgba(255, 179, 0, 0.58); }
+::highlight(nl-green) { background-color: rgba(52, 199, 89, 0.26); }
+::highlight(nl-green-on) { background-color: rgba(52, 199, 89, 0.5); }
+::highlight(nl-blue) { background-color: rgba(10, 132, 255, 0.22); }
+::highlight(nl-blue-on) { background-color: rgba(10, 132, 255, 0.44); }
+::highlight(nl-pink) { background-color: rgba(255, 45, 85, 0.2); }
+::highlight(nl-pink-on) { background-color: rgba(255, 45, 85, 0.4); }
+::highlight(nl-purple) { background-color: rgba(175, 82, 222, 0.22); }
+::highlight(nl-purple-on) { background-color: rgba(175, 82, 222, 0.44); }
 /* The reader's sidebar slides in from the right on screens too narrow to keep it open. */
 @keyframes nl-drawer { from { transform: translateX(100%); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) { [class*="animate-[nl-drawer"] { animation: none !important; } }

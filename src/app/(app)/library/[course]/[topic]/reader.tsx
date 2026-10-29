@@ -5,10 +5,13 @@ import { Icon } from "@/components/icons";
 import { Btn, Gate } from "@/components/ui";
 import { Markdown, splitChapters } from "@/components/markdown";
 import type { TopicNote } from "@/lib/notes";
+import { DEFAULT_COLOR, NOTE_COLORS, isNoteColor, type NoteColor } from "@/lib/note-colors";
 import { AddNoteButton, Composer, NotesPanel, findPassage, paint, passageOf, textMap, useTopicNotes, type Draft } from "./notes";
 
 const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
 const WIDE = "(min-width: 1280px)"; // Tailwind's xl, where the sidebar stays open
+const COLOR_KEY = "nl-note-color"; // the colour last picked, for the next note
+const PILL_W = 112; // the "Add note" pill's width, near enough, for keeping it on screen
 type Tab = "summary" | "notes";
 
 /**
@@ -39,7 +42,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
   // ---- notes
   const notes = useTopicNotes(topicId);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [pick, setPick] = useState<DOMRect | null>(null);
+  const [pick, setPick] = useState<{ left: number; top: number } | null>(null);
   const [active, setActive] = useState<string | null>(null);
   const [missing, setMissing] = useState<Set<string>>(new Set());
   const [wide, setWide] = useState(false);
@@ -61,22 +64,61 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     return () => m.removeEventListener("change", on);
   }, []);
 
-  // The "Add note" pill follows a selection made inside the text.
+  /*
+   * The "Add note" pill for a selection made inside the text. With a mouse or pen it shows once the button is
+   * released, just above and to the right of where the pointer was, and moves with the text as it scrolls. On touch
+   * screens, and for a selection made with the keyboard, it sits under the selection, clear of the system's menu.
+   */
   useEffect(() => {
     if (!topicId) return;
+    const el = scroller.current;
+    const ptr = { x: 0, y: 0, scroll: 0, down: false, used: false };
     let frame = 0;
     const check = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const sel = getSelection();
         const r = sel && sel.rangeCount && !sel.isCollapsed ? sel.getRangeAt(0) : null;
-        setPick(r && text.current?.contains(r.commonAncestorContainer) && r.toString().trim().length > 1 ? r.getBoundingClientRect() : null);
+        if (ptr.down || !r || !text.current?.contains(r.commonAncestorContainer) || r.toString().trim().length < 2) return setPick(null);
+        // Desktop content is scaled with CSS zoom (.nl-content), which scales the pill's position too.
+        const z = parseFloat(getComputedStyle(text.current.closest(".nl-content") ?? document.body).zoom) || 1;
+        const at = (left: number, top: number) => setPick({ left: left / z, top: top / z });
+        if (ptr.used) {
+          const y = ptr.y - ((el?.scrollTop ?? 0) - ptr.scroll);
+          const view = el?.getBoundingClientRect();
+          if (view && (y < view.top || y > view.bottom)) return setPick(null);
+          const top = y - 46 * z;
+          at(Math.max(8, Math.min(ptr.x + 8, innerWidth - PILL_W * z - 8)), top < 8 ? y + 20 : top);
+        } else {
+          const b = r.getBoundingClientRect();
+          at(Math.max(8, Math.min(b.left + (b.width - PILL_W * z) / 2, innerWidth - PILL_W * z - 8)), b.bottom + 10);
+        }
       });
     };
+    const down = (e: PointerEvent) => {
+      ptr.used = e.pointerType !== "touch";
+      ptr.down = ptr.used;
+      if (ptr.down) setPick(null);
+    };
+    const up = (e: PointerEvent) => {
+      if (!ptr.down) return;
+      Object.assign(ptr, { x: e.clientX, y: e.clientY, scroll: el?.scrollTop ?? 0, down: false });
+      check();
+    };
+    const key = (e: KeyboardEvent) => { if (e.shiftKey) ptr.used = false; };
     document.addEventListener("selectionchange", check);
-    const el = scroller.current;
+    document.addEventListener("pointerdown", down, true);
+    document.addEventListener("pointerup", up, true);
+    document.addEventListener("keydown", key);
     el?.addEventListener("scroll", check, { passive: true });
-    return () => { cancelAnimationFrame(frame); document.removeEventListener("selectionchange", check); el?.removeEventListener("scroll", check); };
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("selectionchange", check);
+      document.removeEventListener("pointerdown", down, true);
+      document.removeEventListener("pointerup", up, true);
+      document.removeEventListener("keydown", key);
+      el?.removeEventListener("scroll", check);
+    };
   }, [topicId]);
 
   const startNote = () => {
@@ -85,7 +127,9 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     const p = passageOf(textMap(text.current), sel.getRangeAt(0));
     sel.removeAllRanges();
     setPick(null);
-    if (p) { setDraft({ chapter: cur, ...p }); setActive(null); showNotes(); }
+    let color: NoteColor = DEFAULT_COLOR;
+    try { const c = localStorage.getItem(COLOR_KEY); if (isNoteColor(c)) color = c; } catch {}
+    if (p) { setDraft({ chapter: cur, color, ...p }); setActive(null); showNotes(); }
   };
 
   // Marks the noted passages of the open chapter, and finds where each one is for jumping to it.
@@ -101,8 +145,12 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     }
     ranges.current = found;
     setMissing((old) => (old.size === lost.size && [...lost].every((id) => old.has(id)) ? old : lost));
-    paint("nl-note", [...found.values()]);
-    paint("nl-note-active", active && found.has(active) ? [found.get(active)!] : draft ? [draft.range] : []);
+    const on = active && found.has(active) ? active : null;
+    const color = new Map(notes.notes.map((x) => [x.id, x.color]));
+    for (const c of NOTE_COLORS) {
+      paint(`nl-${c.id}`, [...found].filter(([id]) => id !== on && color.get(id) === c.id).map(([, r]) => r));
+      paint(`nl-${c.id}-on`, on && color.get(on) === c.id ? [found.get(on)!] : !on && draft?.color === c.id ? [draft.range] : []);
+    }
     const want = reveal.current;
     if (want && found.has(want)) {
       reveal.current = null;
@@ -110,7 +158,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
       scroller.current!.scrollBy({ top: found.get(want)!.getBoundingClientRect().top - box.top - box.height / 3, behavior: "smooth" });
     }
   }, [notes.notes, cur, md, active, draft, jump]);
-  useEffect(() => () => { paint("nl-note", []); paint("nl-note-active", []); }, []);
+  useEffect(() => () => NOTE_COLORS.forEach((c) => { paint(`nl-${c.id}`, []); paint(`nl-${c.id}-on`, []); }), []);
 
   // Picking a note scrolls its passage into view, opening its chapter first if need be.
   const open = (x: TopicNote) => {
@@ -134,11 +182,14 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
 
   const save = async (note: string) => {
     if (!draft) return null;
-    const err = await notes.add({ chapter: draft.chapter, quote: draft.quote, before: draft.before }, note);
-    if (!err) setDraft(null);
+    const err = await notes.add({ chapter: draft.chapter, quote: draft.quote, before: draft.before, color: draft.color }, note);
+    if (!err) {
+      try { localStorage.setItem(COLOR_KEY, draft.color); } catch {}
+      setDraft(null);
+    }
     return err;
   };
-  const composer = draft && <Composer draft={draft} signedOut={notes.status === "signedOut"} onSave={save} onCancel={() => setDraft(null)} />;
+  const composer = draft && <Composer draft={draft} signedOut={notes.status === "signedOut"} onColor={(color) => setDraft({ ...draft, color })} onSave={save} onCancel={() => setDraft(null)} />;
   const sidebar = (
     <Sidebar tab={tab} onTab={setTab} count={notes.notes.length} onClose={wide ? undefined : closeDrawer}>
       {tab === "summary" ? <Summary /> : topicId ? (
@@ -196,7 +247,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
       </div>
       {wide && <aside className="flex w-[340px] shrink-0 flex-col border-l border-edge/10 bg-fill/50" aria-label="AI Summary and Notes">{sidebar}</aside>}
       {drawer && !wide && <Drawer onClose={closeDrawer}>{sidebar}</Drawer>}
-      {pick && <AddNoteButton rect={pick} onAdd={startNote} />}
+      {pick && <AddNoteButton left={pick.left} top={pick.top} onAdd={startNote} />}
     </div>
   );
 }
