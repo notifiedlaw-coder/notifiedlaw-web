@@ -26,10 +26,9 @@ type Toast = { text: string; tone: "error" | "info" };
 
 /**
  * TimeTable: a private study calendar, laid out like a desktop calendar app. On larger screens it fills the window:
- * a sidebar with the plan button, a small month, and the course list (each course can be shown or hidden), beside
+ * a sidebar with a small month and the course list (each course can be shown or hidden), beside
  * the calendar. Everything is made on the calendar itself: exams, weekly free time and study sessions are added by
- * clicking or dragging, moved by dragging, and changed in a popover beside them. "Plan my sessions" fills the free
- * time before each exam. Every change saves at once and is undone if the save fails.
+ * clicking or dragging, moved by dragging, and changed in a popover beside them. Every change saves at once and is undone if the save fails.
  */
 export function Timetable({ initial, suggestions }: { initial: TimetableState | null; suggestions: string[] }) {
   const today = todayIso();
@@ -86,19 +85,6 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
     return null;
   }
 
-  async function plan(sessionMins: number, breakMins: number) {
-    if (sessionMins !== input.sessionMins || breakMins !== input.breakMins) {
-      const e = await saveInput({ ...input, sessionMins, breakMins });
-      if (e) return e;
-    }
-    const r = await call("/api/timetable/plan", "POST");
-    if (r.error || !r.sessions) return r.error ?? OFFLINE;
-    setSessions(r.sessions);
-    setHidden(new Set());
-    setToast({ tone: "info", text: r.added ? `Planned ${r.added} study session${r.added === 1 ? "" : "s"}. Drag any of them to move it.` : "No free time was left before your exams, so nothing new was planned." });
-    return null;
-  }
-
   async function clearAll() {
     const r = await call("/api/timetable", "DELETE");
     setConfirmClear(false);
@@ -110,7 +96,7 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
   /** For drags: a refused change shows as a toast rather than in a popover. */
   const report = async (p: Promise<string | null>) => { const e = await p; if (e) setToast({ tone: "error", text: e }); return e; };
 
-  const actions: Actions = { saveInput, addSession, updateSession, deleteSession, plan };
+  const actions: Actions = { saveInput, addSession, updateSession, deleteSession };
   const ctx: Ctx = {
     input, sessions, today, hidden,
     active: open?.dialog ?? null,
@@ -145,19 +131,14 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
   const marked = new Set([...sessions.filter((s) => !hidden.has(s.courseId)).map((s) => s.date), ...input.courses.filter((c) => c.examDate && !hidden.has(c.id)).map((c) => c.examDate)]);
 
   const hasExam = input.courses.some((c) => c.examDate && c.examDate > today);
-  const hasPlan = sessions.some((s) => s.auto && s.date >= today);
   const steps = [
     { done: hasExam, title: "Add your exams", hint: "Click a day, or drag over a time, and choose Exam." },
     { done: input.free.length > 0, title: "Mark when you're free", hint: "In Week, drag over the hours you can study and choose Free time. It repeats weekly." },
-    { done: hasPlan, title: "Plan my sessions", hint: "Fills your free time with study up to each exam. Change any session after." },
   ];
   const next = steps.findIndex((s) => !s.done);
   const any = input.courses.length > 0 || input.free.length > 0 || sessions.length > 0;
   const openFrom = (d: Dialog) => (e: React.MouseEvent) => ctx.open(d, anchorOf(e.currentTarget));
 
-  const planBtn = (cls = "") => (
-    <button type="button" onClick={openFrom({ mode: "plan" })} className={`h-8 rounded-full bg-blue px-4 text-[13px] font-semibold text-white shadow-sm hover:bg-blue-press ${cls}`}>Plan my sessions</button>
-  );
   const courseRow = (c: TimetableInput["courses"][number]) => {
     const color = colorOf(input.courses, c.id);
     const off = hidden.has(c.id);
@@ -178,7 +159,6 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
   return (
     <div className="flex flex-col gap-3 px-4 pb-8 pt-4 md:h-full md:flex-row md:gap-0 md:p-0">
       <aside className="hidden w-[236px] shrink-0 flex-col gap-5 overflow-y-auto border-r border-edge/[0.08] bg-surface/60 px-3 py-4 lg:flex" aria-label="TimeTable">
-        {planBtn("w-full")}
         <MiniMonth cursor={cursor} today={today} marked={marked} onPick={setCursor} />
         <section className="flex flex-col gap-1">
           <div className="flex items-center justify-between px-1.5">
@@ -235,7 +215,6 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
 
         <div className="flex flex-col gap-2 lg:hidden">
           <div className="scroll-row flex flex-wrap items-center gap-2" aria-label="Courses">
-            {planBtn("shrink-0")}
             {input.courses.map((c) => {
               const off = hidden.has(c.id);
               return (

@@ -3,7 +3,6 @@ import { COURSE_COLORS, addDays, weekday, type FreeBlock, type StoredSession, ty
 
 // Styles, formatting, layout and types shared by the TimeTable calendar views and popovers.
 export const OFFLINE = "Could not reach NotifiedLaw. Check your connection and try again.";
-export const hours = (mins: number) => `${(mins / 60).toFixed(1).replace(/\.0$/, "")} h`;
 
 export const fmt = (iso: string, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-GB", { ...o, timeZone: "UTC" }).format(new Date(Date.parse(iso)));
 export const dayLabel = (iso: string) => fmt(iso, { weekday: "short", day: "numeric", month: "short" });
@@ -33,8 +32,7 @@ export type Dialog =
   | { mode: "session"; session: StoredSession }
   | { mode: "exam"; courseId: string }
   | { mode: "free"; block: FreeBlock }
-  | { mode: "course"; courseId: string | null }
-  | { mode: "plan" };
+  | { mode: "course"; courseId: string | null };
 
 /** What the views read and the edits they can make. Each edit resolves to an error message, or null once saved. */
 export type Ctx = {

@@ -4,11 +4,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Segmented } from "@/components/ui";
 import {
-  BREAK_MINS, DIFFICULTY_LABEL, MAX_COURSES, SESSION_MINS, WEEKDAY_NAMES,
-  addDays, cleanSession, cleanTimetable, toMins, weekday,
+  DIFFICULTY_LABEL, MAX_COURSES, WEEKDAY_NAMES,
+  addDays, cleanSession, cleanTimetable, weekday,
   type Difficulty, type FreeBlock, type StoredSession, type TimetableCourse, type TimetableInput,
 } from "@/lib/timetable";
-import { EXAM_COLOR, FREE_COLOR, colorOf, fmt, hours, longDate, useMedia, type Anchor, type Dialog } from "./shared";
+import { EXAM_COLOR, FREE_COLOR, colorOf, fmt, longDate, useMedia, type Anchor, type Dialog } from "./shared";
 
 type SessionFields = Pick<StoredSession, "courseId" | "date" | "start" | "end">;
 /** The edits a popover can make. Each resolves to an error message, or null once saved. */
@@ -17,7 +17,6 @@ export type Actions = {
   addSession: (f: SessionFields) => Promise<string | null>;
   updateSession: (s: StoredSession, f: SessionFields) => Promise<string | null>;
   deleteSession: (s: StoredSession) => Promise<string | null>;
-  plan: (sessionMins: number, breakMins: number) => Promise<string | null>;
 };
 type Props = { input: TimetableInput; sessions: StoredSession[]; today: string; suggestions: string[]; actions: Actions; close: () => void; anchor?: Anchor };
 
@@ -37,7 +36,6 @@ export function Dialogs({ dialog, ...p }: Props & { dialog: Dialog }) {
     case "exam": return <ExamPopover {...p} courseId={dialog.courseId} />;
     case "free": return <FreePopover {...p} block={dialog.block} />;
     case "course": return <CoursePopover {...p} courseId={dialog.courseId} />;
-    case "plan": return <PlanPopover {...p} />;
   }
 }
 
@@ -280,7 +278,7 @@ function NewPopover({ input, sessions, today, suggestions, actions, close, ancho
             <TimeRow label="From" value={f.start} onChange={(start) => setF({ ...f, start })} />
             <TimeRow label="To" value={f.end} onChange={(end) => setF({ ...f, end })} end />
           </Group>
-          <p className="m-0 px-0.5 text-[12px] leading-snug text-muted">When you can study. &ldquo;Plan my sessions&rdquo; fills it with study sessions.</p>
+          <p className="m-0 px-0.5 text-[12px] leading-snug text-muted">When you can study. It repeats every week.</p>
         </>
       ) : (
         <>
@@ -415,44 +413,3 @@ function CoursePopover({ input, sessions, suggestions, actions, close, anchor, c
   );
 }
 
-function PlanPopover({ input, sessions, today, actions, close, anchor }: Props) {
-  const [len, setLen] = useState(input.sessionMins);
-  const [brk, setBrk] = useState(input.breakMins);
-  const { busy, error, run } = useRun(close);
-  const exams = input.courses.filter((c) => c.examDate && c.examDate > today).sort((a, b) => a.examDate.localeCompare(b.examDate));
-  const weekly = input.free.reduce((t, b) => t + toMins(b.end) - toMins(b.start), 0);
-  const own = sessions.filter((s) => s.date >= today && !s.auto).length;
-  const missing = !exams.length ? "Put at least one upcoming exam on the calendar first: click a day, or drag over a time, and choose Exam."
-    : !input.free.length ? "Mark when you're free first: in Week view, drag over the hours you can study and choose Free time." : "";
-  return (
-    <Popover label="Plan my sessions" close={close} anchor={anchor} onSubmit={() => run(() => (missing ? Promise.resolve(missing) : actions.plan(len, brk)))}>
-      <Head color="var(--color-blue)" title="Plan my sessions" sub={missing ? undefined : `${hours(weekly)} free a week · until ${shortDate(exams[exams.length - 1].examDate)}`} />
-      {missing ? (
-        <>
-          <p className="m-0 px-0.5 text-[13px] leading-snug">{missing}</p>
-          <div className="flex justify-end"><button type="button" onClick={close} className="h-8 rounded-full bg-blue px-4 text-[13px] font-semibold text-white md:h-7">OK</button></div>
-        </>
-      ) : (
-        <>
-          <p className="m-0 px-0.5 text-[13px] leading-snug text-muted">
-            Fills your free time with study sessions up to each exam. Harder courses and closer exams get more time, and the day before an exam starts with a final review.
-            {own ? ` Your own ${own} session${own === 1 ? "" : "s"} stay where ${own === 1 ? "it is" : "they are"}.` : ""} Sessions planned before are replaced.
-          </p>
-          <Group>
-            <Row label="Session length" htmlFor="tt-len">
-              <select id="tt-len" value={len} onChange={(e) => setLen(Number(e.target.value))} className={`${ctl} appearance-none`}>
-                {SESSION_MINS.map((m) => <option key={m} value={m}>{m < 60 ? `${m} min` : hours(m)}</option>)}
-              </select>
-            </Row>
-            <Row label="Break between" htmlFor="tt-brk">
-              <select id="tt-brk" value={brk} onChange={(e) => setBrk(Number(e.target.value))} className={`${ctl} appearance-none`}>
-                {BREAK_MINS.map((m) => <option key={m} value={m}>{m ? `${m} min` : "None"}</option>)}
-              </select>
-            </Row>
-          </Group>
-          <Footer busy={busy} error={error} close={close} save="Plan" />
-        </>
-      )}
-    </Popover>
-  );
-}
