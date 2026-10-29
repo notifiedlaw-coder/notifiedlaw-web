@@ -19,25 +19,29 @@ const newCourse = (): TimetableCourse => ({ id: crypto.randomUUID(), name: "", e
 /** TimeTable: a study plan built from the student's courses, exam dates and free time, then edited on a calendar. Private to its owner. */
 export function Timetable({ initial, suggestions }: { initial: TimetableState | null; suggestions: string[] }) {
   const [saved, setSaved] = useState(initial);
-  const [editing, setEditing] = useState(!initial);
-  return editing || !saved ? (
+  const [editing, setEditing] = useState(false);
+  // The calendar always comes first. Before setup it is empty, with a prompt to add courses and exam dates.
+  return editing ? (
     <Editor
       start={saved}
       suggestions={suggestions}
       onSaved={(t) => { setSaved(t); setEditing(false); }}
-      onCancel={saved ? () => setEditing(false) : undefined}
+      onCancel={() => setEditing(false)}
     />
   ) : (
     <Calendar
-      state={saved}
+      state={saved ?? EMPTY}
+      empty={!saved}
       setSessions={(f) => setSaved((p) => (p ? { ...p, sessions: f(p.sessions) } : p))}
       onEdit={() => setEditing(true)}
-      onDeleted={() => { setSaved(null); setEditing(true); }}
+      onDeleted={() => setSaved(null)}
     />
   );
 }
 
-function Editor({ start, suggestions, onSaved, onCancel }: { start: TimetableState | null; suggestions: string[]; onSaved: (t: TimetableState) => void; onCancel?: () => void }) {
+const EMPTY: TimetableState = { input: { ...DEFAULT_INPUT, courses: [] }, sessions: [] };
+
+function Editor({ start, suggestions, onSaved, onCancel }: { start: TimetableState | null; suggestions: string[]; onSaved: (t: TimetableState) => void; onCancel: () => void }) {
   const [t, setT] = useState(start?.input ?? { ...DEFAULT_INPUT, courses: [newCourse()] });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -131,7 +135,7 @@ function Editor({ start, suggestions, onSaved, onCancel }: { start: TimetableSta
         {error && <p className="m-0 text-[13px] text-red" role="alert">{error}</p>}
         <div className="flex gap-2">
           <Btn type="submit" disabled={busy}>{busy ? "Saving…" : start ? "Save and rebuild" : "Build my timetable"}</Btn>
-          {onCancel && <Btn tone="plain" onClick={onCancel}>Cancel</Btn>}
+          <Btn tone="plain" onClick={onCancel}>Cancel</Btn>
         </div>
       </form>
     </Page>

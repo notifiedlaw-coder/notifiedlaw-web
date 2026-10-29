@@ -41,8 +41,10 @@ async function call(url: string, method: string, body?: unknown): Promise<Result
  * day and time (week), tapped to change or delete, and empty space tapped to add one. Every change is saved
  * straight away, shown first and rolled back if the server refuses it.
  */
-export function Calendar({ state, setSessions, onEdit, onDeleted }: {
+export function Calendar({ state, empty, setSessions, onEdit, onDeleted }: {
   state: TimetableState;
+  empty: boolean; // no timetable saved yet: the calendar shows, with a prompt to set one up
+
   setSessions: (f: (s: StoredSession[]) => StoredSession[]) => void;
   onEdit: () => void;
   onDeleted: () => void;
@@ -95,7 +97,7 @@ export function Calendar({ state, setSessions, onEdit, onDeleted }: {
     : `${fmt(weekStart, { day: "numeric", month: "short" })} – ${fmt(addDays(weekStart, 6), { day: "numeric", month: "short", year: "numeric" })}`;
 
   // Full width on phones, so the intro line keeps its own row instead of being squeezed beside the buttons.
-  const actions = (
+  const actions = empty ? null : (
     <div className="flex w-full flex-wrap gap-2 sm:w-auto">
       <Btn onClick={() => setDraft({ courseId: (upcoming[0] ?? input.courses[0]).id, date: cursor < today ? today : cursor, start: input.startTime, len: input.sessionMins })}>Add session</Btn>
       <Btn tone="plain" onClick={onEdit}>Edit setup</Btn>
@@ -112,7 +114,16 @@ export function Calendar({ state, setSessions, onEdit, onDeleted }: {
 
   return (
     <Page max={1100}>
-      <Title title="TimeTable" sub="Drag a session to move it, tap it to change it, or tap an empty spot to add one. Only you can see this." right={actions} />
+      <Title title="TimeTable" sub={empty ? "Your personal study calendar. Only you can see it." : "Drag a session to move it, tap it to change it, or tap an empty spot to add one. Only you can see this."} right={actions} />
+      {empty && (
+        <section className={`${cardCls} flex flex-wrap items-center justify-between gap-4 p-5`}>
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] font-semibold">Fill this calendar with a study plan</div>
+            <div className="text-[13px] text-muted">Add your courses, exam dates and free time. We plan your sessions; then move, change or add them right here.</div>
+          </div>
+          <Btn onClick={onEdit}>Set up timetable</Btn>
+        </section>
+      )}
       {upcoming.length > 0 && (
         <section className={`${cardCls} flex flex-col p-5`}>
           <Eyebrow>Exams</Eyebrow>
@@ -130,7 +141,7 @@ export function Calendar({ state, setSessions, onEdit, onDeleted }: {
           </ul>
         </section>
       )}
-      {!upcoming.length && !sessions.some((s) => s.date >= today) && (
+      {!empty && !upcoming.length && !sessions.some((s) => s.date >= today) && (
         <Empty title="All your exams are behind you">Edit the setup to add your next exams, or add sessions yourself.</Empty>
       )}
 
@@ -287,6 +298,7 @@ function WeekView({ ctx, start }: { ctx: Ctx; start: string }) {
             key={d}
             role="presentation"
             onClick={(e) => {
+              if (!ctx.input.courses.length) return; // nothing to plan before setup
               // The half hour that was tapped, kept inside the day.
               const at = Math.min(24 * 60 - ctx.input.sessionMins, Math.floor(minuteAt(e) / 30) * 30);
               ctx.open({ courseId: (ctx.input.courses.find((c) => c.examDate > d) ?? ctx.input.courses[0]).id, date: d, start: toHhmm(Math.max(0, at)), len: ctx.input.sessionMins });
@@ -299,7 +311,7 @@ function WeekView({ ctx, start }: { ctx: Ctx; start: string }) {
               const s = ctx.sessions.find((o) => o.id === e.dataTransfer.getData(DRAG_TYPE));
               if (s) ctx.move(s, d, snap(minuteAt(e) - grab.current));
             }}
-            className={`relative cursor-copy border-l border-edge/[0.08] ${d === ctx.today ? "bg-blue/[0.03]" : ""} ${over === d ? "bg-blue/10" : ""}`}
+            className={`relative ${ctx.input.courses.length ? "cursor-copy" : ""} border-l border-edge/[0.08] ${d === ctx.today ? "bg-blue/[0.03]" : ""} ${over === d ? "bg-blue/10" : ""}`}
             style={{ height: (to - from) * PX_PER_MIN, backgroundImage: "repeating-linear-gradient(to bottom, var(--hairline) 0 1px, transparent 1px 60px)" }}
           >
             {week.filter((s) => s.date === d).map((s) => {
