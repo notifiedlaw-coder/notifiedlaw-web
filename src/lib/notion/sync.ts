@@ -48,8 +48,22 @@ async function all<T>(fetchPage: (cursor?: string) => Promise<{ results: T[]; ha
   return out;
 }
 
-const queryDb = (token: string, id: string) =>
-  all<Json>((cursor) => notion(token, `/databases/${id}/query`, { method: "POST", body: { page_size: 100, start_cursor: cursor, sorts: [{ timestamp: "created_time", direction: "ascending" }] } }));
+/** A row's "Order" number (any casing of the name), or null when the column is missing or empty. */
+function orderOf(page: Json): number | null {
+  for (const [name, p] of Object.entries<Json>(page.properties ?? {}))
+    if (name.trim().toLowerCase() === "order" && p.type === "number" && typeof p.number === "number") return p.number;
+  return null;
+}
+
+/**
+ * A database's rows in the order the site shows them. Notion's API cannot read the order rows are dragged into,
+ * so editors set it in the "Order" column: lowest first, and rows without a number after those, oldest first.
+ */
+const queryDb = async (token: string, id: string) => {
+  const rows = await all<Json>((cursor) => notion(token, `/databases/${id}/query`, { method: "POST", body: { page_size: 100, start_cursor: cursor, sorts: [{ timestamp: "created_time", direction: "ascending" }] } }));
+  // Array sort is stable, so rows with the same Order (or none) keep their created_time order.
+  return rows.sort((a, b) => (orderOf(a) ?? Infinity) - (orderOf(b) ?? Infinity) || 0);
+};
 
 async function children(token: string, id: string): Promise<Block[]> {
   const blocks = await all<Block>((cursor) => notion(token, `/blocks/${id}/children?page_size=100${cursor ? `&start_cursor=${cursor}` : ""}`));
