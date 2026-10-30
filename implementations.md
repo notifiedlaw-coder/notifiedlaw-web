@@ -797,3 +797,7 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 - `sync.ts` rebuilds an article's tag rows from the Notion TAGS column on every sync. `getArticles()` reads them, falling back to the TAGS prop.
 - List page: iOS-style search (clear button, focus ring, searches title/summary/author/tags), Industry and Topics chips, Sort and Reading-time segmented controls, result count, Clear all, filters kept in the URL (`?q=&industry=&tag=`).
 - SEO/AEO/GEO: CollectionPage + ItemList JSON-LD on the list; Article JSON-LD gains keywords, about, timeRequired, speakable (title + summary as the direct answer), Person author; `keywords` and `article:tag` meta; tag links and "Keep reading" related articles; `<time>` element; tags in llms.txt.
+
+## Articles: Apple-style filter sheet, second cover
+- Filters moved into an iOS bottom sheet (grabber, Reset / Filters / Done bar, inset grouped sections, segmented Sort and Reading time, checkmark Industry list, Topics chips, "Show N articles" button). Opens from a round filter button with a count badge; active filters show as removable pills under the search field. Escape and backdrop close it; body scroll locks while open.
+- Cover for the freezing-clauses article: `public/articles/freezing-clauses-ghana-petroleum-sector.webp` (1280px, q82, 63 KB).
