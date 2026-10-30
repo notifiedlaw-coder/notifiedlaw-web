@@ -12,7 +12,7 @@ import { FAQ } from "@/lib/site";
 const LOGIN = "/login";
 const SIGNUP = "/signup";
 // Everything the loader waits for (the hero poster is only a fallback, so it is left out).
-const IMAGES = ["exam"].map((s) => `/landing/${s}.jpg`);
+const IMAGES = ["exam"].map((s) => `/landing/${s}.webp`);
 
 const HIGHLIGHTS: { tag: string; color: string; title: string; body: string }[] = [
   { tag: "Library", color: "#A34D00", title: "Every course. Every topic.", body: "Notes matched to your faculty, from Constitutional Law to Land Law, with the cases that matter linked inline." },
@@ -33,7 +33,7 @@ const link = "text-[#0066CC] no-underline hover:underline";
 
 function Slot({ src, label }: { src: string; label: string }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={`/landing/${src}.jpg`} alt={label} loading="lazy" decoding="async" className="size-full object-cover" />;
+  return <img src={`/landing/${src}.webp`} alt={label} width={1600} height={1069} loading="lazy" decoding="async" className="size-full object-cover" />;
 }
 
 function Tier({ name, color, price, per, blurb, items, cta, dark, ctaCls, badge }: {

@@ -100,7 +100,7 @@ export function HeroPromo({ ready = true, audioSrc = AUDIO_SRC }: { ready?: bool
         </div>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src="/landing/hero-poster.jpg" alt="" className="size-full object-cover" />
+        <img src="/landing/hero-poster.webp" alt="" width={1600} height={900} className="size-full object-cover" />
       )}
       </div>
       <audio ref={audioRef} src={audioSrc} preload={audioSrc.startsWith("blob:") ? "auto" : "none"} muted={muted} />

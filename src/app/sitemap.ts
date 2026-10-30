@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getArticles, getCaseBriefs, getCourses } from "@/lib/cms";
-import { LEVELS } from "@/lib/data";
+import { LEVELS, PREVIEW_TOPICS, isMaxLevel } from "@/lib/data";
 import { abs } from "@/lib/site";
 
 // Content comes from Notion (D1), so the sitemap is built on request.
@@ -17,6 +17,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/terms-of-service", 0.3, "yearly"),
     page("/library", 0.8, "weekly"),
     ...LEVELS.flatMap((l) => courses[l]).map((c) => page(`/library/${c.slug}`, 0.6)),
+    // Only the open preview topics carry text a crawler can read.
+    ...LEVELS.filter((l) => !isMaxLevel(l)).flatMap((l) => courses[l]).flatMap((c) =>
+      c.topics.slice(0, PREVIEW_TOPICS).flatMap((t, i) => (t.ready ? [page(`/library/${c.slug}/${i + 1}`, 0.5)] : []))),
     page("/articles", 0.8, "weekly"),
     ...articles.map((a) => page(`/articles/${a.slug}`, 0.8, "monthly", a.date ?? now)),
     page("/case-law", 0.8, "weekly"),
