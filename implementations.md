@@ -844,3 +844,9 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 - **Model-written titles:** after a new chat's first answer a short Kimi call writes the title (no credits), sent as a `title` event.
 - **Voice input:** a microphone in the composer where the browser has speech recognition (Chrome, Edge, Safari); dictation fills the box.
 - **Credit-aware cost** (`cost.ts`): 1 credit up to 8,000 characters of attached text, 2 to 30,000, 3 to 60,000, 4 above; Mock exam adds 1. The page shows "This will use N credits" before sending and blocks a question you cannot afford; the server charges from the text actually sent and refunds if no answer comes.
+
+## Exam Prep mock-up
+- `/exam-prep` (Supreme Justice plan, gate unchanged) now shows an interactive mock-up with sample content (`exam-prep/mock.ts`); published Notion questions (`getQuestions`) are no longer listed there until marking exists.
+- Home: next-exam hero with readiness ring and countdown, three session cards (Timed mock, Practice, Weak spots), course list with readiness bars and exam dates, recent attempts with grades, lowest topics, a week-of-practice chart. Phones stack everything as grouped lists.
+- New-session bottom sheet (centred card on desktop): format, course, length. Exam room: full-screen, countdown timer (amber under 10 min, red under 1), question tabs, flag for review, two-column question and answer on wide screens, iOS-style hand-in alert, auto hand-in at zero. Results: score ring, grade, per-question marks, what went well, to improve, what a strong answer covers, your answer, request expert review.
+- Marking is a sample (score from answer length); the feedback text is written per question in the mock data.

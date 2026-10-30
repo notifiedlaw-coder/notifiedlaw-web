@@ -281,6 +281,7 @@ main:focus {
 /* TimeTable: popovers scale in beside their event; on phones the editor rises as a sheet. */
 @keyframes tt-pop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
 @keyframes tt-sheet { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes nl-ring { from { stroke-dashoffset: var(--c); } }
 @keyframes tt-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { [class*="animate-[tt-"] { animation: none !important; } }
 
