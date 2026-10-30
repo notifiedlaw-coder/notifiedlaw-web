@@ -181,9 +181,11 @@ const Quote = ({ text, color, clamp = true }: { text: string; color: NoteColor; 
 function NoteField({ initial = "", busy, error, label, onSave, onCancel }: { initial?: string; busy: boolean; error: string | null; label: string; onSave: (t: string) => void; onCancel: () => void }) {
   const [text, setText] = useState(initial);
   const box = useRef<HTMLTextAreaElement>(null);
+  // With a mouse or keyboard, typing can start at once. Touch screens wait for a tap on the field: a browser only
+  // opens the on-screen keyboard for a tap, so focusing here would select the field with no keyboard to type with.
   useEffect(() => {
     const t = box.current;
-    if (!t) return;
+    if (!t || matchMedia("(pointer: coarse)").matches) return;
     t.focus({ preventScroll: true });
     t.setSelectionRange(t.value.length, t.value.length);
   }, []);
@@ -194,18 +196,21 @@ function NoteField({ initial = "", busy, error, label, onSave, onCancel }: { ini
   }, [text]);
   const ok = text.trim().length > 0 && !busy;
   return (
-    <div className="flex flex-col gap-2">
+    <div className="nl-note-field flex flex-col gap-2">
       <textarea ref={box} value={text} onChange={(e) => setText(e.target.value)} maxLength={MAX_NOTE} rows={3} aria-label={label} placeholder="Write your note…"
+        autoCapitalize="sentences" spellCheck
+        // Once the keyboard is up, keep the field and its buttons in view.
+        onFocus={(e) => { const t = e.currentTarget; setTimeout(() => t.closest(".nl-note-field")?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 350); }}
         onKeyDown={(e) => {
           if (e.key === "Escape") { e.preventDefault(); onCancel(); }
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && ok) { e.preventDefault(); onSave(text); }
         }}
-        className="min-h-[76px] w-full resize-none rounded-[10px] bg-surface px-3 py-2 text-[14px] leading-snug text-ink shadow-[0_0_0_0.5px_var(--hairline)] outline-none placeholder:text-faint focus-visible:ring-2 focus-visible:ring-blue/40" />
+        className="min-h-[88px] w-full resize-none rounded-[10px] bg-surface px-3 py-2.5 text-[16px] leading-snug md:min-h-[76px] md:py-2 md:text-[14px] text-ink shadow-[0_0_0_0.5px_var(--hairline)] outline-none placeholder:text-faint focus-visible:ring-2 focus-visible:ring-blue/40" />
       {error && <p role="alert" className="m-0 text-xs text-red">{error}</p>}
       <div className="flex items-center gap-2">
         <span className="flex-1 text-[11px] tabular-nums text-faint">{text.length > MAX_NOTE - 200 ? `${MAX_NOTE - text.length} left` : ""}</span>
-        <button type="button" onClick={onCancel} className="h-8 rounded-full px-3 text-[13px] font-medium text-muted hover:bg-surface">Cancel</button>
-        <button type="button" disabled={!ok} onClick={() => onSave(text)} className="h-8 rounded-full bg-blue px-3.5 text-[13px] font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save"}</button>
+        <button type="button" onClick={onCancel} className="h-10 rounded-full px-4 text-[15px] font-medium text-muted hover:bg-surface md:h-8 md:px-3 md:text-[13px]">Cancel</button>
+        <button type="button" disabled={!ok} onClick={() => onSave(text)} className="h-10 rounded-full bg-blue px-5 text-[15px] font-semibold text-white disabled:opacity-50 md:h-8 md:px-3.5 md:text-[13px]">{busy ? "Saving…" : "Save"}</button>
       </div>
     </div>
   );

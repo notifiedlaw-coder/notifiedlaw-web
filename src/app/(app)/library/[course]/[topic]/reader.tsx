@@ -387,6 +387,21 @@ function Dock({ count, hidden, onOpen }: { count: number; hidden: boolean; onOpe
 function Sheet({ detent, onDetent, onClose, children }: { detent: Detent; onDetent: (d: Detent) => void; onClose: () => void; children: React.ReactNode }) {
   const [dy, setDy] = useState<number | null>(null); // how far the grabber has been dragged down; null when not dragging
   const drag = useRef<{ y: number; moved: boolean } | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const [lift, setLift] = useState(0); // how far the on-screen keyboard reaches up over the sheet's space
+  // The on-screen keyboard shrinks the visual viewport but not the layout, so the sheet is raised to sit on top of it.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const fit = () => {
+      const space = box.current?.offsetParent?.getBoundingClientRect();
+      setLift(space ? Math.max(0, Math.round(space.bottom - (vv.offsetTop + vv.height))) : 0);
+    };
+    fit();
+    vv.addEventListener("resize", fit);
+    vv.addEventListener("scroll", fit);
+    return () => { vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); };
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
@@ -406,9 +421,11 @@ function Sheet({ detent, onDetent, onClose, children }: { detent: Detent; onDete
   return (
     <>
       {large && <div className="absolute inset-0 z-30 bg-black/25 motion-safe:animate-[tt-fade_200ms_ease-out]" onPointerDown={onClose} aria-hidden />}
-      <div role="dialog" aria-label="AI Summary and Notes"
+      <div ref={box} role="dialog" aria-label="AI Summary and Notes"
+        // Writing a note opens the sheet to full height, so the field sits high above the keyboard.
+        onFocus={(e) => { if (e.target instanceof HTMLTextAreaElement && !large) onDetent("large"); }}
         className={`absolute inset-x-0 bottom-0 z-30 flex flex-col overflow-hidden rounded-t-[22px] bg-surface/90 shadow-[0_-8px_40px_rgba(0,0,0,0.18),0_0_0_0.5px_var(--hairline)] backdrop-blur-2xl backdrop-saturate-150 motion-safe:animate-[tt-sheet_300ms_cubic-bezier(0.2,0.9,0.3,1)] sm:bottom-3 sm:left-auto sm:right-3 sm:w-[400px] sm:rounded-[22px] ${dy === null ? "motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.2,0.9,0.3,1)]" : ""}`}
-        style={{ height: large ? "calc(100% - 12px)" : "min(52%, 480px)", translate: dy ? `0 ${Math.max(0, dy)}px` : undefined }}>
+        style={{ bottom: lift || undefined, height: large ? `calc(100% - ${12 + lift}px)` : "min(52%, 480px)", translate: dy ? `0 ${Math.max(0, dy)}px` : undefined }}>
         <button type="button" aria-label={large ? "Make smaller" : "Make larger"}
           onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { y: e.clientY, moved: false }; setDy(0); }}
           onPointerMove={(e) => {
