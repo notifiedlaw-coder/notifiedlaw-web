@@ -112,6 +112,13 @@ export const topicProgress = sqliteTable("topic_progress", {
   completedAt: integer("completed_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [primaryKey({ columns: [t.userId, t.topicId] })]);
 
+// Case briefs a user has bookmarked, one row each. Keyed on the case's Notion page id, like topic_progress.
+export const caseBookmark = sqliteTable("case_bookmark", {
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  caseId: text("case_id").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [primaryKey({ columns: [t.userId, t.caseId] })]);
+
 // Student accounts: the account's own email is on a university's domain. The row is written, and verifiedAt
 // moved on, every time the user proves they still hold that mailbox by signing in (an emailed link, or Google
 // for universities on Google Workspace). The Student plan needs a proof from the last STUDENT_VERIFY_DAYS.

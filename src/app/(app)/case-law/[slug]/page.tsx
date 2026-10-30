@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { CaseBookmark } from "@/components/bookmark";
+import { myBookmarks } from "@/lib/bookmarks";
 import { Markdown } from "@/components/markdown";
 import { Page as Shell } from "@/components/ui";
 import { JsonLd } from "@/components/json-ld";
@@ -30,6 +32,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const { slug } = await params;
   const c = await find(slug);
   if (!c) notFound();
+  const bookmarks = await myBookmarks();
   return (
     <Shell max={760}>
       <JsonLd data={[
@@ -48,10 +51,13 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         breadcrumbs([["Case Law", "/case-law"], [c.title, `/case-law/${c.slug}`]]),
       ]} />
       <article className="flex flex-col gap-4" style={{ fontSize: 17, lineHeight: 1.65 }}>
-        <div>
-          <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted">Case brief</div>
-          <h1 className="mt-1 text-[30px] font-bold leading-tight tracking-[-0.02em]">{c.title}</h1>
-          {c.cite && <div className="mt-1 text-sm text-muted">{c.cite}</div>}
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted">Case brief</div>
+            <h1 className="mt-1 text-[30px] font-bold leading-tight tracking-[-0.02em]">{c.title}</h1>
+            {c.cite && <div className="mt-1 text-sm text-muted">{c.cite}</div>}
+          </div>
+          <CaseBookmark caseId={c.id} title={c.title} saved={bookmarks && bookmarks.includes(c.id)} />
         </div>
         <div className="flex flex-wrap gap-2 text-xs font-semibold">
           {[c.court, ...c.jurisdiction, ...c.courses].filter(Boolean).map((t) => <span key={t} className="rounded-full bg-fill px-3 py-1">{t}</span>)}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { BookmarkButton, useBookmarks } from "@/components/bookmark";
 import { Chevron, Page, SearchField, Segmented, Title } from "@/components/ui";
 import type { CmsCase, CmsColumn } from "@/lib/cms";
 
@@ -18,13 +19,6 @@ const label = (s: string) => s.trim().split(/\s+/).map((w, i) => {
 const ORDER = ["course", "court", "citation", "jurisdiction"];
 const FILTERED = new Set(["select", "multi_select", "status"]);
 
-const JURISDICTIONS = ["Ghana", "United Kingdom"] as const;
-type Jurisdiction = (typeof JURISDICTIONS)[number];
-/** Notion's jurisdiction values (any capitals, "UK" or "United Kingdom") as one of the two the page offers. */
-const jurisdictionOf = (v: string): Jurisdiction | null => {
-  const k = v.trim().toLowerCase();
-  return k === "ghana" ? "Ghana" : k === "uk" || k === "united kingdom" ? "United Kingdom" : null;
-};
 const isJurisdiction = (name: string) => name.trim().toLowerCase() === "jurisdiction";
 
 type Col = { name: string; options: string[]; filter: boolean };
@@ -48,36 +42,45 @@ function columnsFor(cases: CmsCase[], schema: CmsColumn[]): Col[] {
 }
 
 /** Case briefs published from Notion, in a table with Notion's columns; each select column's header filters by its options. */
-export function CaseLaw({ cases: all, columns: schema }: { cases: CmsCase[]; columns: CmsColumn[] }) {
+export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: CmsCase[]; columns: CmsColumn[]; bookmarks: string[] | null }) {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"A–Z" | "Z–A">("A–Z");
-  const [where, setWhere] = useState<Jurisdiction>("Ghana");
-  const [picked, setPicked] = useState<Record<string, string[]>>({});
+  const marks = useBookmarks(bookmarks);
+  const [saved, setSaved] = useState(false); // only the bookmarked cases
   const cols = columnsFor(all, schema);
-  // The jurisdiction has its own switch above the table, so its column is not also a filter.
-  const filters = cols.filter((c) => c.filter && c.options.length && !isJurisdiction(c.name));
+  // The jurisdiction filter starts on Ghana.
+  const [picked, setPicked] = useState<Record<string, string[]>>(() => {
+    const col = cols.find((c) => isJurisdiction(c.name));
+    const ghana = col?.options.find((o) => o.trim().toLowerCase() === "ghana");
+    return col && ghana ? { [col.name]: [ghana] } : {};
+  });
+  const filters = cols.filter((c) => c.filter && c.options.length);
   const active = Object.values(picked).reduce((n, v) => n + v.length, 0);
   const needle = q.toLowerCase();
   // Within a column any picked option matches; across columns every column must.
-  const inJurisdiction = all.filter((c) => c.jurisdiction.some((v) => jurisdictionOf(v) === where));
-  const cases = inJurisdiction
+  const cases = all
+    .filter((c) => !saved || marks.marked?.has(c.id))
     .filter((c) => Object.entries(picked).every(([col, vals]) => !vals.length || vals.some((v) => c.cells[col]?.includes(v))))
     .filter((c) => [c.title, ...Object.values(c.cells).flat()].join(" ").toLowerCase().includes(needle))
     .sort((a, b) => (sort === "A–Z" ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title)));
   const setCol = (col: string, vals: string[]) => setPicked((p) => ({ ...p, [col]: vals }));
-  const count = (col: string, v: string) => inJurisdiction.filter((c) => c.cells[col]?.includes(v)).length;
+  const count = (col: string, v: string) => all.filter((c) => c.cells[col]?.includes(v)).length;
   // Option names are Notion's capitals, so they are relabelled; text such as a citation is shown as written.
   const cell = (c: CmsCase, col: Col) => (c.cells[col.name] ?? []).map(col.filter ? label : (v) => v).join(", ");
   const grid = { gridTemplateColumns: `minmax(220px, 2.2fr) ${cols.map(() => "minmax(110px, 1fr)").join(" ")}` };
 
   return (
     <Page max={1120}>
-      <Title title="Case Law" sub="Case Briefs on Cases" />
+      <Title title="Case Law" sub="Case Briefs" />
       <div className="flex flex-wrap items-center gap-2">
         <SearchField value={q} onChange={setQ} placeholder="Search cases, citations, courts" />
-        <Segmented options={JURISDICTIONS} value={where} onChange={setWhere} />
         <Segmented options={["A–Z", "Z–A"] as const} value={sort} onChange={setSort} />
+        <button type="button" aria-pressed={saved} onClick={() => (marks.marked ? setSaved((v) => !v) : marks.toggle(""))}
+          className={`flex h-8 items-center gap-1.5 rounded-full border-0 px-3 text-xs font-medium ${saved ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}>
+          Bookmarks{marks.marked?.size ? ` · ${marks.marked.size}` : ""}
+        </button>
       </div>
+      {marks.error && <p role="alert" className="m-0 text-xs text-red">{marks.error}</p>}
       {/* Phones and tablets: the column filters as pills above a list. */}
       {filters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 lg:hidden">
@@ -91,15 +94,18 @@ export function CaseLaw({ cases: all, columns: schema }: { cases: CmsCase[]; col
 
       <div className="overflow-hidden rounded-xl bg-surface shadow-card lg:hidden">
         {cases.map((c) => (
-          <Link key={c.id} href={`/case-law/${c.slug}`} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-3 first:border-0 hover:bg-hover" style={{ textDecoration: "none", color: "inherit" }}>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-sm font-medium">{c.title}</span>
-              <span className="truncate text-xs text-muted">{cols.map((col) => cell(c, col)).filter(Boolean).join(" · ")}</span>
-            </span>
-            <Chevron />
-          </Link>
+          <div key={c.id} className="flex items-center border-t border-edge/[0.06] first:border-0 hover:bg-hover">
+            <Link href={`/case-law/${c.slug}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4" style={{ textDecoration: "none", color: "inherit" }}>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-sm font-medium">{c.title}</span>
+                <span className="truncate text-xs text-muted">{cols.map((col) => cell(c, col)).filter(Boolean).join(" · ")}</span>
+              </span>
+              <Chevron />
+            </Link>
+            <span className="px-1.5"><BookmarkButton on={!!marks.marked?.has(c.id)} onClick={() => marks.toggle(c.id)} title={c.title} /></span>
+          </div>
         ))}
-        {cases.length === 0 && <NoMatch q={q} none={!inJurisdiction.length} where={where} />}
+        {cases.length === 0 && <NoMatch q={q} none={!all.length} saved={saved} />}
       </div>
 
       {/* Wide screens: Notion's table, a filter in each select column's header. */}
@@ -115,20 +121,23 @@ export function CaseLaw({ cases: all, columns: schema }: { cases: CmsCase[]; col
           ))}
         </div>
         {cases.map((c) => (
-          <Link key={c.id} href={`/case-law/${c.slug}`} role="row" className="grid items-center gap-4 border-t border-edge/[0.06] px-4 py-3 text-[13px] first-of-type:border-0 last:rounded-b-xl hover:bg-hover" style={{ ...grid, textDecoration: "none", color: "inherit" }}>
-            <span role="cell" className="min-w-0 text-sm font-medium">{c.title}</span>
-            {cols.map((col) => <span key={col.name} role="cell" className="min-w-0 text-muted">{cell(c, col) || "—"}</span>)}
-          </Link>
+          <div key={c.id} className="relative border-t border-edge/[0.06] first:border-0 last:rounded-b-xl hover:bg-hover">
+            <Link href={`/case-law/${c.slug}`} role="row" className="grid items-center gap-4 py-3 pl-4 pr-14 text-[13px]" style={{ ...grid, textDecoration: "none", color: "inherit" }}>
+              <span role="cell" className="min-w-0 text-sm font-medium">{c.title}</span>
+              {cols.map((col) => <span key={col.name} role="cell" className="min-w-0 text-muted">{cell(c, col) || "—"}</span>)}
+            </Link>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2"><BookmarkButton on={!!marks.marked?.has(c.id)} onClick={() => marks.toggle(c.id)} title={c.title} /></span>
+          </div>
         ))}
-        {cases.length === 0 && <NoMatch q={q} none={!inJurisdiction.length} where={where} />}
+        {cases.length === 0 && <NoMatch q={q} none={!all.length} saved={saved} />}
       </div>
     </Page>
   );
 }
 
 // With no briefs published yet the table and its filters still show, with this in place of rows.
-const NoMatch = ({ q, none, where }: { q: string; none: boolean; where: string }) => (
-  <div className="p-6 text-center text-sm text-muted">{none ? `No ${where} case briefs yet. They appear here once they are published.` : q ? <>Nothing matches “{q}”. Try a party name or citation.</> : "No cases match these filters."}</div>
+const NoMatch = ({ q, none, saved }: { q: string; none: boolean; saved: boolean }) => (
+  <div className="p-6 text-center text-sm text-muted">{none ? "No case briefs yet. They appear here once they are published." : q ? <>Nothing matches “{q}”. Try a party name or citation.</> : saved ? "No bookmarked cases here yet. Tap the bookmark on a case to keep it." : "No cases match these filters."}</div>
 );
 
 /** A column's filter: a button (a header, or a pill on small screens) opening a checklist of the column's Notion options. */

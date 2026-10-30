@@ -812,5 +812,6 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 - `file-check.ts`: PDF bytes decode with the native `TextDecoder("latin1")` (a 16 MB PDF checked in 163 ms, was 392 ms; the old chunked `String.fromCharCode` build was nearly all of it). Stream scan uses `indexOf`, name decoding and DOCX field regexes skip when there is nothing to match.
 - `custom-worker.ts`: unhandled Worker exceptions answer code `S500` (API) or a plain apology (pages) instead of a platform error.
 
-## Case law jurisdiction
-- /case-law: Ghana / United Kingdom switch beside the sort control, Ghana by default. It matches the Notion Jurisdiction column ("UK" or "United Kingdom" count as United Kingdom) and replaces that column's header filter; other filters and their counts apply within the chosen jurisdiction.
+## Case law jurisdiction and bookmarks
+- /case-law: the existing Jurisdiction column filter starts on Ghana (clear it, or pick United Kingdom, to change).
+- Bookmarks: `case_bookmark` table (migration 0023), `/api/bookmarks` (GET, PUT {caseId, on}), `src/lib/bookmarks.ts`, `src/components/bookmark.tsx`. A ribbon on each case row and on the case page; a "Bookmarks" pill filters the list. Guests are sent to sign in. Subtitle is now "Case Briefs".
