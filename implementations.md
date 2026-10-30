@@ -801,3 +801,6 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 ## Articles: Apple-style filter sheet, second cover
 - Filters moved into an iOS bottom sheet (grabber, Reset / Filters / Done bar, inset grouped sections, segmented Sort and Reading time, checkmark Industry list, Topics chips, "Show N articles" button). Opens from a round filter button with a count badge; active filters show as removable pills under the search field. Escape and backdrop close it; body scroll locks while open.
 - Cover for the freezing-clauses article: `public/articles/freezing-clauses-ghana-petroleum-sector.webp` (1280px, q82, 63 KB).
+
+## Articles without Notion
+- `scripts/add-article.mjs`: reads a front-matter Markdown file and writes the article and its tags to D1 (local, `--remote`, or `--print`). Rows use a year-2100 `synced_at` so the Notion sync cannot delete them. The two launch articles were seeded live this way.
