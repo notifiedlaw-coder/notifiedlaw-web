@@ -850,3 +850,9 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 - Home: next-exam hero with readiness ring and countdown, three session cards (Timed mock, Practice, Weak spots), course list with readiness bars and exam dates, recent attempts with grades, lowest topics, a week-of-practice chart. Phones stack everything as grouped lists.
 - New-session bottom sheet (centred card on desktop): format, course, length. Exam room: full-screen, countdown timer (amber under 10 min, red under 1), question tabs, flag for review, two-column question and answer on wide screens, iOS-style hand-in alert, auto hand-in at zero. Results: score ring, grade, per-question marks, what went well, to improve, what a strong answer covers, your answer, request expert review.
 - Marking is a sample (score from answer length); the feedback text is written per question in the mock data.
+
+## Leaderboard mock-up
+- `/leaderboard` is now an interactive mock-up with sample standings (`leaderboard/mock.ts`). Pro and Supreme Justice see it; Student and others see the upgrade gate, matching the lock on the nav item.
+- Weekly quiz banner (week number, closing day) opens a bottom-sheet quiz: five multiple-choice questions, instant right or wrong with a short explanation, 20 points each; the points go onto your week and your rank updates.
+- This week or All time, and My university or Everyone. A podium for the top three, a "your place" card (rank, points, places moved, points to pass the next student, streak), the rankings table (movement arrows, green and red edges for the places that move up and down on the weekly table), and on phones a sticky bar with your rank.
+- Standings, names and quiz questions are sample data; scoring is not saved.
