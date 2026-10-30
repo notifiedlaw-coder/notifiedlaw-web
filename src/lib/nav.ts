@@ -39,6 +39,7 @@ export function titleFor(pathname: string): { title: string; sub: string } {
     ["/leaderboard", "Leaderboard", "Weekly quiz"],
     ["/case-law", "Case Law", "Case Briefs on Cases"],
     ["/files", "My Files", "Your uploaded notes"],
+    ["/friends", "Friends", "Activity and messages"],
     ["/settings", "Settings", "Profile and preferences"],
     ["/plans", "Plans", "Choose how you study"],
     ["/checkout", "Checkout", "Mobile money"],

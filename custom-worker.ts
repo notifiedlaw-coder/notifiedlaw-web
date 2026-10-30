@@ -4,6 +4,7 @@ import { Container } from "@cloudflare/containers";
 // @ts-ignore -- `.open-next/worker.js` exists only after `opennextjs-cloudflare build`
 import { default as handler } from "./.open-next/worker.js";
 import { clientKey } from "./src/lib/client-key";
+import { purgeExpiredMessages } from "./src/lib/message-purge";
 
 const BLOCK_MS = 10 * 60_000;
 const MAX_BLOCKED = 10_000;
@@ -41,6 +42,11 @@ export default {
         ? Response.json({ code: "S500" }, { status: 500, headers: { "cache-control": "private, no-store" } })
         : new Response("Something went wrong. Please try again. If it keeps happening, email notifiedlaw@gmail.com.", { status: 500, headers: { "content-type": "text/plain; charset=utf-8" } });
     }
+  },
+
+  /** The daily cron in wrangler.jsonc: deletes messages 30 days after they were read. */
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(purgeExpiredMessages(env.DB).then((n) => console.log("purged messages", n)));
   },
 } satisfies ExportedHandler<CloudflareEnv>;
 

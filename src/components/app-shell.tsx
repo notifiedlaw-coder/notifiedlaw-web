@@ -156,7 +156,7 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
           </span>
         </span>
       </Link>
-      {signedIn && <FriendsButton size={roomy ? 36 : 32} />}
+      {signedIn && <FriendsButton size={roomy ? 36 : 32} onNavigate={onNavigate} />}
       </div>
     </>
   );

@@ -1,6 +1,7 @@
 import { and, eq, or, sql } from "drizzle-orm";
-import { activity, friendship, profile, student, user } from "@/db/schema";
+import { activity, friendship, message, profile, student, user } from "@/db/schema";
 import { getDb } from "@/lib/auth";
+import { pairOf } from "@/lib/messages";
 import { dayOf, liveStreak, type Friend, type FriendLists } from "@/lib/friend-view";
 
 /** Friends, requests received and requests sent, together, per account. Keeps lists and sheets short. */
@@ -91,7 +92,14 @@ export async function respond(userId: string, fromId: string) {
   return rows.length > 0;
 }
 
-/** Declines a request, cancels one sent, or ends a friendship: whichever the user has with `otherId`. */
+/** Declines a request, cancels one sent, or ends a friendship: whichever the user has with `otherId`. Ending a friendship deletes the conversation too. */
 export async function unfriend(userId: string, otherId: string) {
-  await getDb().delete(friendship).where(between(userId, otherId));
+  const db = getDb();
+  await db.batch([db.delete(friendship).where(between(userId, otherId)), db.delete(message).where(pairOf(userId, otherId))]);
+}
+
+/** Whether the two accounts are friends, which messaging needs. */
+export async function areFriends(a: string, b: string) {
+  const [row] = await getDb().select({ status: friendship.status }).from(friendship).where(between(a, b));
+  return row?.status === "accepted";
 }

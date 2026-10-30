@@ -129,6 +129,23 @@ export const friendship = sqliteTable("friendship", {
   acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
 }, (t) => [primaryKey({ columns: [t.fromId, t.toId] }), index("friendship_to").on(t.toId)]);
 
+// Messages between friends. Opening the conversation as the recipient sets readAt and expiresAt (readAt + 30 days);
+// reads skip anything past expiresAt, and the Worker's daily cron (custom-worker.ts) deletes it. Unfriending deletes
+// the whole conversation.
+export const message = sqliteTable("message", {
+  id: text("id").primaryKey(),
+  fromId: text("from_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  toId: text("to_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  readAt: integer("read_at", { mode: "timestamp_ms" }),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+}, (t) => [
+  index("message_pair").on(t.fromId, t.toId, t.createdAt),
+  index("message_to_unread").on(t.toId, t.readAt),
+  index("message_expires").on(t.expiresAt),
+]);
+
 // When each user was last in the app and their daily streak, for Friend activity. Written by the shell's heartbeat
 // (POST /api/activity). A day counts once the app is opened on it (UTC, Ghana's time); `streakDay` is the last such day,
 // so a streak whose day is older than yesterday has lapsed and reads as 0.

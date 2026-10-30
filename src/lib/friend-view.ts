@@ -38,3 +38,22 @@ export function hueOf(id: string) {
   for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
   return h % 360;
 }
+
+/** Messages are deleted this long after the recipient opens them. */
+export const MESSAGE_TTL_MS = 30 * 86_400_000;
+export const MAX_MESSAGE = 2000;
+
+/** A message as the signed-in user sees it. `expiresAt` is set once the recipient has read it. */
+export type Message = { id: string; fromMe: boolean; body: string; at: number; readAt: number | null; expiresAt: number | null };
+/** A conversation's newest message and how many the user has not read, for the friends list. */
+export type Thread = { friendId: string; last: { body: string; fromMe: boolean; at: number }; unread: number };
+
+/** A message time for lists: "14:05" today, "Yesterday", the weekday within a week, else "3 Oct". */
+export function shortTime(at: number, now = Date.now()) {
+  const d = new Date(at);
+  const days = Math.round((Date.parse(dayOf(now)) - Date.parse(dayOf(at))) / 86_400_000);
+  if (days <= 0) return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  if (days === 1) return "Yesterday";
+  if (days < 7) return d.toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+}

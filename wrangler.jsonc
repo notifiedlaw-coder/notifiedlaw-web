@@ -10,6 +10,8 @@
     "binding": "ASSETS"
   },
   "observability": { "enabled": true },
+  // Daily at 02:30 UTC: deletes messages 30 days after they were read (scheduled() in custom-worker.ts).
+  "triggers": { "crons": ["30 2 * * *"] },
   "r2_buckets": [
     // Public marketing videos, audio and images, served by src/app/media/[...key]/route.ts
     { "binding": "VIDEOS", "bucket_name": "notifiedlaw-videos" },

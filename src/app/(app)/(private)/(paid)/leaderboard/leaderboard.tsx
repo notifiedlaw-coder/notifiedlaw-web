@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useFriends } from "@/components/friends";
+import Link from "next/link";
 import { Sheet } from "@/components/sheet";
 import type { Friend } from "@/lib/friend-view";
 import { PLAYERS, QUIZ, SCHOOL, sampleScore, type Player } from "./mock";
@@ -26,7 +26,7 @@ const weekNumber = (today: string) => {
 
 /**
  * Leaderboard: a mock-up with sample standings. A podium, your place and the gap to the next, the weekly quiz, and the
- * table. Friends and streaks are real (friends are managed from the friends button beside the profile name); points are
+ * table. Friends and streaks are real (friends are managed on the Friends page); points are
  * samples for everyone.
  */
 export function Leaderboard({ today, initialFriends, myStreak }: { today: string; initialFriends: Friend[]; myStreak: number }) {
@@ -35,8 +35,7 @@ export function Leaderboard({ today, initialFriends, myStreak }: { today: string
   const [bonus, setBonus] = useState(0); // points from this session's quiz
   const [quiz, setQuiz] = useState(false);
   const [taken, setTaken] = useState(false);
-  const { lists, open } = useFriends(); // once Friend activity has loaded them, its lists are the latest
-  const friends = lists?.friends ?? initialFriends;
+  const friends = initialFriends;
   const friendsView = scope === "friends";
 
   const rows = useMemo(() => {
@@ -83,8 +82,8 @@ export function Leaderboard({ today, initialFriends, myStreak }: { today: string
         <section aria-label="Friends" className="flex flex-col items-center gap-3 rounded-[22px] bg-surface px-6 py-10 text-center shadow-card">
           <span aria-hidden className="grid size-16 place-items-center rounded-full bg-blue/10 text-blue"><PeopleIcon size={30} /></span>
           <h2 className="m-0 text-[22px] font-bold tracking-[-0.02em]">Compete with friends</h2>
-          <p className="m-0 max-w-[340px] text-[15px] leading-snug text-muted">Once you have friends, you will see how you rank against each other here. Add them with the friends button beside your name.</p>
-          <button type="button" onClick={open} className="mt-2 h-[50px] rounded-[14px] border-0 bg-blue px-8 text-[17px] font-semibold text-white transition-transform active:scale-[0.97]">Add friends</button>
+          <p className="m-0 max-w-[340px] text-[15px] leading-snug text-muted">Once you have friends, you will see how you rank against each other here. Add them on the Friends page.</p>
+          <Link href="/friends" className="mt-2 grid h-[50px] place-items-center rounded-[14px] bg-blue px-8 text-[17px] font-semibold transition-transform active:scale-[0.97]" style={{ textDecoration: "none", color: "#fff" }}>Add friends</Link>
         </section>
       ) : <>
 
