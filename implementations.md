@@ -817,3 +817,11 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 - Bookmarks: `case_bookmark` table (migration 0023), `/api/bookmarks` (GET, PUT {caseId, on}), `src/lib/bookmarks.ts`, `src/components/bookmark.tsx`. A ribbon on each case row and on the case page; a "Bookmarks" pill filters the list. Guests are sent to sign in. Subtitle is now "Case Briefs".
 - Dashboard "Latest in articles" on phones: 3:2 cover, 20px corners, 22px title, three-line summary, 13px meta, press-scale 0.97 (sm and up unchanged in layout).
 - `myBookmarks` falls back to none if the table cannot be read, so /case-law renders even before migration 0023 is applied. Local D1 migration 0023 applied 2026-10-30.
+
+## Case comparison (AI)
+- /case-law: "Compare cases" pill turns on selection (numbered circles, max two, a floating bar with Compare). Needs sign-in (else /login) and a plan (else /plans). Opens `compare-sheet.tsx`, an Apple-style bottom sheet: summary, side by side on facts, issue, ratio, holding and reasoning, shared points, differences, which to cite.
+- `POST /api/case-law/compare {a,b}` -> `src/lib/compare.ts`. Kimi K3 client in `src/lib/ai/kimi.ts` (OpenAI-compatible chat completions, JSON mode). Secrets: `KIMI_API_KEY` (required), optional `KIMI_MODEL` (default `kimi-k3`) and `KIMI_BASE_URL` (default `https://api.moonshot.ai/v1`). With no key the route answers C104. Replies are validated; a bad shape is C105.
+- Cache: `case_comparison` (migration 0024), keyed on the sorted pair with a digest of both briefs, model and prompt version, so a pair is paid for once. `ai_day` caps generations at 20 per user per day (cache hits are free).
+- `POST /api/case-law/compare/save {a,b}`: rebuilds the comparison from the cache on the server, writes a Word file (`src/lib/docx.ts`, `src/lib/compare-doc.ts`: cases table, summary, side by side table, shared, differences, which to cite, AI notice and date), runs the My Files content check and daily upload count, and stores it with the new shared `saveFile` in `files.ts` (the upload route now uses it too). It skips the virus scan because the server made the file.
+- Error codes C101 to C106 in `error-codes.ts`.
+- Not tested against the real Kimi API (no key yet); tested with a local mock server, the docx through `checkFile` and macOS textutil.

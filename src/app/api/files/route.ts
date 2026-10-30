@@ -5,7 +5,7 @@ import { MAX_FILE_BYTES } from "@/lib/data";
 import { checkFile, cleanFileName } from "@/lib/file-check";
 import { scanFile } from "@/lib/scan";
 import { apiError } from "@/lib/error-codes";
-import { CONTENT_TYPES, countUpload, dropRow, fileKey, filesBucket, filesFor, foldersOf, quotaFor, reserve } from "@/lib/files";
+import { countUpload, filesFor, quotaFor, saveFile } from "@/lib/files";
 
 const noStore = { "cache-control": "private, no-store" };
 
@@ -50,18 +50,7 @@ export async function POST(req: Request) {
   const name = cleanFileName(rawName, check.kind);
   if (!name) return apiError("U110", 422);
 
-  const folderId = req.headers.get("x-folder-id") || null;
-  if (folderId && !(await foldersOf(userId)).some((f) => f.id === folderId)) return apiError("U111", 404);
-
-  const id = crypto.randomUUID();
-  const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
-  const row = { id, userId, key: fileKey(userId, id), name, kind: check.kind, folderId, size: bytes.length, sha256, createdAt: new Date() };
-  if (!(await reserve(row, quota))) return apiError("U112", 413);
-  try {
-    await filesBucket().put(row.key, bytes, { httpMetadata: { contentType: CONTENT_TYPES[check.kind] }, customMetadata: { userId }, sha256 });
-  } catch {
-    await dropRow(id);
-    return apiError("U113", 502);
-  }
-  return Response.json({ id, name, kind: check.kind, size: row.size, folderId, createdAt: row.createdAt.getTime() }, { status: 201, headers: noStore });
+  const saved = await saveFile(userId, quota, { name, kind: check.kind, folderId: req.headers.get("x-folder-id") || null, bytes });
+  if (!saved.ok) return apiError(saved.code, saved.status);
+  return Response.json(saved.file, { status: 201, headers: noStore });
 }

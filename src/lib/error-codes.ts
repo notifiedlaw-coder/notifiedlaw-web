@@ -28,6 +28,13 @@ export const ERROR_CODES = {
   U112: "Storage quota full",
   U113: "Writing to R2 failed",
 
+  C101: "Case comparison: the request did not name two different cases",
+  C102: "Case comparison: a case is not published or does not exist",
+  C103: "Case comparison: the user's daily allowance (DAILY_COMPARISONS) is used up",
+  C104: "Case comparison: the AI model is not configured (KIMI_API_KEY) or could not be reached; the cause is in the Worker log",
+  C105: "Case comparison: the AI model's reply did not have the expected shape; the reply is in the Worker log",
+  C106: "Case comparison: the generated Word file failed the content check",
+
   M201: "File not found",
   M202: "Rename to an empty name",
   M203: "Move target folder not found",

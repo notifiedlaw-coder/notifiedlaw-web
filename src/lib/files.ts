@@ -155,3 +155,24 @@ export async function purgeUserObjects(userId: string) {
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
 }
+
+/**
+ * Stores checked bytes as a file in the user's space: folder check, quota reservation, then R2. Callers do the
+ * content check, the daily count and (for uploads) the virus scan first. Failures are error codes
+ * (src/lib/error-codes.ts): U111 folder not found, U112 quota full, U113 R2 failed.
+ */
+export async function saveFile(userId: string, quota: number, f: { name: string; kind: FileKind; folderId: string | null; bytes: Uint8Array<ArrayBuffer> }):
+  Promise<{ ok: true; file: StoredFile } | { ok: false; code: "U111" | "U112" | "U113"; status: number }> {
+  if (f.folderId && !(await foldersOf(userId)).some((x) => x.id === f.folderId)) return { ok: false, code: "U111", status: 404 };
+  const id = crypto.randomUUID();
+  const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", f.bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const row = { id, userId, key: fileKey(userId, id), name: f.name, kind: f.kind, folderId: f.folderId, size: f.bytes.length, sha256, createdAt: new Date() };
+  if (!(await reserve(row, quota))) return { ok: false, code: "U112", status: 413 };
+  try {
+    await filesBucket().put(row.key, f.bytes, { httpMetadata: { contentType: CONTENT_TYPES[f.kind] }, customMetadata: { userId }, sha256 });
+  } catch {
+    await dropRow(id);
+    return { ok: false, code: "U113", status: 502 };
+  }
+  return { ok: true, file: { id, name: f.name, kind: f.kind, size: row.size, folderId: f.folderId, createdAt: row.createdAt.getTime() } };
+}

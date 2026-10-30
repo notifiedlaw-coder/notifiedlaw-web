@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { BookmarkButton, useBookmarks } from "@/components/bookmark";
+import { usePlan } from "@/components/plan";
+import { CompareSheet } from "./compare-sheet";
 import { Chevron, Page, SearchField, Segmented, Title } from "@/components/ui";
 import type { CmsCase, CmsColumn } from "@/lib/cms";
 
@@ -46,6 +49,19 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"A–Z" | "Z–A">("A–Z");
   const marks = useBookmarks(bookmarks);
+  const router = useRouter();
+  const { paid } = usePlan();
+  // Compare: pick up to two cases, then open the AI comparison.
+  const [comparing, setComparing] = useState(false);
+  const [pick, setPick] = useState<string[]>([]);
+  const [sheet, setSheet] = useState(false);
+  const startCompare = () => {
+    if (!marks.marked) return router.push("/login");
+    if (!paid) return router.push("/plans");
+    setComparing((v) => !v);
+    setPick([]);
+  };
+  const togglePick = (id: string) => setPick((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length < 2 ? [...p, id] : p));
   const [saved, setSaved] = useState(false); // only the bookmarked cases
   const cols = columnsFor(all, schema);
   // The jurisdiction filter starts on Ghana.
@@ -79,6 +95,10 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
           className={`flex h-8 items-center gap-1.5 rounded-full border-0 px-3 text-xs font-medium ${saved ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}>
           Bookmarks{marks.marked?.size ? ` · ${marks.marked.size}` : ""}
         </button>
+        <button type="button" aria-pressed={comparing} onClick={startCompare}
+          className={`flex h-8 items-center gap-1.5 rounded-full border-0 px-3 text-xs font-medium ${comparing ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}>
+          {comparing ? "Cancel compare" : "Compare cases"}
+        </button>
       </div>
       {marks.error && <p role="alert" className="m-0 text-xs text-red">{marks.error}</p>}
       {/* Phones and tablets: the column filters as pills above a list. */}
@@ -94,6 +114,16 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
 
       <div className="overflow-hidden rounded-xl bg-surface shadow-card lg:hidden">
         {cases.map((c) => (
+          comparing ? (
+            <button key={c.id} type="button" role="checkbox" aria-checked={pick.includes(c.id)} disabled={!pick.includes(c.id) && pick.length >= 2} onClick={() => togglePick(c.id)}
+              className="flex w-full items-center gap-3 border-0 border-t border-edge/[0.06] bg-transparent px-4 py-3 text-left first:border-0 hover:bg-hover disabled:opacity-40">
+              <Pick n={pick.indexOf(c.id) + 1} />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-sm font-medium">{c.title}</span>
+                <span className="truncate text-xs text-muted">{cols.map((col) => cell(c, col)).filter(Boolean).join(" · ")}</span>
+              </span>
+            </button>
+          ) : (
           <div key={c.id} className="flex items-center border-t border-edge/[0.06] first:border-0 hover:bg-hover">
             <Link href={`/case-law/${c.slug}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4" style={{ textDecoration: "none", color: "inherit" }}>
               <span className="flex min-w-0 flex-1 flex-col">
@@ -104,13 +134,15 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
             </Link>
             <span className="px-1.5"><BookmarkButton on={!!marks.marked?.has(c.id)} onClick={() => marks.toggle(c.id)} title={c.title} /></span>
           </div>
+          )
         ))}
         {cases.length === 0 && <NoMatch q={q} none={!all.length} saved={saved} />}
       </div>
 
       {/* Wide screens: Notion's table, a filter in each select column's header. */}
       <div className="hidden rounded-xl bg-surface shadow-card lg:block">
-        <div role="row" className="grid items-center gap-4 border-b border-edge/10 px-4 py-1.5 text-xs font-semibold text-muted" style={grid}>
+        <div role="row" className="grid items-center gap-4 border-b border-edge/10 px-4 py-1.5 text-xs font-semibold text-muted" style={comparing ? { gridTemplateColumns: `28px ${grid.gridTemplateColumns}` } : grid}>
+          {comparing && <span aria-hidden />}
           <span role="columnheader" className="py-1.5">Case Name</span>
           {cols.map((c) => (
             <span key={c.name} role="columnheader" className="min-w-0">
@@ -121,6 +153,14 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
           ))}
         </div>
         {cases.map((c) => (
+          comparing ? (
+            <button key={c.id} type="button" role="checkbox" aria-checked={pick.includes(c.id)} disabled={!pick.includes(c.id) && pick.length >= 2} onClick={() => togglePick(c.id)}
+              className="grid w-full items-center gap-4 border-0 border-t border-edge/[0.06] bg-transparent py-3 pl-4 pr-4 text-left text-[13px] first:border-0 last:rounded-b-xl hover:bg-hover disabled:opacity-40" style={{ gridTemplateColumns: `28px ${grid.gridTemplateColumns}` }}>
+              <Pick n={pick.indexOf(c.id) + 1} />
+              <span className="min-w-0 text-sm font-medium">{c.title}</span>
+              {cols.map((col) => <span key={col.name} className="min-w-0 text-muted">{cell(c, col) || "—"}</span>)}
+            </button>
+          ) : (
           <div key={c.id} className="relative border-t border-edge/[0.06] first:border-0 last:rounded-b-xl hover:bg-hover">
             <Link href={`/case-law/${c.slug}`} role="row" className="grid items-center gap-4 py-3 pl-4 pr-14 text-[13px]" style={{ ...grid, textDecoration: "none", color: "inherit" }}>
               <span role="cell" className="min-w-0 text-sm font-medium">{c.title}</span>
@@ -128,12 +168,32 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
             </Link>
             <span className="absolute right-3 top-1/2 -translate-y-1/2"><BookmarkButton on={!!marks.marked?.has(c.id)} onClick={() => marks.toggle(c.id)} title={c.title} /></span>
           </div>
+          )
         ))}
         {cases.length === 0 && <NoMatch q={q} none={!all.length} saved={saved} />}
       </div>
+      {comparing && <div aria-hidden className="h-14" />}
+      {comparing && (
+        <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div role="status" className="flex w-full max-w-[460px] items-center gap-3 rounded-[22px] bg-surface/90 py-2.5 pl-4 pr-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.22),0_0_0_0.5px_var(--hairline)] backdrop-blur-xl">
+            <span className="min-w-0 flex-1 text-[14px]">
+              {pick.length === 0 ? "Choose two cases to compare" : pick.length === 1 ? "Choose one more case" : "Ready to compare"}
+              <span className="block text-xs text-muted">{pick.length} of 2 selected</span>
+            </span>
+            <button type="button" disabled={pick.length < 2} onClick={() => setSheet(true)}
+              className="h-10 shrink-0 rounded-full border-0 bg-blue px-5 text-[15px] font-semibold text-white transition-transform active:scale-[0.97] disabled:opacity-40">Compare</button>
+          </div>
+        </div>
+      )}
+      {sheet && pick.length === 2 && <CompareSheet a={pick[0]} b={pick[1]} onClose={() => setSheet(false)} />}
     </Page>
   );
 }
+
+/** The selection circle in compare mode: empty, or filled with the case's place in the pair (1 or 2). */
+const Pick = ({ n }: { n: number }) => (
+  <span aria-hidden className={`flex size-[22px] shrink-0 items-center justify-center rounded-full text-xs font-semibold ${n ? "bg-blue text-white" : "border-[1.5px] border-faint/70"}`}>{n || ""}</span>
+);
 
 // With no briefs published yet the table and its filters still show, with this in place of rows.
 const NoMatch = ({ q, none, saved }: { q: string; none: boolean; saved: boolean }) => (

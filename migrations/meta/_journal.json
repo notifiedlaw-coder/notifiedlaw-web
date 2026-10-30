@@ -169,6 +169,13 @@
       "when": 1793379465047,
       "tag": "0023_case_bookmarks",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1793384461125,
+      "tag": "0024_case_comparisons",
+      "breakpoints": true
     }
   ]
 }
