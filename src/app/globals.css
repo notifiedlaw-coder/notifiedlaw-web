@@ -293,3 +293,9 @@ main:focus {
 @keyframes nl-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { [class*="animate-[nl-pop"], [class*="animate-[nl-fade"] { animation: none !important; } }
 
+
+/* Article reader: SF-style headings over serif body, quiet lists and reference links. */
+.article-body h2 { font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin: 2.2rem 0 0.9rem; }
+.article-body ul { padding-left: 1.2rem; margin: 0 0 1rem; }
+.article-body li { margin-bottom: 0.6rem; overflow-wrap: anywhere; }
+.article-body a { overflow-wrap: anywhere; }
