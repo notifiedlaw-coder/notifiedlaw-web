@@ -16,6 +16,8 @@ const HIGHLIGHTS = NOTE_COLORS.map((c) =>
   `::highlight(nl-${c.id}){background-color:color-mix(in srgb,${c.swatch} 35%,transparent)}::highlight(nl-${c.id}-on){background-color:color-mix(in srgb,${c.swatch} 60%,transparent)}`).join("");
 const PILL_W = 112; // the "Add note" pill's width, near enough, for keeping it on screen
 type Tab = "summary" | "notes";
+/** The bottom sheet's heights, as in Apple's sheets: half the screen with the text still in view, or nearly all of it. */
+type Detent = "medium" | "large";
 
 /**
  * A topic written in Notion (Markdown), read a page at a time: each heading 1 is a chapter starting on a new page,
@@ -23,7 +25,8 @@ type Tab = "summary" | "notes";
  * or section and steps through the pages; the foot of each page
  * leads to the previous and next one. On the right is a sidebar with two tabs:
  * the AI Summary (coming soon) and Notes, where a highlighted passage can be given a note saved to the reader's
- * account. Wide screens keep the sidebar open; narrower ones show it as a card from a floating button. Along the bottom, between the app's
+ * account. Wide screens keep the sidebar open; narrower ones show it as a bottom sheet, opened from a glass bar
+ * floating over the text. Along the bottom, between the app's
  * sidebar and this one, is a player bar for the topic's podcast (coming soon).
  */
 export function Reader({ course, slug, n, title, lock = null, body, topicId = null }: { course: string; slug: string; n: number; title: string; lock?: "Student" | "Pro Max" | null; body: string; topicId?: string | null }) {
@@ -63,9 +66,11 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
 
   // ---- sidebar
   const [tab, setTab] = useState<Tab>("notes");
-  const [popup, setPopup] = useState(false);
-  const showNotes = () => { setTab("notes"); if (!wide) setPopup(true); };
-  const closePopup = () => { setPopup(false); setDraft(null); };
+  const [sheet, setSheet] = useState<Detent | null>(null);
+  const [docked, setDocked] = useState(true); // the floating bar, hidden while reading on down the page
+  const showNotes = () => { setTab("notes"); if (!wide) setSheet((d) => d ?? "medium"); };
+  const openSheet = (t: Tab) => { setTab(t); setSheet("medium"); };
+  const closeSheet = () => { setSheet(null); setDraft(null); };
 
   // Left and right arrow keys turn the page, unless they are moving a caret or a selection.
   useEffect(() => {
@@ -84,10 +89,25 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
 
   useEffect(() => {
     const m = matchMedia(WIDE);
-    const on = () => { setWide(m.matches); if (m.matches) setPopup(false); };
+    const on = () => { setWide(m.matches); if (m.matches) setSheet(null); };
     on();
     m.addEventListener("change", on);
     return () => m.removeEventListener("change", on);
+  }, []);
+
+  // The floating bar steps aside while the reader scrolls on down, and comes back on a scroll up or at the page's end.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    let last = el.scrollTop;
+    const onScroll = () => {
+      const y = el.scrollTop;
+      if (Math.abs(y - last) < 8) return;
+      setDocked(y < last || y < 80 || y + el.clientHeight >= el.scrollHeight - 40);
+      last = y;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
   /*
@@ -203,7 +223,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     setDraft(null);
     reveal.current = x.id;
     setJump((j) => j + 1);
-    setPopup(false);
+    setSheet(null);
     if (x.chapter !== cur && x.chapter < total) go(x.chapter);
   };
   // Clicking a marked passage picks its note in the panel.
@@ -223,12 +243,13 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
     if (!err) {
       try { localStorage.setItem(COLOR_KEY, draft.color); } catch {}
       setDraft(null);
+      navigator.vibrate?.(8);
     }
     return err;
   };
   const composer = draft && <Composer draft={draft} signedOut={notes.status === "signedOut"} onColor={(color) => setDraft({ ...draft, color })} onSave={save} onCancel={() => setDraft(null)} />;
-  const sidebar = (
-    <Sidebar tab={tab} onTab={setTab} count={notes.notes.length}>
+  const sidebar = (onClose?: () => void) => (
+    <Sidebar tab={tab} onTab={setTab} count={notes.notes.length} onClose={onClose}>
       {tab === "summary" ? <Summary /> : topicId ? (
         <NotesPanel status={notes.status} notes={notes.notes} chapters={pages.map((p) => p.title ?? p.chapterTitle)} cur={cur} active={active} missing={missing}
           composer={composer} onOpen={open} onEdit={notes.edit} onDelete={notes.remove} />
@@ -270,12 +291,12 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
         </article>
         </div>
       </div>
-      {!wide && popup && <Popup onClose={closePopup}>{sidebar}</Popup>}
-      {!wide && <Fab count={notes.notes.length} open={popup} onClick={() => (popup ? closePopup() : setPopup(true))} />}
+      {!wide && sheet && <Sheet detent={sheet} onDetent={setSheet} onClose={closeSheet}>{sidebar(closeSheet)}</Sheet>}
+      {!wide && <Dock count={notes.notes.length} hidden={!!sheet || !docked} onOpen={openSheet} />}
       </div>
       <Podcast title={title} minutes={minutes} />
       </div>
-      {wide && <aside className="flex w-[340px] shrink-0 flex-col border-l border-edge/10 bg-fill/50" aria-label="AI Summary and Notes">{sidebar}</aside>}
+      {wide && <aside className="flex w-[340px] shrink-0 flex-col border-l border-edge/10 bg-fill/50" aria-label="AI Summary and Notes">{sidebar()}</aside>}
       {pick && <AddNoteButton left={pick.left} top={pick.top} onAdd={startNote} />}
     </div>
   );
@@ -291,7 +312,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 ];
 
 /** The reader's sidebar: AI Summary and Notes as tabs, the open one filling the space below. */
-function Sidebar({ tab, onTab, count, children }: { tab: Tab; onTab: (t: Tab) => void; count: number; children: React.ReactNode }) {
+function Sidebar({ tab, onTab, count, onClose, children }: { tab: Tab; onTab: (t: Tab) => void; count: number; onClose?: () => void; children: React.ReactNode }) {
   const list = useRef<HTMLDivElement>(null);
   // Left and right arrows move between the tabs.
   const onKey = (e: React.KeyboardEvent) => {
@@ -316,38 +337,87 @@ function Sidebar({ tab, onTab, count, children }: { tab: Tab; onTab: (t: Tab) =>
             );
           })}
         </div>
+        {onClose && (
+          <button type="button" onClick={onClose} aria-label="Close" className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-track/70 text-muted hover:text-ink">
+            <Icon name="close" size={13} />
+          </button>
+        )}
       </div>
       <div id="sidebar-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-1">{children}</div>
     </>
   );
 }
 
-/** On screens too narrow to keep the sidebar open: the button floating just above the player bar that opens and closes it. */
-function Fab({ count, open, onClick }: { count: number; open: boolean; onClick: () => void }) {
+/**
+ * On screens too narrow to keep the sidebar open: a frosted capsule floating over the text, like the toolbars in
+ * Apple's apps, with one half for each tab so a single tap opens the one wanted. It slides away while the reader
+ * scrolls on down the page and comes back when they scroll up.
+ */
+function Dock({ count, hidden, onOpen }: { count: number; hidden: boolean; onOpen: (t: Tab) => void }) {
+  const half = "flex h-11 items-center gap-1.5 rounded-full px-4 text-[14px] font-semibold transition-colors hover:bg-fill/70 active:bg-fill";
   return (
-    <button type="button" onClick={onClick} aria-expanded={open}
-      aria-label={open ? "Close AI Summary and Notes" : `Open AI Summary and Notes${count ? `, ${count} ${count === 1 ? "note" : "notes"}` : ""}`}
-      className="absolute bottom-4 right-4 z-30 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-[#FFD60A] to-[#FF9F0A] text-white shadow-[0_8px_24px_rgba(255,159,10,0.4),0_2px_6px_rgba(0,0,0,0.15)] transition-transform active:scale-95 animate-[tt-pop_160ms_ease-out]">
-      <Icon name={open ? "close" : "note"} size={open ? 20 : 24} />
-      {!open && count > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[11px] font-bold tabular-nums text-surface shadow-[0_0_0_2px_var(--surface)]" style={SANS}>{count}</span>
-      )}
-    </button>
+    <div role="toolbar" aria-label="AI Summary and Notes" aria-hidden={hidden} inert={hidden} style={SANS}
+      className={`absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-20 flex -translate-x-1/2 items-center rounded-full bg-surface/75 p-1 text-ink shadow-[0_8px_30px_rgba(0,0,0,0.12),0_0_0_0.5px_var(--hairline)] backdrop-blur-xl backdrop-saturate-150 motion-safe:transition-[translate,opacity] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.2,0.9,0.3,1)] ${hidden ? "pointer-events-none translate-y-[calc(100%+24px)] opacity-0" : ""}`}>
+      <button type="button" onClick={() => onOpen("summary")} className={half}>
+        <span className="text-[#FF9F0A]"><Icon name="sparkle" size={16} /></span>Summary
+      </button>
+      <span className="h-5 w-px bg-edge/15" aria-hidden />
+      <button type="button" onClick={() => onOpen("notes")} aria-label={`Notes${count ? `, ${count}` : ""}`} className={half}>
+        <span className="text-[#FF9F0A]"><Icon name="note" size={16} /></span>Notes
+        {count > 0 && <span className="rounded-full bg-fill px-1.5 text-[12px] tabular-nums text-muted">{count}</span>}
+      </button>
+    </div>
   );
 }
 
-/** The sidebar as a card that pops up above the floating button (which closes it), sized to what it holds so the text above stays in view. */
-function Popup({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+/**
+ * The sidebar as a sheet that rises from the bottom, in Apple's style: a grabber to drag it between half height
+ * (the text above stays in view and scrolls) and nearly full height (the text dims behind it), or down to close it.
+ * Tapping the grabber switches height; Escape, the close button or tapping the dimmed text closes it. On tablets
+ * it floats as a card at the bottom right.
+ */
+function Sheet({ detent, onDetent, onClose, children }: { detent: Detent; onDetent: (d: Detent) => void; onClose: () => void; children: React.ReactNode }) {
+  const [dy, setDy] = useState<number | null>(null); // how far the grabber has been dragged down; null when not dragging
+  const drag = useRef<{ y: number; moved: boolean } | null>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
+  const large = detent === "large";
+  const end = () => {
+    const d = drag.current;
+    drag.current = null;
+    const by = dy ?? 0;
+    setDy(null);
+    if (!d?.moved) return onDetent(large ? "medium" : "large");
+    if (by < -40) onDetent("large");
+    else if (by > (large ? 240 : 80)) onClose();
+    else if (by > 60) onDetent("medium");
+  };
   return (
-    <div role="dialog" aria-label="AI Summary and Notes"
-      className="absolute bottom-[88px] left-3 right-3 z-30 flex max-h-[min(520px,62%)] origin-bottom-right flex-col overflow-hidden rounded-[22px] bg-fill shadow-[0_16px_48px_rgba(0,0,0,0.22),0_0_0_0.5px_var(--hairline)] animate-[tt-pop_180ms_ease-out] sm:left-auto sm:w-[380px]">
-      {children}
-    </div>
+    <>
+      {large && <div className="absolute inset-0 z-30 bg-black/25 motion-safe:animate-[tt-fade_200ms_ease-out]" onPointerDown={onClose} aria-hidden />}
+      <div role="dialog" aria-label="AI Summary and Notes"
+        className={`absolute inset-x-0 bottom-0 z-30 flex flex-col overflow-hidden rounded-t-[22px] bg-surface/90 shadow-[0_-8px_40px_rgba(0,0,0,0.18),0_0_0_0.5px_var(--hairline)] backdrop-blur-2xl backdrop-saturate-150 motion-safe:animate-[tt-sheet_300ms_cubic-bezier(0.2,0.9,0.3,1)] sm:bottom-3 sm:left-auto sm:right-3 sm:w-[400px] sm:rounded-[22px] ${dy === null ? "motion-safe:transition-[height] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.2,0.9,0.3,1)]" : ""}`}
+        style={{ height: large ? "calc(100% - 12px)" : "min(52%, 480px)", translate: dy ? `0 ${Math.max(0, dy)}px` : undefined }}>
+        <button type="button" aria-label={large ? "Make smaller" : "Make larger"}
+          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { y: e.clientY, moved: false }; setDy(0); }}
+          onPointerMove={(e) => {
+            const d = drag.current;
+            if (!d) return;
+            if (Math.abs(e.clientY - d.y) > 4) d.moved = true;
+            setDy(e.clientY - d.y);
+          }}
+          onPointerUp={end}
+          onPointerCancel={() => { drag.current = null; setDy(null); }}
+          onClick={(e) => { if (e.detail === 0) onDetent(large ? "medium" : "large"); }}
+          className="flex h-5 shrink-0 cursor-grab touch-none items-end justify-center active:cursor-grabbing">
+          <span className="h-[5px] w-9 rounded-full bg-track" aria-hidden />
+        </button>
+        {children}
+      </div>
+    </>
   );
 }
 
