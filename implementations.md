@@ -791,3 +791,9 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 - Article reader: Apple-style header (eyebrow, title, summary, author byline), serif body with SF headings, optional Author column from Notion.
 - Articles: optional Image column (URL or site path). Hero image on the reader, square thumbnail on the left of each list row. Cover for the defamation article is `public/articles/free-speech-dignity-defamation-cases.webp` (1280px, q82, 110 KB).
 - Articles list: replaced rows with a featured card (cover on top, big title, Read link) plus a card grid (1/2/3 columns). Cover-less articles get a soft gradient with the title initial. Featured shows only with no search or industry filter.
+
+## Articles: search, tags, filters, indexes, SEO/AEO/GEO
+- Migration `0022_article_tags.sql`: `article_tag(entry_id, tag, slug)` with PK (entry_id, slug) and index on slug; new index `cms_entry_kind_slug`. Remote D1 still needs `wrangler d1 migrations apply notifiedlaw-db --remote` before deploy.
+- `sync.ts` rebuilds an article's tag rows from the Notion TAGS column on every sync. `getArticles()` reads them, falling back to the TAGS prop.
+- List page: iOS-style search (clear button, focus ring, searches title/summary/author/tags), Industry and Topics chips, Sort and Reading-time segmented controls, result count, Clear all, filters kept in the URL (`?q=&industry=&tag=`).
+- SEO/AEO/GEO: CollectionPage + ItemList JSON-LD on the list; Article JSON-LD gains keywords, about, timeRequired, speakable (title + summary as the direct answer), Person author; `keywords` and `article:tag` meta; tag links and "Keep reading" related articles; `<time>` element; tags in llms.txt.

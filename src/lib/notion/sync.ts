@@ -1,5 +1,5 @@
-import { lt } from "drizzle-orm";
-import { cmsEntry } from "@/db/schema";
+import { inArray, lt } from "drizzle-orm";
+import { articleTag, cmsEntry } from "@/db/schema";
 import { blocksToMarkdown, cleanTitle, type Block, type RichText } from "./markdown";
 import { courseSlugFor, slugify } from "./map";
 import { TIDY_VERSION, tidyMarkdown } from "./tidy";
@@ -205,6 +205,21 @@ export async function syncNotion(opts: { token: string; rootDatabaseId: string; 
     return db.insert(cmsEntry).values(values).onConflictDoUpdate({ target: cmsEntry.id, set });
   });
   for (let i = 0; i < stmts.length; i += 50) await db.batch(stmts.slice(i, i + 50) as [(typeof stmts)[0], ...typeof stmts]);
+
+  // Tags: one row per tag, rebuilt for every article so a tag removed in Notion goes too.
+  const articles = rows.filter((r) => r.kind === "article");
+  if (articles.length) {
+    const tagRows = articles.flatMap((r) => {
+      const raw = (JSON.parse(r.props ?? "{}") as Record<string, unknown>);
+      const key = Object.keys(raw).find((k) => /^tags?$/i.test(k));
+      const v = key ? raw[key] : [];
+      const names = (Array.isArray(v) ? v : typeof v === "string" ? v.split(",") : []).map((t) => String(t).trim()).filter(Boolean);
+      return [...new Map(names.map((t) => [slugify(t), t])).entries()].filter(([slug]) => slug).map(([slug, tag]) => ({ entryId: r.id, tag, slug }));
+    });
+    const ids = articles.map((r) => r.id);
+    for (let i = 0; i < ids.length; i += 50) await db.delete(articleTag).where(inArray(articleTag.entryId, ids.slice(i, i + 50)));
+    for (let i = 0; i < tagRows.length; i += 50) await db.insert(articleTag).values(tagRows.slice(i, i + 50));
+  }
 
   // Only after every Notion read and write succeeded: drop pages that were deleted in Notion.
   const removed = (await db.delete(cmsEntry).where(lt(cmsEntry.syncedAt, started)).returning({ id: cmsEntry.id })).length;

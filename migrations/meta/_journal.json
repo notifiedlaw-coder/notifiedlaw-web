@@ -155,6 +155,13 @@
       "when": 1793320217972,
       "tag": "0021_topic_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1793370833720,
+      "tag": "0022_article_tags",
+      "breakpoints": true
     }
   ]
 }

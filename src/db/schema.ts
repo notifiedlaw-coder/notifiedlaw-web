@@ -165,7 +165,18 @@ export const cmsEntry = sqliteTable("cms_entry", {
   published: integer("published", { mode: "boolean" }).notNull().default(false),
   notionEditedAt: text("notion_edited_at"),
   syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
-}, (t) => [index("cms_entry_kind_published").on(t.kind, t.published), index("cms_entry_parent").on(t.parentId)]);
+}, (t) => [
+  index("cms_entry_kind_published").on(t.kind, t.published),
+  index("cms_entry_parent").on(t.parentId),
+  index("cms_entry_kind_slug").on(t.kind, t.slug), // page lookups by slug
+]);
+
+// Tags on an entry (articles today), from the Notion TAGS column. One row per tag so a tag can be indexed and filtered.
+export const articleTag = sqliteTable("article_tag", {
+  entryId: text("entry_id").notNull().references(() => cmsEntry.id, { onDelete: "cascade" }),
+  tag: text("tag").notNull(), // display name, e.g. "Defamation"
+  slug: text("slug").notNull(), // url form, e.g. "defamation"
+}, (t) => [primaryKey({ columns: [t.entryId, t.slug] }), index("article_tag_slug").on(t.slug)]);
 
 // Law quotes shown on the dashboard. Add or retire rows in D1; only active = 1 rows are shown, one picked at random.
 export const quote = sqliteTable("quote", {

@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import { cmsEntry } from "@/db/schema";
+import { articleTag, cmsEntry } from "@/db/schema";
 import { getDb } from "@/lib/auth";
 import { LEVELS, type Course, type Level } from "@/lib/data";
 import { splitChapters } from "@/components/markdown";
@@ -23,6 +23,7 @@ async function entries(kind: string, onlyPublished: boolean): Promise<Entry[]> {
 
 const isLevel = (v: string | null): v is Level => LEVELS.includes(v as Level);
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+export const tagSlug = (s: string) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const readMins = (s: string) => Math.max(1, Math.round(words(s) / 200));
 const parse = (e: Entry): Record<string, unknown> => { try { return JSON.parse(e.props) as Record<string, unknown>; } catch { return {}; } };
 
@@ -118,13 +119,18 @@ export async function getColumns(kind: string): Promise<CmsColumn[]> {
   return Array.isArray(cols) ? cols : [];
 }
 
-export type CmsArticle = { slug: string; title: string; summary: string; area: string; industry: string; date: Date | null; mins: number; body: string; author: string; image: string };
+export type CmsArticle = { slug: string; title: string; summary: string; area: string; industry: string; date: Date | null; mins: number; body: string; author: string; image: string; tags: { name: string; slug: string }[] };
 
-/** Published articles. Optional Notion columns: SUMMARY, AREA, INDUSTRY, DATE, AUTHOR, IMAGE (a URL or site path). */
+/** Published articles. Optional Notion columns: SUMMARY, AREA, INDUSTRY, DATE, AUTHOR, IMAGE (a URL or site path), TAGS (multi-select). */
 export async function getArticles(): Promise<CmsArticle[]> {
+  const tagRows = await getDb().select().from(articleTag).catch(() => []);
+  const byEntry = new Map<string, { name: string; slug: string }[]>();
+  for (const t of tagRows) byEntry.set(t.entryId, [...(byEntry.get(t.entryId) ?? []), { name: t.tag, slug: t.slug }]);
   return (await entries("article", true)).map((e) => {
     const p = parse(e);
-    return { slug: e.slug, title: e.title, summary: text(p, "Summary", "Description") || lead(e.body), area: text(p, "Area", "Category", "Topic"), industry: text(p, "Industry"), date: dateOf(e, p), mins: readMins(e.body), body: e.body, author: text(p, "Author", "By"), image: text(p, "Image", "Cover") };
+    // The tag table is filled by the sync; until it is, fall back to the TAGS column in the row's props.
+    const tags = byEntry.get(e.id) ?? list(p, "Tags").map((name) => ({ name, slug: tagSlug(name) }));
+    return { slug: e.slug, title: e.title, summary: text(p, "Summary", "Description") || lead(e.body), area: text(p, "Area", "Category", "Topic"), industry: text(p, "Industry"), date: dateOf(e, p), mins: readMins(e.body), body: e.body, author: text(p, "Author", "By"), image: text(p, "Image", "Cover"), tags };
   });
 }
 

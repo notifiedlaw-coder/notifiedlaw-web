@@ -29,7 +29,7 @@ export async function GET() {
     "- Payment: MTN MoMo, Telecel Cash, AT Money. The Student plan is for students who verify a university email.",
     "",
     "## Articles",
-    ...articles.map((a) => `- [${a.title}](${abs(`/articles/${a.slug}`)})${a.summary ? `: ${a.summary}` : ""}`),
+    ...articles.map((a) => `- [${a.title}](${abs(`/articles/${a.slug}`)})${a.summary ? `: ${a.summary}` : ""}${a.tags.length ? ` (Topics: ${a.tags.map((t) => t.name).join(", ")})` : ""}`),
     "",
     "## Case law",
     ...cases.map((c) => `- [${c.title}${c.cite ? ` ${c.cite}` : ""}](${abs(`/case-law/${c.slug}`)})`),
