@@ -5,6 +5,9 @@ import type { ReactNode } from "react";
 // lists, quotes, callouts ("> [!callout] title", shown as a card), code, rules, tables, bold, italic,
 // strikethrough, inline code and links. Quotes and callouts may hold any of the others.
 
+/** Line endings made "\n", and Notion's no-break spaces made plain ones: a run of them never wraps, and pushed lines off the screen. */
+const tidy = (md: string) => md.replace(/\r\n/g, "\n").replace(/[\u00A0\u2007\u202F]/g, " ");
+
 const safeHref = (u: string) => (/^(https?:|mailto:|\/)/i.test(u) ? u : "#");
 
 function inline(text: string, key = ""): ReactNode[] {
@@ -73,7 +76,7 @@ function List({ ordered, items, k }: { ordered: boolean; items: ListItem[]; k: s
 
 /** `from` is the heading level that "###" becomes, so the body nests under the page's own h1/h2. */
 export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 }) {
-  const lines = source.replace(/\r\n/g, "\n").split("\n");
+  const lines = tidy(source).split("\n");
   const out: ReactNode[] = [];
   let i = 0;
   let key = 0;
@@ -86,13 +89,13 @@ export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 })
       const code: string[] = [];
       for (i++; i < lines.length && !lines[i].startsWith("```"); i++) code.push(lines[i]);
       i++;
-      out.push(<pre key={k} className="my-4 overflow-x-auto rounded-xl bg-fill p-4 text-[14px] leading-relaxed"><code>{code.join("\n")}</code></pre>);
+      out.push(<pre key={k} className="my-4 whitespace-pre-wrap break-words rounded-xl bg-fill p-4 text-[14px] leading-relaxed"><code>{code.join("\n")}</code></pre>);
       continue;
     }
     const h = /^(#{1,5})\s+(.*)$/.exec(line);
     if (h) {
       const level = h[1].length;
-      const cls = ["", "mb-3 mt-8 text-[28px] font-bold", "mb-2.5 mt-7 text-[26px] font-bold", "mb-2 mt-7 text-[22px] font-bold", "mb-2 mt-6 text-[19px] font-bold", "mb-2 mt-5 text-[17px] font-semibold"][level];
+      const cls = ["", "mb-3 mt-8 text-[26px] font-bold leading-tight", "mb-2.5 mt-7 text-[23px] font-bold leading-tight", "mb-2 mt-7 text-[20px] font-bold leading-snug", "mb-1.5 mt-6 text-[17px] font-bold leading-snug", "mb-1.5 mt-5 text-[16px] font-semibold leading-snug"][level];
       // "###" (a sub-chapter) is the `from` level; deeper ones step down from it.
       const Tag = `h${Math.min(6, from + Math.max(0, level - 3))}` as "h3";
       out.push(<Tag key={k} className={`${cls} tracking-[-0.01em]`}>{inline(h[2], k)}</Tag>);
@@ -104,10 +107,10 @@ export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 })
       const q: string[] = [];
       for (; i < lines.length && lines[i].startsWith(">"); i++) q.push(lines[i].replace(/^>\s?/, ""));
       const callout = /^\[!callout\]\s*(.*)$/.exec(q[0] ?? "");
-      const last = "[&>*:last-child]:mb-0";
+      const last = "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0";
       if (callout) {
         out.push(
-          <aside key={k} className={`my-5 rounded-2xl bg-fill px-5 py-4 shadow-[inset_0_0_0_0.5px_var(--hairline)] ${last}`}>
+          <aside key={k} className={`my-6 rounded-2xl bg-fill px-4 py-4 text-[0.94em] shadow-[inset_0_0_0_0.5px_var(--hairline)] sm:px-5 ${last}`}>
             {callout[1] && <p className="mb-3 font-bold leading-snug">{inline(callout[1], k)}</p>}
             <Markdown source={q.slice(1).join("\n")} from={from} />
           </aside>,
@@ -129,8 +132,8 @@ export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 })
       const rows: string[][] = [];
       for (i += 2; i < lines.length && lines[i].includes("|"); i++) rows.push(cells(lines[i]));
       out.push(
-        <div key={k} className="my-4 overflow-x-auto"><table className="w-full border-collapse text-[15px]">
-          <thead><tr>{head.map((c, j) => <th key={j} className="border-b border-edge/20 px-3 py-2 text-left font-semibold">{inline(c, `${k}h${j}`)}</th>)}</tr></thead>
+        <div key={k} className="my-5 overflow-hidden rounded-xl shadow-[inset_0_0_0_0.5px_var(--hairline)]"><table className="w-full border-collapse text-[14px] [overflow-wrap:anywhere] leading-snug [&_tr:last-child>td]:border-b-0">
+          <thead><tr>{head.map((c, j) => <th key={j} className="border-b border-edge/20 bg-fill px-3 py-2 text-left align-bottom font-semibold">{inline(c, `${k}h${j}`)}</th>)}</tr></thead>
           <tbody>{rows.map((r, ri) => <tr key={ri}>{r.map((c, j) => <td key={j} className="border-b border-edge/10 px-3 py-2 align-top">{inline(c, `${k}${ri}${j}`)}</td>)}</tr>)}</tbody>
         </table></div>,
       );
@@ -149,7 +152,7 @@ export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 })
  * heading 2) is the chapter's title, and the heading after it becomes the chapter's first subheading.
  */
 export function splitChapters(body: string, fallbackTitle: string): { title: string; md: string }[] {
-  const parts = body.replace(/\r\n/g, "\n").split(/^(?=##\s)/m).map((p) => p.trim()).filter(Boolean);
+  const parts = tidy(body).split(/^(?=##\s)/m).map((p) => p.trim()).filter(Boolean);
   const chapters: { title: string; md: string }[] = [];
   let empty: string | null = null;
   for (const p of parts) {

@@ -243,19 +243,20 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
       {lock === "Student" && <Gate title="Choose a plan to keep reading" body="The first two topics of every course are open as a preview. Student unlocks every topic from Level 100 to 400." cta="See plans" />}
       <div className="flex min-w-0 flex-1 flex-col">
       <div className="relative flex min-h-0 flex-1 flex-col">
-      <div ref={scroller} className="min-h-0 flex-1 overflow-auto bg-surface">
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface">
         {total > 1 && <PageBar pages={pages} cur={cur} chapterCount={chapterCount} onGo={go} />}
         <div className="mx-auto flex max-w-[1100px] justify-center px-5 md:px-8">
-        <article className="min-w-0 max-w-[720px] flex-1 pb-24 pt-8 md:pt-10 xl:pb-10" style={{ fontFamily: SERIF, fontSize: 18, lineHeight: 1.65 }}>
+        {/* Text wraps to the column: long words and links break rather than run off the side. */}
+        <article className="min-w-0 max-w-[680px] flex-1 break-words pb-24 pt-7 text-[17px] leading-[1.6] md:pt-10 md:text-[18px] md:leading-[1.65] xl:pb-10" style={{ fontFamily: SERIF }}>
           <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted" style={SANS}>{course} · Topic {n}</div>
-          <h1 className="mb-2 mt-2.5 text-[28px] font-bold leading-tight tracking-[-0.01em] md:text-4xl">{title}</h1>
+          <h1 className="mb-2 mt-2 text-[26px] font-bold leading-[1.15] tracking-[-0.01em] md:text-[34px]">{title}</h1>
           <div className="mb-6 text-[13px] text-muted" style={SANS}>
             {chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}{total > chapterCount ? ` · ${total} pages` : ""} · {minutes} min read
           </div>
           {cur === 0 || pages[cur - 1].chapter !== page.chapter ? (
             <>
               {chapterCount > 1 && <div className="mt-8 text-[13px] font-semibold text-muted" style={SANS}>Chapter {page.chapter + 1}</div>}
-              <h2 className="mb-3 mt-1.5 text-[26px] font-bold leading-tight tracking-[-0.01em] md:text-[30px]">{page.chapterTitle}</h2>
+              <h2 className="mb-3 mt-1.5 text-[22px] font-bold leading-tight tracking-[-0.01em] md:text-[26px]">{page.chapterTitle}</h2>
             </>
           ) : (
             // A later page of the chapter: where the reader is, then the text carries on from the page before.
@@ -436,30 +437,21 @@ function MenuRow({ on, onClick, n = null, page, strong, indent = 0, children }: 
   );
 }
 
-/** The foot of a page: cards to the previous and next page, Apple's page dots, and the way back to the course after the last page. */
+/** The foot of a page: Previous and Next buttons, Apple's page dots, and the way back to the course after the last page. */
 function Pagination({ pages, cur, back, onGo }: { pages: Page[]; cur: number; back: string; onGo: (i: number) => void }) {
-  const prev = cur > 0 ? pages[cur - 1] : null;
-  const next = cur < pages.length - 1 ? pages[cur + 1] : null;
-  const card = "group flex min-h-[72px] min-w-0 flex-col justify-center gap-0.5 rounded-[16px] bg-fill px-4 py-3 transition-colors hover:bg-track/70 active:scale-[0.99]";
+  const btn = "flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-5 text-[15px] font-semibold transition-colors active:scale-[0.98]";
+  const plain = `${btn} bg-fill text-ink hover:bg-track/70`;
+  const main = `${btn} bg-blue text-white hover:bg-blue-press`;
   return (
     <nav aria-label="Pages" className="mt-10 border-t border-edge/10 pt-6" style={SANS}>
       <div className="grid grid-cols-2 gap-3">
-        {prev ? (
-          <button type="button" onClick={() => onGo(cur - 1)} className={`${card} text-left`}>
-            <span className="flex items-center gap-1 text-[12px] font-medium text-muted"><Icon name="back" size={11} />Previous</span>
-            <span className="line-clamp-2 text-[14px] font-semibold leading-snug">{pageName(prev)}</span>
-          </button>
+        {cur > 0 ? (
+          <button type="button" onClick={() => onGo(cur - 1)} aria-label={`Previous: ${pageName(pages[cur - 1])}`} className={plain}><Icon name="back" size={14} />Previous</button>
         ) : <span />}
-        {next ? (
-          <button type="button" onClick={() => onGo(cur + 1)} className={`${card} items-end text-right`}>
-            <span className="flex items-center gap-1 text-[12px] font-medium text-blue">Next<Icon name="back" size={11} className="rotate-180" /></span>
-            <span className="line-clamp-2 text-[14px] font-semibold leading-snug">{pageName(next)}</span>
-          </button>
+        {cur < pages.length - 1 ? (
+          <button type="button" onClick={() => onGo(cur + 1)} aria-label={`Next: ${pageName(pages[cur + 1])}`} className={main}>Next<Icon name="back" size={14} className="rotate-180" /></button>
         ) : (
-          <a href={back} className={`${card} items-end text-right`} style={{ textDecoration: "none", color: "inherit" }}>
-            <span className="flex items-center gap-1 text-[12px] font-medium text-blue">Finished<Icon name="tick" size={12} /></span>
-            <span className="text-[14px] font-semibold leading-snug">Back to course</span>
-          </a>
+          <a href={back} className={main} style={{ textDecoration: "none", color: "#fff" }}>Back to course</a>
         )}
       </div>
       {pages.length > 1 && (
