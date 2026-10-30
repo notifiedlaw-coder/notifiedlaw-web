@@ -9,7 +9,7 @@ import type { TopicNote } from "@/lib/notes";
 import { DEFAULT_COLOR, NOTE_COLORS, isNoteColor, type NoteColor } from "@/lib/note-colors";
 import { AddNoteButton, Composer, NotesPanel, findPassage, paint, passageOf, textMap, useTopicNotes, type Draft } from "./notes";
 
-const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
+const SERIF = "var(--font-serif)";
 const WIDE = "(min-width: 1280px)"; // Tailwind's xl, where the sidebar stays open
 const COLOR_KEY = "nl-note-color"; // the colour last picked, for the next note
 /** The CSS highlight for each colour, from the same swatch the picker shows: a light mark, and a stronger "-on" one for the picked note or the draft. */
@@ -310,7 +310,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
   );
 }
 
-const SANS = { fontFamily: "var(--font-sans)" };
+const SANS = { fontFamily: "var(--font-serif)" };
 // Orange mixed toward the ink colour, so the label reads in both light and dark themes.
 const Soon = () => <span className="shrink-0 rounded-full bg-[#FF9500]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em]" style={{ color: "color-mix(in srgb, #FF9500 62%, var(--ink))" }}>Coming soon</span>;
 

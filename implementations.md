@@ -856,3 +856,6 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 - Weekly quiz banner (week number, closing day) opens a bottom-sheet quiz: five multiple-choice questions, instant right or wrong with a short explanation, 20 points each; the points go onto your week and your rank updates.
 - This week or All time, and My university or Everyone. A podium for the top three, a "your place" card (rank, points, places moved, points to pass the next student, streak), the rankings table (movement arrows, green and red edges for the places that move up and down on the weekly table), and on phones a sticky bar with your rank.
 - Standings, names and quiz questions are sample data; scoring is not saved.
+
+## Global serif font
+- The whole app now uses Source Serif 4 (loaded with next/font, variable `--font-source-serif`, exposed as `--font-serif`), replacing the system sans stack. Reader, notes, articles and Hot Topics use the same font instead of Georgia. The Google sign-in button keeps Roboto, as Google's branding asks.

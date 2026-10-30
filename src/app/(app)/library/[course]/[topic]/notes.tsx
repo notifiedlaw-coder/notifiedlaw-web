@@ -6,8 +6,8 @@ import { Icon } from "@/components/icons";
 import type { TopicNote } from "@/lib/notes";
 import { NOTE_COLORS, swatchOf, type NoteColor } from "@/lib/note-colors";
 
-const SANS = { fontFamily: "var(--font-sans)" };
-const SERIF = "Georgia, 'Iowan Old Style', 'Times New Roman', serif";
+const SANS = { fontFamily: "var(--font-serif)" };
+const SERIF = "var(--font-serif)";
 const MAX_NOTE = 2000;
 const BEFORE = 60;
 

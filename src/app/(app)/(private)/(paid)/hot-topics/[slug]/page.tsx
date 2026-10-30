@@ -24,7 +24,7 @@ export default async function Episode({ params }: { params: Promise<{ slug: stri
         <h1 className="text-balance mt-1.5 text-[30px] font-bold leading-tight tracking-[-0.02em] md:text-4xl">{e.title}</h1>
         {when && <p className="mt-2 text-sm text-muted">{when}</p>}
       </div>
-      <article style={{ fontFamily: "Georgia, 'Iowan Old Style', serif", fontSize: 17, lineHeight: 1.65 }}>
+      <article style={{ fontFamily: "var(--font-serif)", fontSize: 17, lineHeight: 1.65 }}>
         <Markdown source={e.body} />
       </article>
     </Page>

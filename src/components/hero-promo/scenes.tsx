@@ -16,7 +16,7 @@ export const DURATION = CUE.Close + 5.4;
 const NL = {
   ink: "#1D1D1F", sub: "rgba(60,60,67,0.6)", bg: "#F5F5F7", fill: "#F2F2F7", track: "#E5E5EA",
   orange: "#FF9500", amber: "#FF9F0A", blue: "#007AFF", purple: "#BF5AF2",
-  font: "var(--font-sans)",
+  font: "var(--font-serif)",
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));

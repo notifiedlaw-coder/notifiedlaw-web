@@ -86,7 +86,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
         )}
       </header>
       {a.image && <img src={a.image} alt="" width={1280} height={720} decoding="async" fetchPriority="high" className="aspect-video w-full rounded-2xl bg-fill object-cover shadow-card" />}
-      <article aria-labelledby="article-title" className="article-body" style={{ fontFamily: "Georgia, 'Iowan Old Style', serif", fontSize: 18, lineHeight: 1.7 }}>
+      <article aria-labelledby="article-title" className="article-body" style={{ fontFamily: "var(--font-serif)", fontSize: 18, lineHeight: 1.7 }}>
         <Markdown source={a.body} from={2} />
       </article>
       {related.length > 0 && (
