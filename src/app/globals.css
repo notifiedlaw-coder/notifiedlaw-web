@@ -96,6 +96,12 @@
   --strong-fg: #1d1d1f;
 }
 
+/* Height of the phone tab bar (app shell, below md), for overlays fixed to the bottom of the screen. */
+:root { --tabbar: 0px; --gutter: 1.25rem; }
+@media (max-width: 767px) {
+  :root { --tabbar: calc(50px + env(safe-area-inset-bottom)); }
+}
+
 /* Public pages scroll the document: reserve the scrollbar's width so the centred top bar does not shift
    between long and short pages. The app shell scrolls inside its own panel, so it is left alone. */
 html:has([data-site-nav]) {
@@ -109,6 +115,38 @@ body {
   color: var(--color-ink);
   font-family: var(--font-serif);
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* No grey flash on tap; controls give their own pressed state, as native ones do. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS zooms the page into any field under 16px when it gains focus. Touch screens get 16px fields;
+   the layout is unchanged on desktop. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  textarea,
+  select {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* Touch: links and buttons dim while held, like UIKit controls, instead of waiting for the tap to finish.
+   In the base layer so any utility that sets its own opacity or transition still wins. */
+@layer base {
+  @media (hover: none) {
+    a,
+    button,
+    [role="button"] {
+      transition: opacity 0.2s ease-out;
+    }
+    a:active,
+    button:not(:disabled):active,
+    [role="button"]:active {
+      opacity: 0.6;
+      transition-duration: 0s;
+    }
+  }
 }
 
 * {
@@ -171,8 +209,9 @@ img {
   .scroll-row {
     flex-wrap: nowrap;
     overflow-x: auto;
-    margin-inline: -1.25rem;
-    padding-inline: 1.25rem;
+    /* --gutter matches the page's side padding; pages padded other than 1.25rem set it. */
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: var(--gutter);
     scrollbar-width: none;
   }
   .scroll-row::-webkit-scrollbar { display: none; }

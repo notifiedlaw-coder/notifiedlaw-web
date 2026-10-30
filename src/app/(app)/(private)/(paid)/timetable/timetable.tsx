@@ -214,7 +214,7 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
         </div>
 
         <div className="flex flex-col gap-2 lg:hidden">
-          <div className="scroll-row flex flex-wrap items-center gap-2" aria-label="Courses">
+          <div className="scroll-row flex flex-wrap items-center gap-2 [--gutter:1rem]" aria-label="Courses">
             {input.courses.map((c) => {
               const off = hidden.has(c.id);
               return (
@@ -244,7 +244,7 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
 
       {toast && (
         <div role={toast.tone === "error" ? "alert" : "status"}
-          className="fixed bottom-6 left-1/2 z-[70] flex max-w-[min(480px,calc(100vw-32px))] -translate-x-1/2 items-center gap-3 rounded-full bg-[#1c1c1e]/90 py-2 pl-4 pr-2 text-[13px] text-white shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl animate-[tt-pop_160ms_ease-out]">
+          className="fixed bottom-[calc(var(--tabbar)+1.5rem)] left-1/2 z-[70] flex max-w-[min(480px,calc(100vw-32px))] -translate-x-1/2 items-center gap-3 rounded-full bg-[#1c1c1e]/90 py-2 pl-4 pr-2 text-[13px] text-white shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl animate-[tt-pop_160ms_ease-out]">
           {toast.tone === "error" && <span className="size-2 shrink-0 rounded-full bg-red" aria-hidden />}
           <span className="min-w-0">{toast.text}</span>
           <button type="button" onClick={() => setToast(null)} aria-label="Dismiss" className="flex size-6 shrink-0 items-center justify-center rounded-full text-white/70 hover:bg-white/10">×</button>

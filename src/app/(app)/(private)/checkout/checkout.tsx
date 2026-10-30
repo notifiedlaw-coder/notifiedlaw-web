@@ -83,7 +83,7 @@ export function Checkout() {
           <p id="momo-hint" className={`text-xs ${phoneTouched && !momo ? "text-red" : "text-muted"}`} role={phoneTouched && !momo ? "alert" : undefined}>{phoneTouched && !momo ? "Enter a 9-digit Ghana mobile number, like 24 123 4567." : "You’ll get a prompt on this number to approve the payment."}</p>
         </div>
         {DEMO_BILLING ? (
-          <Btn onClick={pay} disabled={!momo} className="h-11 text-[15px]">Pay {price}</Btn>
+          <Btn onClick={pay} disabled={!momo} className="h-11 text-[15px] sm:h-11 sm:text-[15px]">Pay {price}</Btn>
         ) : (
           <p className="m-0 rounded-xl bg-fill px-4 py-3 text-sm text-muted">Payments are not open yet, so your plan has not changed. We will announce it when they are.</p>
         )}

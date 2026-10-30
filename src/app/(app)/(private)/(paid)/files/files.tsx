@@ -186,9 +186,9 @@ export function Files({ initial }: { initial: FilesState }) {
         title="My Files"
         sub="Lecture notes, past papers and your own answers, in one place. Only you can see your files."
         right={
-          <div className="flex gap-2">
-            <Btn tone="plain" onClick={() => setNewFolder("")} disabled={newFolder !== null}>New folder</Btn>
-            <Btn onClick={() => input.current?.click()} disabled={!!busy}>{busy ? `Uploading… ${Math.round(busy.sent * 100)}%` : "Upload PDF or Word"}</Btn>
+          <div className="flex w-full gap-2 sm:w-auto">
+            <Btn tone="plain" onClick={() => setNewFolder("")} disabled={newFolder !== null} className="flex-1 sm:flex-none">New folder</Btn>
+            <Btn onClick={() => input.current?.click()} disabled={!!busy} className="flex-1 sm:flex-none">{busy ? `Uploading… ${Math.round(busy.sent * 100)}%` : <><span className="sm:hidden">Upload</span><span className="hidden sm:inline">Upload PDF or Word</span></>}</Btn>
           </div>
         }
       />

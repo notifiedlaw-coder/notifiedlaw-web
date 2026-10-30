@@ -135,7 +135,7 @@ export function Leaderboard({ today }: { today: string }) {
       </section>
 
       {/* Phones: your place stays in view while you scroll the table. */}
-      <div aria-hidden className="pointer-events-none sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10 -mt-2 sm:hidden">
+      <div aria-hidden className="pointer-events-none sticky bottom-3 z-10 -mt-2 sm:hidden">
         <div className="pointer-events-auto flex items-center gap-3 rounded-[20px] bg-surface/90 px-4 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.18),0_0_0_0.5px_var(--hairline)] backdrop-blur-xl">
           <span className="text-[20px] font-bold tabular-nums text-blue">#{me.rank}</span>
           <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">You</span>

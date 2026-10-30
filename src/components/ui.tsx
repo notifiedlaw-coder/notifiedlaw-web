@@ -23,7 +23,8 @@ export function Title({ title, sub, right }: { title: string; sub?: string; righ
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
       <h1 className="sr-only">{title}</h1>
-      {sub && <p className="m-0 min-w-0 flex-1 text-sm text-muted">{sub}</p>}
+      {/* Phones: the intro takes the full width and the actions wrap below it, rather than squeezing it into a column. */}
+      {sub && <p className="m-0 w-full min-w-0 text-[15px] leading-snug text-muted sm:w-auto sm:flex-1 sm:text-sm">{sub}</p>}
       {right}
     </div>
   );
@@ -89,7 +90,7 @@ export function Chip({ on, children, onClick }: { on?: boolean; children: React.
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`h-[26px] rounded-full px-3 text-xs font-medium ${on ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}
+      className={`h-8 rounded-full px-3.5 text-[13px] font-medium sm:h-[26px] sm:px-3 sm:text-xs ${on ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}
     >
       {children}
     </button>
@@ -113,7 +114,8 @@ export function Btn({
     plain: "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)] hover:bg-fill",
     dark: "bg-strong text-strong-fg",
   };
-  const cls = `inline-flex h-8 items-center justify-center gap-1.5 rounded-[7px] px-3.5 text-[13px] font-medium disabled:opacity-50 ${tones[tone]} ${className}`;
+  // Phones get a 40 px, 15 px-text button: closer to UIKit's sizes and an easier thumb target.
+  const cls = `inline-flex h-10 items-center justify-center gap-1.5 rounded-[10px] px-4 text-[15px] font-medium disabled:opacity-50 sm:h-8 sm:rounded-[7px] sm:px-3.5 sm:text-[13px] ${tones[tone]} ${className}`;
   if (href)
     return (
       <Link href={href} className={cls} style={{ textDecoration: "none", color: tone === "plain" ? "var(--ink)" : "#fff" }}>
@@ -147,8 +149,8 @@ export function Gate({
 
 export function SearchField({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
-    <div className="flex h-9 flex-1 items-center gap-2 rounded-[10px] bg-surface px-3 shadow-[0_0_0_0.5px_var(--hairline)]">
-      <Icon name="search" size={14} className="text-faint" />
+    <div className="flex h-10 flex-1 items-center gap-2 rounded-[10px] bg-surface px-3 shadow-[0_0_0_0.5px_var(--hairline)] sm:h-9">
+      <Icon name="search" size={15} className="text-faint" />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}

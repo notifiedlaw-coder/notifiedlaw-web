@@ -174,7 +174,7 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
       </div>
       {comparing && <div aria-hidden className="h-14" />}
       {comparing && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="fixed inset-x-0 bottom-[var(--tabbar)] z-40 flex justify-center px-4 pb-4 md:bottom-0 md:pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div role="status" className="flex w-full max-w-[460px] items-center gap-3 rounded-[22px] bg-surface/90 py-2.5 pl-4 pr-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.22),0_0_0_0.5px_var(--hairline)] backdrop-blur-xl">
             <span className="min-w-0 flex-1 text-[14px]">
               {pick.length === 0 ? "Choose two cases to compare" : pick.length === 1 ? "Choose one more case" : "Ready to compare"}

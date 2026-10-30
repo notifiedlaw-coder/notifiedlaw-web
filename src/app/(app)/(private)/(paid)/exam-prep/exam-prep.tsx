@@ -83,8 +83,8 @@ export function ExamPrep({ today }: { today: string }) {
         <SessionCard title="Weak spots" body={`Starts with ${lowest.course}, your lowest course right now.`} color="#FF9500" icon={<path d="M3 15.5 8 10l3 3 6-7.5M12.5 5.5H17V10" />} onClick={() => start(lowest, "practice", "quick")} />
       </section>
 
-      <div className="grid gap-7 lg:grid-cols-[1.4fr_1fr] lg:gap-8">
-        <div className="flex flex-col gap-7">
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-8">
+        <div className="flex min-w-0 flex-col gap-7">
           <Section title="Your courses" aside="Tap one to practise">
             <ul className="m-0 flex list-none flex-col overflow-hidden rounded-[18px] bg-surface p-0 shadow-card">
               {[...COURSES].sort((a, b) => a.examInDays - b.examInDays).map((c) => (
@@ -407,9 +407,9 @@ const Feedback = ({ tone, title, items }: { tone: "good" | "warn"; title: string
 function Section({ title, aside, children }: { title: string; aside?: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2.5">
-      <div className="flex items-baseline justify-between px-1">
+      <div className="flex items-baseline justify-between gap-3 px-1">
         <h2 className="m-0 text-[22px] font-bold tracking-[-0.02em]">{title}</h2>
-        {aside && <span className="text-[13px] text-muted">{aside}</span>}
+        {aside && <span className="truncate text-[13px] text-muted">{aside}</span>}
       </div>
       {children}
     </section>

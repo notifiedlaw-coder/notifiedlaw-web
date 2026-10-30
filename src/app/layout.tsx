@@ -70,6 +70,8 @@ const siteSchema = [
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Lets the top and tab bars run under the notch and home indicator; they pad themselves with env(safe-area-inset-*).
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f5f5f7" },
     { media: "(prefers-color-scheme: dark)", color: "#0b0b0d" },
