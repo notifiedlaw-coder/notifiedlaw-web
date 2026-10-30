@@ -10,7 +10,6 @@ import type { FilesState, Folder, StoredFile } from "@/lib/files";
 
 const ACCEPT = ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const FILTERS = ["All", "PDF", "DOCX"] as const;
-const OFFLINE = "Could not reach NotifiedLaw. Check your connection and try again.";
 // A plain anchor, not Btn's Link: downloads must be ordinary requests, never client navigations or prefetches.
 const plainLink = "inline-flex h-8 items-center justify-center rounded-[7px] bg-surface px-3.5 text-[13px] font-medium text-ink no-underline shadow-[0_0_0_0.5px_var(--hairline)] hover:bg-fill";
 const field = "h-8 min-w-0 rounded-[7px] bg-surface px-2.5 text-[13px] text-ink shadow-[0_0_0_0.5px_var(--hairline)] outline-none focus-visible:ring-2 focus-visible:ring-blue";
@@ -22,14 +21,40 @@ function size(n: number) {
 }
 const date = (ms: number) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Accra" }).format(new Date(ms));
 
-/** JSON request to the files API; the parsed body, or an error message. */
-async function call<T>(url: string, method: string, body?: unknown): Promise<T | { error: string }> {
+type Failure = { failed: string }; // an error code, src/lib/error-codes.ts
+/** All the user is told about a failure: never the reason, only a code support can look up. */
+const errorText = (code: string) => `An error has occurred please try again later. Error code: ${code}`;
+/** The API's error code, or H<status> when the response carried none (the shared rate limiter's 429). */
+const codeOf = (status: number, body: unknown) =>
+  body && typeof body === "object" && "code" in body && typeof body.code === "string" ? body.code : `H${status}`;
+
+/** JSON request to the files API; the parsed body, or an error code. */
+async function call<T>(url: string, method: string, body?: unknown): Promise<T | Failure> {
   const res = await fetch(url, { method, headers: body ? { "content-type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined }).catch(() => null);
-  const json = (await res?.json().catch(() => null)) as (T & { error?: string }) | null;
-  if (!res?.ok || !json) return { error: json?.error ?? OFFLINE };
+  if (!res) return { failed: "N001" };
+  const json = (await res.json().catch(() => null)) as T | null;
+  if (!res.ok || !json) return { failed: codeOf(res.status, json) };
   return json;
 }
-const failed = (r: unknown): r is { error: string } => !!r && typeof r === "object" && "error" in r;
+const failed = (r: unknown): r is Failure => !!r && typeof r === "object" && "failed" in r;
+
+/** Uploads one file, reporting the share of its bytes sent so far (0 to 1). XHR, since fetch cannot report upload progress. */
+function send(f: File, folderId: string | null, onSent: (share: number) => void) {
+  return new Promise<StoredFile | Failure>((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/files");
+    xhr.setRequestHeader("x-file-name", encodeURIComponent(f.name));
+    if (folderId) xhr.setRequestHeader("x-folder-id", folderId);
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onSent(e.loaded / e.total); };
+    xhr.onload = () => {
+      let body: (StoredFile & { code?: string }) | null = null;
+      try { body = JSON.parse(xhr.responseText); } catch { /* no body: coded from the status */ }
+      resolve(xhr.status >= 200 && xhr.status < 300 && body?.id ? body : { failed: codeOf(xhr.status, body) });
+    };
+    xhr.onerror = xhr.onabort = xhr.ontimeout = () => resolve({ failed: "N001" });
+    xhr.send(f);
+  });
+}
 
 /** Folder ids from the top level down to `id`. */
 function pathTo(folders: Folder[], id: string | null) {
@@ -57,33 +82,37 @@ export function Files({ initial }: { initial: FilesState }) {
   const [cwd, setCwd] = useState<string | null>(null);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [q, setQ] = useState("");
-  const [busy, setBusy] = useState<string | null>(null);
+  // The upload under way: which file, its place in the batch, and the share of its bytes sent (1: being checked).
+  const [busy, setBusy] = useState<{ name: string; n: number; of: number; sent: number } | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [open, setOpen] = useState<string | null>(null); // row whose actions are showing
   const [confirm, setConfirm] = useState<string | null>(null);
   const [rename, setRename] = useState<{ id: string; value: string } | null>(null);
   const [newFolder, setNewFolder] = useState<string | null>(null);
+  const creating = useRef(false); // Enter and a click on Create together submit twice; only the first is sent
   const [over, setOver] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
   const crumbs = pathTo(folders, cwd);
+  // Folder names are unique in each place, ignoring case (the server enforces it too).
+  const taken = (name: string, parent: string | null, except?: string) =>
+    folders.some((f) => f.id !== except && f.parentId === parent && f.name.toLowerCase() === name.trim().toLowerCase());
   const label = (id: string | null) => ["My Files", ...pathTo(folders, id).map((f) => f.name)].join(" / ");
   const close = () => { setOpen(null); setConfirm(null); setRename(null); };
 
   const upload = async (list: FileList | File[]) => {
     const errs: string[] = [];
+    const all = Array.from(list);
     let room = quota - used;
-    for (const f of Array.from(list)) {
+    for (const [i, f] of all.entries()) {
       // Quick checks here save a wasted upload; the server repeats them and inspects the contents.
-      if (!/\.(pdf|docx)$/i.test(f.name)) { errs.push(`${f.name}: only PDF and Word (.docx) files can be uploaded.`); continue; }
-      if (f.size > MAX_FILE_BYTES) { errs.push(`${f.name}: files can be up to ${size(MAX_FILE_BYTES)}.`); continue; }
-      if (f.size > room) { errs.push(`${f.name}: not enough storage left.`); continue; }
-      setBusy(f.name);
-      const headers: Record<string, string> = { "x-file-name": encodeURIComponent(f.name) };
-      if (cwd) headers["x-folder-id"] = cwd;
-      const res = await fetch("/api/files", { method: "POST", headers, body: f }).catch(() => null);
-      const body = (await res?.json().catch(() => null)) as (StoredFile & { error?: string }) | null;
-      if (!res?.ok || !body?.id) { errs.push(`${f.name}: ${body?.error ?? OFFLINE}`); continue; }
+      if (!/\.(pdf|docx)$/i.test(f.name)) { errs.push(`${f.name}: ${errorText("N002")}`); continue; }
+      if (f.size > MAX_FILE_BYTES) { errs.push(`${f.name}: ${errorText("N003")}`); continue; }
+      if (f.size > room) { errs.push(`${f.name}: ${errorText("N004")}`); continue; }
+      const at = { name: f.name, n: i + 1, of: all.length };
+      setBusy({ ...at, sent: 0 });
+      const body = await send(f, cwd, (sent) => setBusy({ ...at, sent }));
+      if (failed(body)) { errs.push(`${f.name}: ${errorText(body.failed)}`); continue; }
       room -= body.size;
       setState((s) => ({ ...s, files: [body, ...s.files], used: s.used + body.size }));
     }
@@ -95,8 +124,11 @@ export function Files({ initial }: { initial: FilesState }) {
   const createFolder = async () => {
     const name = newFolder?.trim();
     if (!name) { setNewFolder(null); return; }
+    if (creating.current || taken(name, cwd)) return;
+    creating.current = true;
     const r = await call<Folder>("/api/folders", "POST", { name, parentId: cwd });
-    if (failed(r)) { setErrors([r.error]); return; }
+    creating.current = false;
+    if (failed(r)) { setErrors([errorText(r.failed)]); return; }
     setState((s) => ({ ...s, folders: [...s.folders, r] }));
     setNewFolder(null);
     setErrors([]);
@@ -106,11 +138,11 @@ export function Files({ initial }: { initial: FilesState }) {
     close();
     if (it.type === "file") {
       const r = await call(`/api/files/${it.f.id}`, "DELETE");
-      if (failed(r)) { setErrors([`${it.f.name}: ${r.error}`]); return; }
+      if (failed(r)) { setErrors([`${it.f.name}: ${errorText(r.failed)}`]); return; }
       setState((s) => ({ ...s, files: s.files.filter((x) => x.id !== it.f.id), used: s.used - it.f.size }));
     } else {
       const r = await call<{ folders: string[] }>(`/api/folders/${it.f.id}`, "DELETE");
-      if (failed(r)) { setErrors([`${it.f.name}: ${r.error}`]); return; }
+      if (failed(r)) { setErrors([`${it.f.name}: ${errorText(r.failed)}`]); return; }
       const gone = new Set(r.folders);
       setState((s) => {
         const lost = s.files.filter((x) => x.folderId && gone.has(x.folderId));
@@ -125,7 +157,7 @@ export function Files({ initial }: { initial: FilesState }) {
     if (change.name !== undefined) body.name = change.name;
     if (change.parent !== undefined) body[it.type === "file" ? "folderId" : "parentId"] = change.parent;
     const r = await call<{ name?: string; folderId?: string | null; parentId?: string | null }>(url, "PATCH", body);
-    if (failed(r)) { setErrors([`${it.f.name}: ${r.error}`]); return; }
+    if (failed(r)) { setErrors([`${it.f.name}: ${errorText(r.failed)}`]); return; }
     setState((s) => it.type === "file"
       ? { ...s, files: s.files.map((x) => (x.id === it.f.id ? { ...x, ...(r.name ? { name: r.name } : {}), ...(r.folderId !== undefined ? { folderId: r.folderId } : {}) } : x)) }
       : { ...s, folders: s.folders.map((x) => (x.id === it.f.id ? { ...x, ...(r.name ? { name: r.name } : {}), ...(r.parentId !== undefined ? { parentId: r.parentId } : {}) } : x)) });
@@ -156,7 +188,7 @@ export function Files({ initial }: { initial: FilesState }) {
         right={
           <div className="flex gap-2">
             <Btn tone="plain" onClick={() => setNewFolder("")} disabled={newFolder !== null}>New folder</Btn>
-            <Btn onClick={() => input.current?.click()} disabled={!!busy}>{busy ? "Uploading…" : "Upload PDF or Word"}</Btn>
+            <Btn onClick={() => input.current?.click()} disabled={!!busy}>{busy ? `Uploading… ${Math.round(busy.sent * 100)}%` : "Upload PDF or Word"}</Btn>
           </div>
         }
       />
@@ -173,7 +205,17 @@ export function Files({ initial }: { initial: FilesState }) {
         {full && !max && <div className="mt-2 text-xs text-muted">Running out of space? <Link href="/plans">Upgrade for more storage.</Link></div>}
       </div>
 
-      {busy && <div role="status" className="text-[13px] text-muted">Uploading and checking {busy}…</div>}
+      {busy && (
+        <div role="status" className="rounded-xl bg-surface px-4 py-3 shadow-card">
+          <div className="flex justify-between gap-3 text-xs">
+            <span className="truncate font-semibold">{busy.sent < 1 ? "Uploading" : "Checking"} {busy.name}</span>
+            <span className="shrink-0 text-muted">{busy.of > 1 ? `File ${busy.n} of ${busy.of} · ` : ""}{busy.sent < 1 ? `${Math.round(busy.sent * 100)}%` : "Scanning…"}</span>
+          </div>
+          <div role="progressbar" aria-label={`Uploading ${busy.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(busy.sent * 100)} className="mt-2 h-1 overflow-hidden rounded-sm bg-track">
+            <div className={`h-full rounded-sm bg-blue transition-[width] duration-200 ${busy.sent >= 1 ? "animate-pulse" : ""}`} style={{ width: `${busy.sent * 100}%` }} />
+          </div>
+        </div>
+      )}
       {errors.length > 0 && (
         <div role="alert" className="rounded-xl bg-red/10 px-4 py-3 text-[13px] text-ink">
           {errors.map((e) => <div key={e}>{e}</div>)}
@@ -207,8 +249,11 @@ export function Files({ initial }: { initial: FilesState }) {
         {newFolder !== null && (
           <form onSubmit={(e) => { e.preventDefault(); void createFolder(); }} className="flex items-center gap-2 border-b border-[var(--hairline)] px-4 py-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber/15 text-amber"><Icon name="folder" size={16} /></span>
-            <input autoFocus value={newFolder} onChange={(e) => setNewFolder(e.target.value)} maxLength={80} placeholder="Folder name" aria-label="Folder name" className={`${field} flex-1`} />
-            <Btn type="submit">Create</Btn>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <input autoFocus value={newFolder} onChange={(e) => setNewFolder(e.target.value)} maxLength={80} placeholder="Folder name" aria-label="Folder name" aria-invalid={taken(newFolder, cwd)} aria-describedby="folder-taken" className={field} />
+              {taken(newFolder, cwd) && <span id="folder-taken" className="text-xs text-red">A folder with this name is already here.</span>}
+            </div>
+            <Btn type="submit" disabled={taken(newFolder, cwd)}>Create</Btn>
             <Btn tone="plain" onClick={() => setNewFolder(null)}>Cancel</Btn>
           </form>
         )}
@@ -219,6 +264,7 @@ export function Files({ initial }: { initial: FilesState }) {
               const isOpen = open === f.id;
               const nested = it.type === "folder" ? inside(folders, f.id) : null;
               const count = nested ? files.filter((x) => x.folderId && nested.has(x.folderId)).length : 0;
+              const clash = it.type === "folder" && rename?.id === f.id && taken(rename.value, it.f.parentId, f.id);
               return (
                 <li key={f.id} className="px-4 py-3">
                   <div className="flex items-center gap-3">
@@ -247,9 +293,9 @@ export function Files({ initial }: { initial: FilesState }) {
                   {isOpen && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 pl-12">
                       {rename?.id === f.id ? (
-                        <form onSubmit={(e) => { e.preventDefault(); void patch(it, { name: rename.value }); }} className="flex flex-1 gap-2">
-                          <input autoFocus value={rename.value} onChange={(e) => setRename({ id: f.id, value: e.target.value })} maxLength={130} aria-label="New name" className={`${field} flex-1`} />
-                          <Btn type="submit">Save</Btn>
+                        <form onSubmit={(e) => { e.preventDefault(); if (!clash) void patch(it, { name: rename.value }); }} className="flex flex-1 gap-2">
+                          <input autoFocus value={rename.value} onChange={(e) => setRename({ id: f.id, value: e.target.value })} maxLength={130} aria-label="New name" title={clash ? "A folder with this name is already here." : undefined} aria-invalid={clash} className={`${field} flex-1`} />
+                          <Btn type="submit" disabled={clash}>Save</Btn>
                           <Btn tone="plain" onClick={() => setRename(null)}>Cancel</Btn>
                         </form>
                       ) : confirm === f.id ? (

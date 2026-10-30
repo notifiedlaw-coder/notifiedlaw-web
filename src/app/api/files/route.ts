@@ -1,9 +1,10 @@
 import { userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
 import { readBytes } from "@/lib/http";
-import { DAILY_UPLOADS, DAILY_UPLOAD_BYTES, MAX_FILE_BYTES } from "@/lib/data";
+import { MAX_FILE_BYTES } from "@/lib/data";
 import { checkFile, cleanFileName } from "@/lib/file-check";
 import { scanFile } from "@/lib/scan";
+import { apiError } from "@/lib/error-codes";
 import { CONTENT_TYPES, countUpload, dropRow, fileKey, filesBucket, filesFor, foldersOf, quotaFor, reserve } from "@/lib/files";
 
 const noStore = { "cache-control": "private, no-store" };
@@ -11,7 +12,7 @@ const noStore = { "cache-control": "private, no-store" };
 /** The signed-in user's files, with storage used and allowed. */
 export async function GET(req: Request) {
   const id = await userIdFrom(req);
-  if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
+  if (!id) return apiError("A001", 401);
   const rl = await limited(req, "READS", id);
   if (rl) return rl;
   return Response.json(await filesFor(id), { headers: noStore });
@@ -21,42 +22,46 @@ export async function GET(req: Request) {
  * Uploads one file. The body is the raw file, the x-file-name header its name (URI-encoded) and x-folder-id the
  * folder it goes in (none: top level). The bytes are checked (src/lib/file-check.ts), counted against the daily
  * upload allowance and virus scanned (src/lib/scan.ts), space is reserved against the plan's quota, then the file goes to R2.
+ * Failures answer with a code only (src/lib/error-codes.ts); the content check's reason goes to the Worker log.
  */
 export async function POST(req: Request) {
   const userId = await userIdFrom(req);
-  if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
+  if (!userId) return apiError("A001", 401);
   const rl = await limited(req, "WRITES", userId);
   if (rl) return rl;
   const quota = await quotaFor(userId);
-  if (!quota) return Response.json({ error: "Choose a plan to upload files." }, { status: 402 });
+  if (!quota) return apiError("U101", 402);
 
   let rawName = "";
   try { rawName = decodeURIComponent(req.headers.get("x-file-name") ?? ""); } catch { /* falls through to the name check */ }
-  if (!/\.(pdf|docx)$/i.test(rawName.trim())) return Response.json({ error: "Only PDF and Word (.docx) files can be uploaded." }, { status: 415 });
+  if (!/\.(pdf|docx)$/i.test(rawName.trim())) return apiError("U102", 415);
 
   const bytes = await readBytes(req, MAX_FILE_BYTES);
-  if (!bytes) return Response.json({ error: `Files can be up to ${MAX_FILE_BYTES / 1024 / 1024} MB.` }, { status: 413 });
+  if (!bytes) return apiError("U103", 413);
   const check = await checkFile(bytes);
-  if (!check.ok) return Response.json({ error: check.error }, { status: 422 });
-  if (!(await countUpload(userId, bytes.length)))
-    return Response.json({ error: `You have reached today's upload limit (${DAILY_UPLOADS} files or ${DAILY_UPLOAD_BYTES / 1024 ** 3} GB). Try again tomorrow.` }, { status: 429 });
+  if (!check.ok) {
+    const head = String.fromCharCode(...bytes.subarray(0, 5));
+    console.warn("upload refused by the content check", check.error);
+    return apiError(head === "%PDF-" ? "U105" : head.startsWith("PK\x03\x04") ? "U106" : "U104", 422);
+  }
+  if (!(await countUpload(userId, bytes.length))) return apiError("U107", 429);
   const scan = await scanFile(bytes);
-  if (!scan.ok) return Response.json({ error: scan.error }, { status: scan.infected ? 422 : 503 });
+  if (!scan.ok) return scan.infected ? apiError("U109", 422) : apiError("U108", 503);
   const name = cleanFileName(rawName, check.kind);
-  if (!name) return Response.json({ error: `This file's name says one type but it is really a ${check.kind.toUpperCase()}. Rename it and try again.` }, { status: 422 });
+  if (!name) return apiError("U110", 422);
 
   const folderId = req.headers.get("x-folder-id") || null;
-  if (folderId && !(await foldersOf(userId)).some((f) => f.id === folderId)) return Response.json({ error: "Folder not found." }, { status: 404 });
+  if (folderId && !(await foldersOf(userId)).some((f) => f.id === folderId)) return apiError("U111", 404);
 
   const id = crypto.randomUUID();
   const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
   const row = { id, userId, key: fileKey(userId, id), name, kind: check.kind, folderId, size: bytes.length, sha256, createdAt: new Date() };
-  if (!(await reserve(row, quota))) return Response.json({ error: "Your storage is full. Delete some files or upgrade your plan for more space." }, { status: 413 });
+  if (!(await reserve(row, quota))) return apiError("U112", 413);
   try {
     await filesBucket().put(row.key, bytes, { httpMetadata: { contentType: CONTENT_TYPES[check.kind] }, customMetadata: { userId }, sha256 });
   } catch {
     await dropRow(id);
-    return Response.json({ error: "The upload failed. Try again." }, { status: 502 });
+    return apiError("U113", 502);
   }
   return Response.json({ id, name, kind: check.kind, size: row.size, folderId, createdAt: row.createdAt.getTime() }, { status: 201, headers: noStore });
 }

@@ -104,6 +104,31 @@ export function subtree(all: Folder[], id: string) {
   return out;
 }
 
+/** Whether another folder in the same place already has this name. Names are unique per parent, ignoring case. */
+export const nameTaken = (all: Folder[], parentId: string | null, name: string, except?: string) =>
+  all.some((f) => f.id !== except && f.parentId === parentId && f.name.toLowerCase() === name.toLowerCase());
+
+// The same rule inside the write, so two requests at once (a double submit) cannot both add the name.
+const sameName = (userId: string, parentId: string | null, name: string, except: string) =>
+  sql`NOT EXISTS (SELECT 1 FROM ${userFolder} WHERE user_id = ${userId} AND parent_id IS ${parentId} AND lower(name) = lower(${name}) AND id <> ${except})`;
+
+/** Adds a folder unless its name is taken in that place, in one statement. False when it is. */
+export async function addFolder(f: { id: string; userId: string; parentId: string | null; name: string; createdAt: Date }) {
+  const res = await getDb().run(sql`
+    INSERT INTO ${userFolder} (id, user_id, parent_id, name, created_at)
+    SELECT ${f.id}, ${f.userId}, ${f.parentId}, ${f.name}, ${f.createdAt.getTime()}
+    WHERE ${sameName(f.userId, f.parentId, f.name, f.id)}`);
+  return res.meta.changes > 0;
+}
+
+/** Renames and/or moves a folder unless its name would then be taken there, in one statement. False when it would. */
+export async function moveFolder(userId: string, id: string, parentId: string | null, name: string) {
+  const res = await getDb().run(sql`
+    UPDATE ${userFolder} SET parent_id = ${parentId}, name = ${name}
+    WHERE id = ${id} AND user_id = ${userId} AND ${sameName(userId, parentId, name, id)}`);
+  return res.meta.changes > 0;
+}
+
 /** Cleans a folder name for display; null if nothing usable is left. */
 export function cleanFolderName(raw: unknown) {
   if (typeof raw !== "string") return null;
