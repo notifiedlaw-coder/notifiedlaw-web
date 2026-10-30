@@ -16,6 +16,7 @@ import {
   type NavItem,
 } from "@/lib/nav";
 import { Icon } from "./icons";
+import { FriendsButton, FriendsProvider } from "./friends";
 
 const active = (path: string, href: string) =>
   path === href || path.startsWith(href + "/");
@@ -113,6 +114,7 @@ function PlanBlock({ onNavigate }: { onNavigate?: (href: string) => void }) {
 function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: string) => void }) {
   const { plan, profile } = usePlan();
   const user = useUser();
+  const signedIn = !!user.email;
   const roomy = !!onNavigate; // the phone sheet: larger, bolder rows
   // The sheet lists only what the tab bar does not, like the More tab in iOS.
   const show = (items: NavItem[]) => roomy ? items.filter((i) => !TABS.some((t) => t.href === i.href)) : items;
@@ -136,11 +138,12 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
         ))}
       </nav>
       <PlanBlock onNavigate={onNavigate} />
+      <div className="flex items-center gap-1 border-t border-edge/10 py-1.5 pl-1.5 pr-3 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
       <Link
         href="/settings"
         title="Settings"
         onClick={intercept("/settings", onNavigate)}
-        className="flex items-center gap-2.5 border-t border-edge/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] hover:bg-edge/[0.04]"
+        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[10px] p-1.5 hover:bg-edge/[0.04]"
         style={{ textDecoration: "none", color: "inherit" }}
       >
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber text-xs font-semibold text-white">
@@ -153,6 +156,8 @@ function SidebarBody({ path, onNavigate }: { path: string; onNavigate?: (href: s
           </span>
         </span>
       </Link>
+      {signedIn && <FriendsButton size={roomy ? 36 : 32} />}
+      </div>
     </>
   );
 }
@@ -260,10 +265,11 @@ function Drawer({ path, onClose }: { path: string; onClose: () => void }) {
 
 /**
  * Phone top bar: a translucent 52 px bar with the page name on the left (after a back chevron inside a
- * section) and the plan on the right. From md up it is hidden and its controls live in the sidebar.
+ * section) and the friends button and plan on the right. From md up it is hidden and its controls live in the sidebar.
  */
 function Toolbar({ path }: { path: string }) {
   const { plan } = usePlan();
+  const signedIn = !!useUser().email;
   const { title } = titleFor(path);
   const parts = path.split("/").filter(Boolean);
   const deep = parts.length > 1;
@@ -283,6 +289,7 @@ function Toolbar({ path }: { path: string }) {
       <span className={`min-w-0 truncate text-[20px] font-bold leading-tight tracking-[-0.02em] ${deep ? "-ml-1.5" : ""}`}>{title}</span>
       <div className="ml-auto flex items-center gap-2">
         <div className="hidden sm:block"><ThemeToggle /></div>
+        {signedIn && <FriendsButton />}
         <Link href="/plans" title="Plans" className="flex h-8 shrink-0 items-center whitespace-nowrap rounded-full bg-fill px-3.5 text-[13px] font-semibold" style={{ textDecoration: "none", color: "inherit" }}>
           <span className={shimmer}>{short}</span>
         </Link>
@@ -340,6 +347,7 @@ export function AppShell({ me, children }: { me: Me | null; children: React.Reac
   const closeMenu = useCallback(() => setMenu(false), []);
   return (
     <PlanProvider me={me}>
+    <FriendsProvider enabled={!!me}>
     <div className="flex h-dvh overflow-hidden bg-surface text-[13px]">
       <Sidebar path={path} />
       <div className="relative flex min-w-0 flex-1 flex-col">
@@ -351,6 +359,7 @@ export function AppShell({ me, children }: { me: Me | null; children: React.Reac
       </div>
       {menu && <Drawer path={path} onClose={closeMenu} />}
     </div>
+    </FriendsProvider>
     </PlanProvider>
   );
 }

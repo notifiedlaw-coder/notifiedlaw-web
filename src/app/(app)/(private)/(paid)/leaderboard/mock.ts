@@ -1,3 +1,5 @@
+import { hueOf } from "@/lib/friend-view";
+
 // Sample standings and quiz for the Leaderboard mock-up, until weekly quizzes are scored for real.
 
 export type Player = { id: string; name: string; school: string; week: number; all: number; move: number; streak: number; hue: number };
@@ -33,7 +35,7 @@ export function sampleScore(id: string): Pick<Player, "week" | "all" | "move" | 
   let h = 2166136261;
   for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
   const at = (n: number, mod: number) => Math.floor(h / n) % mod;
-  return { week: 100 + at(1, 85) * 10, all: 1500 + at(7, 50) * 100, move: at(13, 9) - 4, streak: at(17, 22), hue: at(19, 360) };
+  return { week: 100 + at(1, 85) * 10, all: 1500 + at(7, 50) * 100, move: at(13, 9) - 4, streak: at(17, 22), hue: hueOf(id) };
 }
 
 export type QuizQuestion = { q: string; options: string[]; answer: number; why: string };

@@ -1,6 +1,7 @@
 import { Gate, Page, Title, cardCls } from "@/components/ui";
 import { getPlan, getSession } from "@/lib/auth";
 import { friendLists } from "@/lib/friends";
+import { myStreak } from "@/lib/activity";
 import { Leaderboard } from "./leaderboard";
 
 export const metadata = { title: "Leaderboard" };
@@ -20,8 +21,8 @@ export default async function Page_() {
         </div>
       </Page>
     );
-  // A mock-up with sample standings for now; real scores will come from the weekly quiz. Friends are real.
+  // A mock-up with sample standings for now; real scores will come from the weekly quiz. Friends and streaks are real.
   const s = await getSession();
-  const friends = s ? await friendLists(s.user.id).catch(() => null) : null;
-  return <Leaderboard today={new Date().toISOString().slice(0, 10)} initialFriends={friends ?? { friends: [], incoming: [], outgoing: [] }} />;
+  const [lists, streak] = s ? await Promise.all([friendLists(s.user.id).catch(() => null), myStreak(s.user.id).catch(() => null)]) : [null, null];
+  return <Leaderboard today={new Date().toISOString().slice(0, 10)} initialFriends={lists?.friends ?? []} myStreak={streak?.streak ?? 0} />;
 }

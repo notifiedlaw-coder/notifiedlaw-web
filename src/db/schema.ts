@@ -129,6 +129,17 @@ export const friendship = sqliteTable("friendship", {
   acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
 }, (t) => [primaryKey({ columns: [t.fromId, t.toId] }), index("friendship_to").on(t.toId)]);
 
+// When each user was last in the app and their daily streak, for Friend activity. Written by the shell's heartbeat
+// (POST /api/activity). A day counts once the app is opened on it (UTC, Ghana's time); `streakDay` is the last such day,
+// so a streak whose day is older than yesterday has lapsed and reads as 0.
+export const activity = sqliteTable("activity", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp_ms" }).notNull(),
+  streak: integer("streak").notNull().default(1),
+  bestStreak: integer("best_streak").notNull().default(1),
+  streakDay: text("streak_day").notNull(), // YYYY-MM-DD
+});
+
 // AI comparisons of two case briefs, kept so the same pair is never paid for twice. `pair` is the two Notion page ids
 // in sorted order; `digest` is a hash of both briefs and the prompt version, so edited briefs are compared afresh.
 export const caseComparison = sqliteTable("case_comparison", {

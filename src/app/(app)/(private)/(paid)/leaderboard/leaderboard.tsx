@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { FriendLists } from "@/lib/friends";
+import { useMemo, useState } from "react";
+import { useFriends } from "@/components/friends";
+import { Sheet } from "@/components/sheet";
+import type { Friend } from "@/lib/friend-view";
 import { PLAYERS, QUIZ, SCHOOL, sampleScore, type Player } from "./mock";
 
 type Period = "week" | "all";
@@ -22,41 +24,31 @@ const weekNumber = (today: string) => {
   return Math.ceil(((d.getTime() - jan1.getTime()) / 86_400_000 + jan1.getUTCDay() + 1) / 7);
 };
 
-/** Sends a friends API call; the updated lists, or the error message to show. */
-async function friendsCall(method: string, url: string, body?: unknown): Promise<FriendLists | string> {
-  try {
-    const res = await fetch(url, { method, headers: body ? { "content-type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
-    const data = (await res.json().catch(() => ({}))) as FriendLists & { error?: string };
-    return res.ok ? data : data.error ?? "Something went wrong. Try again.";
-  } catch {
-    return "You seem to be offline. Try again.";
-  }
-}
-
 /**
  * Leaderboard: a mock-up with sample standings. A podium, your place and the gap to the next, the weekly quiz, and the
- * table. Friends and friend requests are real; friends' points are samples like everyone else's.
+ * table. Friends and streaks are real (friends are managed from the friends button beside the profile name); points are
+ * samples for everyone.
  */
-export function Leaderboard({ today, initialFriends }: { today: string; initialFriends: FriendLists }) {
+export function Leaderboard({ today, initialFriends, myStreak }: { today: string; initialFriends: Friend[]; myStreak: number }) {
   const [period, setPeriod] = useState<Period>("week");
   const [scope, setScope] = useState<Scope>("school");
   const [bonus, setBonus] = useState(0); // points from this session's quiz
   const [quiz, setQuiz] = useState(false);
   const [taken, setTaken] = useState(false);
-  const [lists, setLists] = useState(initialFriends);
-  const [sheet, setSheet] = useState(false);
+  const { lists, open } = useFriends(); // once Friend activity has loaded them, its lists are the latest
+  const friends = lists?.friends ?? initialFriends;
   const friendsView = scope === "friends";
 
   const rows = useMemo(() => {
     const key = period === "week" ? "week" : "all";
     const players: Player[] = friendsView
-      ? [PLAYERS.find((p) => p.id === "me")!, ...lists.friends.map((f) => ({ id: f.id, name: f.name, school: f.school ?? "", ...sampleScore(f.id) }))]
+      ? [PLAYERS.find((p) => p.id === "me")!, ...friends.map((f) => ({ id: f.id, name: f.name, school: f.school ?? "", ...sampleScore(f.id), streak: f.streak }))]
       : PLAYERS.filter((p) => scope === "everyone" || p.school === SCHOOL);
     return players
-      .map((p) => ({ ...p, pts: p[key] + (p.id === "me" ? bonus : 0) }))
+      .map((p) => (p.id === "me" ? { ...p, streak: myStreak, pts: p[key] + bonus } : { ...p, pts: p[key] }))
       .sort((a, b) => b.pts - a.pts)
       .map((p, i) => ({ ...p, rank: i + 1 }));
-  }, [period, scope, friendsView, lists.friends, bonus]);
+  }, [period, scope, friendsView, friends, myStreak, bonus]);
   const me = rows.find((r) => r.id === "me")!;
   const above = rows[me.rank - 2];
   const top3 = rows.slice(0, 3);
@@ -84,18 +76,15 @@ export function Leaderboard({ today, initialFriends }: { today: string; initialF
 
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <Seg label="Period" value={period} onChange={setPeriod} options={[["week", "This week"], ["all", "All time"]]} />
-        <Seg label="Who" value={scope} onChange={setScope} options={[["school", "My university"], ["everyone", "Everyone"], ["friends", lists.incoming.length ? `Friends (${lists.incoming.length})` : "Friends"]]} />
+        <Seg label="Who" value={scope} onChange={setScope} options={[["school", "My university"], ["everyone", "Everyone"], ["friends", "Friends"]]} />
       </div>
 
-      {friendsView && lists.incoming.length > 0 && <Requests incoming={lists.incoming} onLists={setLists} />}
-
-      {friendsView && !lists.friends.length ? (
+      {friendsView && !friends.length ? (
         <section aria-label="Friends" className="flex flex-col items-center gap-3 rounded-[22px] bg-surface px-6 py-10 text-center shadow-card">
           <span aria-hidden className="grid size-16 place-items-center rounded-full bg-blue/10 text-blue"><PeopleIcon size={30} /></span>
           <h2 className="m-0 text-[22px] font-bold tracking-[-0.02em]">Compete with friends</h2>
-          <p className="m-0 max-w-[340px] text-[15px] leading-snug text-muted">Add friends by the email they signed up with. Once they accept, you will see how you rank against each other every week.</p>
-          <button type="button" onClick={() => setSheet(true)} className="mt-2 h-[50px] rounded-[14px] border-0 bg-blue px-8 text-[17px] font-semibold text-white transition-transform active:scale-[0.97]">Add friends</button>
-          {lists.outgoing.length > 0 && <button type="button" onClick={() => setSheet(true)} className="border-0 bg-transparent text-[15px] text-link">{lists.outgoing.length} {lists.outgoing.length === 1 ? "request" : "requests"} waiting</button>}
+          <p className="m-0 max-w-[340px] text-[15px] leading-snug text-muted">Once you have friends, you will see how you rank against each other here. Add them with the friends button beside your name.</p>
+          <button type="button" onClick={open} className="mt-2 h-[50px] rounded-[14px] border-0 bg-blue px-8 text-[17px] font-semibold text-white transition-transform active:scale-[0.97]">Add friends</button>
         </section>
       ) : <>
 
@@ -143,9 +132,7 @@ export function Leaderboard({ today, initialFriends }: { today: string; initialF
       <section aria-label="Rankings" className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between px-1">
           <h2 className="m-0 text-[22px] font-bold tracking-[-0.02em]">Rankings</h2>
-          {friendsView
-            ? <button type="button" onClick={() => setSheet(true)} className="border-0 bg-transparent text-[15px] text-link">Add or manage</button>
-            : period === "week" && <span className="text-[12px] text-muted"><Dot c="#34C759" /> Moves up <span className="mx-1.5" /> <Dot c="#FF3B30" /> Moves down</span>}
+          {period === "week" && !friendsView && <span className="text-[12px] text-muted"><Dot c="#34C759" /> Moves up <span className="mx-1.5" /> <Dot c="#FF3B30" /> Moves down</span>}
         </div>
         <ol className="m-0 flex list-none flex-col overflow-hidden rounded-[18px] bg-surface p-0 shadow-card">
           {rest.map((p) => {
@@ -178,7 +165,6 @@ export function Leaderboard({ today, initialFriends }: { today: string; initialF
       </div>
       </>}
 
-      {sheet && <FriendsSheet lists={lists} onLists={setLists} onClose={() => setSheet(false)} />}
       {quiz && <QuizSheet onClose={() => setQuiz(false)} onFinish={(points) => { setBonus(points); setTaken(true); setPeriod("week"); }} />}
     </div>
   );
@@ -247,149 +233,7 @@ function QuizSheet({ onClose, onFinish }: { onClose: () => void; onFinish: (poin
   );
 }
 
-// ---- Friends ---------------------------------------------------------------------------------------------------------
-
-type Lists = (l: FriendLists) => void;
-
-/** Friend requests waiting on you, with Accept and Decline, at the top of the Friends view. */
-function Requests({ incoming, onLists }: { incoming: FriendLists["incoming"]; onLists: Lists }) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  async function answer(id: string, accept: boolean) {
-    setBusy(id);
-    setError("");
-    const r = await friendsCall(accept ? "POST" : "DELETE", `/api/friends/${encodeURIComponent(id)}`);
-    setBusy(null);
-    if (typeof r === "string") setError(r);
-    else onLists(r);
-  }
-  return (
-    <section aria-label="Friend requests" className="flex flex-col gap-2">
-      <h2 className="m-0 px-1 text-[13px] font-semibold uppercase tracking-[0.05em] text-muted">Friend requests</h2>
-      <ul className="m-0 flex list-none flex-col overflow-hidden rounded-[18px] bg-surface p-0 shadow-card">
-        {incoming.map((f) => (
-          <li key={f.id} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-3 first:border-0">
-            <Avatar p={{ id: f.id, name: f.name, hue: sampleScore(f.id).hue }} size={40} />
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[15px] font-medium">{f.name}</span>
-              {f.school && <span className="truncate text-[12px] text-muted">{f.school}</span>}
-            </span>
-            <button type="button" disabled={busy === f.id} onClick={() => answer(f.id, false)} className="h-8 shrink-0 rounded-full border-0 bg-fill px-3.5 text-[14px] font-semibold text-ink disabled:opacity-50">Decline</button>
-            <button type="button" disabled={busy === f.id} onClick={() => answer(f.id, true)} className="h-8 shrink-0 rounded-full border-0 bg-blue px-3.5 text-[14px] font-semibold text-white disabled:opacity-50">Accept</button>
-          </li>
-        ))}
-      </ul>
-      {error && <p role="alert" className="m-0 px-1 text-[13px] text-red">{error}</p>}
-    </section>
-  );
-}
-
-/** Add a friend by email, see who has not answered yet, and remove friends. */
-function FriendsSheet({ lists, onLists, onClose }: { lists: FriendLists; onLists: Lists; onClose: () => void }) {
-  const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<string | null>(null); // a friend whose Remove was tapped once
-
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim() || sending) return;
-    setSending(true);
-    setNote(null);
-    const was = lists.friends.length;
-    const r = await friendsCall("POST", "/api/friends", { email: email.trim() });
-    setSending(false);
-    if (typeof r === "string") return setNote({ ok: false, text: r });
-    onLists(r);
-    setEmail("");
-    setNote({ ok: true, text: r.friends.length > was ? "They had already asked, so you are now friends." : "Request sent. They will see it on their Leaderboard." });
-  }
-
-  async function drop(id: string) {
-    setBusy(id);
-    const r = await friendsCall("DELETE", `/api/friends/${encodeURIComponent(id)}`);
-    setBusy(null);
-    setConfirm(null);
-    if (typeof r === "string") setNote({ ok: false, text: r });
-    else onLists(r);
-  }
-
-  const row = (f: FriendLists["friends"][number], action: React.ReactNode) => (
-    <li key={f.id} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-2.5 first:border-0">
-      <Avatar p={{ id: f.id, name: f.name, hue: sampleScore(f.id).hue }} size={36} />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[15px] font-medium">{f.name}</span>
-        {f.school && <span className="truncate text-[12px] text-muted">{f.school}</span>}
-      </span>
-      {action}
-    </li>
-  );
-
-  return (
-    <Sheet label="Friends" onClose={onClose}>
-      <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center px-4 pb-2 pt-2.5">
-        <span />
-        <h2 className="m-0 text-[17px] font-semibold">Friends</h2>
-        <button type="button" onClick={onClose} className="justify-self-end border-0 bg-transparent text-[17px] font-semibold text-link">Done</button>
-      </div>
-      <div className="flex flex-col gap-6 overflow-y-auto overscroll-contain px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2">
-        <form onSubmit={send} className="flex flex-col gap-2">
-          <label htmlFor="friend-email" className="px-1 text-[13px] font-semibold uppercase tracking-[0.05em] text-muted">Add a friend</label>
-          <div className="flex gap-2">
-            <input id="friend-email" type="email" inputMode="email" autoComplete="off" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => { setEmail(e.target.value); setNote(null); }}
-              placeholder="Their email address" className="h-11 min-w-0 flex-1 rounded-[12px] border-0 bg-surface px-3.5 text-[16px] text-ink shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-blue/40" />
-            <button type="submit" disabled={!email.trim() || sending} className="h-11 shrink-0 rounded-[12px] border-0 bg-blue px-5 text-[16px] font-semibold text-white disabled:opacity-40">{sending ? "Sending" : "Send"}</button>
-          </div>
-          {note ? <p role={note.ok ? "status" : "alert"} className={`m-0 px-1 text-[13px] ${note.ok ? "text-green" : "text-red"}`}>{note.text}</p>
-            : <p className="m-0 px-1 text-[13px] text-muted">Use the email they signed up to Notified Law with.</p>}
-        </form>
-
-        {lists.outgoing.length > 0 && (
-          <section className="flex flex-col gap-2">
-            <h3 className="m-0 px-1 text-[13px] font-semibold uppercase tracking-[0.05em] text-muted">Sent</h3>
-            <ul className="m-0 flex list-none flex-col overflow-hidden rounded-[16px] bg-surface p-0 shadow-card">
-              {lists.outgoing.map((f) => row(f, <button type="button" disabled={busy === f.id} onClick={() => drop(f.id)} className="shrink-0 border-0 bg-transparent text-[15px] text-link disabled:opacity-50">Cancel</button>))}
-            </ul>
-          </section>
-        )}
-
-        <section className="flex flex-col gap-2">
-          <h3 className="m-0 px-1 text-[13px] font-semibold uppercase tracking-[0.05em] text-muted">Your friends</h3>
-          {lists.friends.length ? (
-            <ul className="m-0 flex list-none flex-col overflow-hidden rounded-[16px] bg-surface p-0 shadow-card">
-              {lists.friends.map((f) => row(f, confirm === f.id
-                ? <button type="button" disabled={busy === f.id} onClick={() => drop(f.id)} className="h-8 shrink-0 rounded-full border-0 bg-red px-3.5 text-[14px] font-semibold text-white disabled:opacity-50">Remove</button>
-                : <button type="button" onClick={() => setConfirm(f.id)} className="shrink-0 border-0 bg-transparent text-[15px] text-red">Remove</button>))}
-            </ul>
-          ) : <p className="m-0 rounded-[16px] bg-surface px-4 py-3 text-[15px] text-muted shadow-card">No friends yet.</p>}
-        </section>
-      </div>
-    </Sheet>
-  );
-}
-
 // ---- Small pieces ----------------------------------------------------------------------------------------------------
-
-/** An iOS-style bottom sheet (a centred card on wide screens). Escape and the backdrop close it. */
-function Sheet({ label, onClose, children }: { label: string; onClose: () => void; children: React.ReactNode }) {
-  useEffect(() => {
-    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", key);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", key); document.body.style.overflow = prev; };
-  }, [onClose]);
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label={label}>
-      <div onClick={onClose} className="absolute inset-0 bg-black/35 backdrop-blur-[2px]" style={{ animation: "tt-fade 0.25s ease-out" }} />
-      <div className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[28px] bg-canvas shadow-[0_-8px_40px_rgba(0,0,0,0.25)] md:max-w-[520px] md:rounded-[28px]" style={{ animation: "tt-sheet 0.38s cubic-bezier(0.32, 0.72, 0, 1)" }}>
-        <div aria-hidden className="mx-auto mt-2 h-[5px] w-9 shrink-0 rounded-full bg-faint/40 md:hidden" />
-        {children}
-      </div>
-    </div>
-  );
-}
 
 const PeopleIcon = ({ size }: { size: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

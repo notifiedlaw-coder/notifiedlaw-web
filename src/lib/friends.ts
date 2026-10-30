@@ -1,14 +1,13 @@
 import { and, eq, or, sql } from "drizzle-orm";
-import { friendship, profile, student, user } from "@/db/schema";
+import { activity, friendship, profile, student, user } from "@/db/schema";
 import { getDb } from "@/lib/auth";
+import { dayOf, liveStreak, type Friend, type FriendLists } from "@/lib/friend-view";
 
 /** Friends, requests received and requests sent, together, per account. Keeps lists and sheets short. */
 export const MAX_FRIENDS = 100;
 
-export type Friend = { id: string; name: string; school: string | null };
-export type FriendLists = { friends: Friend[]; incoming: Friend[]; outgoing: Friend[] };
 
-/** The other side of each of a user's friendship rows, named as onboarding recorded them. */
+/** The other side of each of a user's friendship rows, named as onboarding recorded them, with their activity. */
 async function others(userId: string, side: "from" | "to") {
   const mine = side === "from" ? friendship.fromId : friendship.toId;
   const theirs = side === "from" ? friendship.toId : friendship.fromId;
@@ -16,17 +15,29 @@ async function others(userId: string, side: "from" | "to") {
     .select({
       id: user.id, name: user.name, first: profile.firstName, last: profile.lastName,
       university: profile.university, studentUni: student.university, status: friendship.status, at: friendship.createdAt,
+      lastSeen: activity.lastSeenAt, streak: activity.streak, best: activity.bestStreak, streakDay: activity.streakDay,
     })
     .from(friendship)
     .innerJoin(user, eq(user.id, theirs))
     .leftJoin(profile, eq(profile.userId, user.id))
     .leftJoin(student, eq(student.userId, user.id))
+    .leftJoin(activity, eq(activity.userId, user.id))
     .where(eq(mine, userId))
     .limit(MAX_FRIENDS * 2);
 }
 
 type Row = Awaited<ReturnType<typeof others>>[number];
-const view = (r: Row): Friend => ({ id: r.id, name: r.first ? `${r.first} ${r.last}` : r.name, school: r.studentUni ?? r.university ?? null });
+/** Activity is shown only between friends; a request shows the name and school alone. */
+function view(r: Row): Friend {
+  const friend = r.status === "accepted" && r.streakDay !== null;
+  return {
+    id: r.id, name: r.first ? `${r.first} ${r.last}` : r.name, school: r.studentUni ?? r.university ?? null,
+    lastSeen: friend ? r.lastSeen!.getTime() : null,
+    streak: friend ? liveStreak(r.streak!, r.streakDay!) : 0,
+    best: friend ? r.best! : 0,
+    today: friend && r.streakDay === dayOf(Date.now()),
+  };
+}
 const byName = (a: Friend, b: Friend) => a.name.localeCompare(b.name);
 
 /** Everyone a user is friends with or has a request open with. */
@@ -40,6 +51,12 @@ export async function friendLists(userId: string): Promise<FriendLists> {
 }
 
 const between = (a: string, b: string) => or(and(eq(friendship.fromId, a), eq(friendship.toId, b)), and(eq(friendship.fromId, b), eq(friendship.toId, a)));
+/** Friend requests waiting on the user, for the badge on the friends button. */
+export async function incomingCount(userId: string) {
+  const [r] = await getDb().select({ n: sql<number>`count(*)` }).from(friendship).where(and(eq(friendship.toId, userId), eq(friendship.status, "pending")));
+  return r?.n ?? 0;
+}
+
 const count = async (userId: string) => {
   const [r] = await getDb().select({ n: sql<number>`count(*)` }).from(friendship).where(or(eq(friendship.fromId, userId), eq(friendship.toId, userId)));
   return r?.n ?? 0;
