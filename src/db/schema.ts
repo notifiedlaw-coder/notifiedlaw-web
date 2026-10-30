@@ -141,11 +141,13 @@ export const aiChat = sqliteTable("ai_chat", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [index("ai_chat_user").on(t.userId, t.updatedAt)]);
 
-// One message of a conversation. `files` is JSON [{ id, name }]: the My Files documents @-mentioned in a user message.
+// One message of a conversation. `files` is JSON [{ kind, id, name, href }] (src/lib/ai/refs.ts): on a user message the
+// files, cases and topics @-mentioned, on an answer the sources it was given (older rows hold [{ id, name }]: files).
 export const aiMessage = sqliteTable("ai_message", {
   id: text("id").primaryKey(),
   chatId: text("chat_id").notNull().references(() => aiChat.id, { onDelete: "cascade" }),

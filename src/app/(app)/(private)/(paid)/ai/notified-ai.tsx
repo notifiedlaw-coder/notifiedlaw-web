@@ -1,24 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Markdown } from "@/components/markdown";
-import type { ChatFile, ChatSummary, StoredMessage } from "@/lib/ai/chats";
-import type { Folder, StoredFile } from "@/lib/files";
+import type { ChatSummary, StoredMessage } from "@/lib/ai/chats";
+import { MAX_QUESTION, messageCost } from "@/lib/ai/cost";
+import { MODES, MODE_ORDER, type Mode } from "@/lib/ai/modes";
+import { MAX_REFS, type Mentionable, type Ref, type RefKind } from "@/lib/ai/refs";
 
-const MAX_QUESTION = 4000;
-const MAX_FILES = 5;
 const SUGGESTIONS = [
   "Explain judicial review under the 1992 Constitution",
   "What makes a contract valid in Ghana?",
   "Walk me through an IRAC answer on negligence",
   "Quiz me on the law of evidence",
 ];
+/** One-tap questions about what is attached; also what /ai?ask= writes. */
+const QUICK = {
+  summarise: ["Summarise", "Summarise this in plain English: the key points, then what matters most for a student."],
+  issues: ["Key issues", "List the key legal issues here and the rule that applies to each."],
+  revision: ["Revision notes", "Turn this into concise revision notes with headings and bullet points."],
+} as const;
 
 /** All the user is told about a failure: never the reason, only a code support can look up (src/lib/error-codes.ts). */
 const errorText = (code: string) => `An error has occurred please try again later. Error code: ${code}`;
+const codeOf = async (res: Response | null) => (res ? (((await res.json().catch(() => null)) as { code?: string } | null)?.code ?? `H${res.status}`) : "N001");
 
 type Msg = Pick<StoredMessage, "id" | "role" | "content" | "files">;
+const isTemp = (id: string) => id.startsWith("tmp-");
+const tmp = (p: string) => `tmp-${p}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
 /** The "@name" being typed just before the caret: its query and where it starts, else null. */
 function mentionAt(text: string, caret: number) {
@@ -26,9 +35,21 @@ function mentionAt(text: string, caret: number) {
   return m ? { query: m[2], start: caret - m[2].length - 1 } : null;
 }
 
-/** Notified AI: a chat with the user's My Files one @ away. Conversations on the left from wide screens, in a sheet below. */
-export function NotifiedAi({ chats: initial, credits: first, files, folders, ready }: {
-  chats: ChatSummary[]; credits: { allowance: number; left: number }; files: StoredFile[]; folders: Folder[]; ready: boolean;
+// Speech recognition is the browser's (Chrome, Edge, Safari); where it is missing the microphone is not shown.
+type Recognition = { lang: string; interimResults: boolean; continuous: boolean; start(): void; stop(): void; onresult: ((e: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null };
+const recognitionCtor = () => (typeof window === "undefined" ? undefined : (window as unknown as Record<string, (new () => Recognition) | undefined>).SpeechRecognition ?? (window as unknown as Record<string, (new () => Recognition) | undefined>).webkitSpeechRecognition);
+const canListen = () => !!recognitionCtor();
+const noSubscribe = () => () => {};
+
+const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+/** "[1]" in an answer as a superscript link to the first source, "[2]" to the second, and so on; unknown numbers stay as written. */
+const withCitations = (content: string, sources: Ref[]) =>
+  sources.length ? content.replace(/\[(\d{1,2})\](?!\()/g, (all, d: string) => (sources[Number(d) - 1] ? `[${[...d].map((c) => SUP[Number(c)]).join("")}](${sources[Number(d) - 1].href})` : all)) : content;
+
+/** Notified AI: a chat with the user's files, case briefs and library topics one @ away. Conversations on the left from wide screens, in a sheet below. */
+export function NotifiedAi({ chats: initial, credits: first, mentions, ready, initial: start }: {
+  chats: ChatSummary[]; credits: { allowance: number; left: number }; mentions: Mentionable[]; ready: boolean;
+  initial: { ref: Mentionable; ask: keyof typeof QUICK | null } | null;
 }) {
   const [chats, setChats] = useState(initial);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -37,39 +58,52 @@ export function NotifiedAi({ chats: initial, credits: first, files, folders, rea
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(first.left);
-  const [text, setText] = useState("");
-  const [attached, setAttached] = useState<ChatFile[]>([]);
+  const [text, setText] = useState(start?.ask ? QUICK[start.ask][1] : "");
+  const [attached, setAttached] = useState<Mentionable[]>(start ? [start.ref] : []);
+  const [mode, setMode] = useState<Mode>("ask");
   const [caret, setCaret] = useState(0);
   const [pickerOff, setPickerOff] = useState(false); // Escape closes the list until the next keystroke
   const [pickIndex, setPickIndex] = useState(0);
   const [history, setHistory] = useState(false);
+  const [listening, setListening] = useState(false);
   const input = useRef<HTMLTextAreaElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const abort = useRef<AbortController | null>(null);
+  const voice = useRef<Recognition | null>(null);
+  const hearing = useSyncExternalStore(noSubscribe, canListen, () => false);
 
-  const folderName = useMemo(() => new Map(folders.map((f) => [f.id, f.name])), [folders]);
   const mention = pickerOff ? null : mentionAt(text, caret);
-  const matches = useMemo(() => {
+  const options = useMemo(() => {
     if (!mention) return [];
     const q = mention.query.toLowerCase();
-    return files.filter((f) => !attached.some((a) => a.id === f.id) && f.name.toLowerCase().includes(q)).slice(0, 8);
-  }, [mention, files, attached]);
+    const free = mentions.filter((m) => !attached.some((a) => a.kind === m.kind && a.id === m.id) && (m.name.toLowerCase().includes(q) || m.sub.toLowerCase().includes(q)));
+    return (["file", "case", "topic"] as RefKind[]).flatMap((k) => free.filter((m) => m.kind === k).slice(0, 4));
+  }, [mention, mentions, attached]);
+
+  const attachedChars = Math.min(90_000, attached.reduce((n, a) => n + Math.min(40_000, a.chars), 0));
+  const cost = messageCost(attachedChars, mode);
   const noCredits = first.allowance === 0 || left <= 0;
+  const short = !noCredits && cost > left;
   const active = chats.find((c) => c.id === activeId);
 
   // Keep the newest text in view while it streams, unless the reader scrolled up.
   useEffect(() => {
     if (stick.current) scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
   }, [messages]);
-  useEffect(() => () => abort.current?.abort(), []);
+  useEffect(() => () => { abort.current?.abort(); voice.current?.stop(); }, []);
+  useEffect(() => {
+    // Opened from a file, case or topic with a question ready: put the caret at the end.
+    if (start?.ask) { input.current?.focus(); grow(); }
+  }, [start]);
 
-  const grow = () => {
+  function grow() {
     const el = input.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
-  };
+  }
+  const setDraft = (t: string) => { setText(t); requestAnimationFrame(() => { input.current?.focus(); grow(); }); };
 
   async function openChat(id: string) {
     setHistory(false);
@@ -83,7 +117,7 @@ export function NotifiedAi({ chats: initial, credits: first, files, folders, rea
     setLoading(false);
     stick.current = true;
     if (j) setMessages(j.messages);
-    else setError(errorText(res ? ((await res.json().catch(() => null)) as { code?: string } | null)?.code ?? `H${res.status}` : "N001"));
+    else setError(errorText(await codeOf(res)));
   }
 
   function newChat() {
@@ -100,12 +134,15 @@ export function NotifiedAi({ chats: initial, credits: first, files, folders, rea
     if (id === activeId) { setActiveId(null); setMessages([]); }
     await fetch(`/api/ai/chats/${id}`, { method: "DELETE" }).catch(() => {});
   }
+  async function patchChat(id: string, set: { title?: string; pinned?: boolean }) {
+    setChats((c) => c.map((x) => (x.id === id ? { ...x, ...set } : x)));
+    await fetch(`/api/ai/chats/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(set) }).catch(() => {});
+  }
 
-  function pick(f: StoredFile) {
-    if (!mention || attached.length >= MAX_FILES) return;
-    const next = text.slice(0, mention.start) + text.slice(caret);
-    setText(next);
-    setAttached((a) => [...a, { id: f.id, name: f.name }]);
+  function pick(m: Mentionable) {
+    if (!mention || attached.length >= MAX_REFS) return;
+    setText(text.slice(0, mention.start) + text.slice(caret));
+    setAttached((a) => [...a, m]);
     setPickIndex(0);
     requestAnimationFrame(() => {
       const el = input.current;
@@ -117,42 +154,77 @@ export function NotifiedAi({ chats: initial, credits: first, files, folders, rea
     });
   }
 
-  async function send(question = text) {
-    const message = question.trim();
-    if (!message || streaming || noCredits) return;
-    const files = attached;
+  function toggleVoice() {
+    if (listening) { voice.current?.stop(); return; }
+    const Ctor = recognitionCtor();
+    if (!Ctor) return;
+    const rec = new Ctor();
+    rec.lang = "en-GB";
+    rec.interimResults = true;
+    rec.continuous = true;
+    const base = text && !/\s$/.test(text) ? `${text} ` : text;
+    let finalText = "";
+    rec.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const piece = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += piece; else interim += piece;
+      }
+      setText((base + finalText + interim).slice(0, MAX_QUESTION));
+      requestAnimationFrame(grow);
+    };
+    rec.onend = () => { setListening(false); voice.current = null; };
+    rec.onerror = () => { setListening(false); voice.current = null; };
+    voice.current = rec;
+    setListening(true);
+    rec.start();
+  }
+
+  /**
+   * Sends a question (or replaces one: `edit`, or answers again: `regenerate`) and reads the streamed answer. The
+   * messages shown change at once and are put back, with the reason as a code, if the request is refused.
+   */
+  async function send(o: { question?: string; refs?: Mentionable[] | Ref[]; mode?: Mode; edit?: string; regenerate?: string } = {}) {
+    if (streaming) return;
+    voice.current?.stop();
+    const m = o.mode ?? mode;
+    const refs = o.refs ?? attached;
+    const fromBox = o.question === undefined && !o.edit && !o.regenerate;
+    const question = (o.question ?? text).trim();
+    if (!o.regenerate && (!question || noCredits)) return;
+    const before = messages;
+    const cutAt = o.edit ? before.findIndex((x) => x.id === o.edit) : o.regenerate ? before.findIndex((x) => x.id === o.regenerate) : before.length;
+    const kept = cutAt < 0 ? before : before.slice(0, cutAt);
+    const replyId = tmp("a");
+    const userMsg: Msg = { id: tmp("u"), role: "user", content: question, files: refs.map(({ kind, id, name, href }) => ({ kind, id, name, href })) };
+    stick.current = true;
     setError(null);
     setStreaming(true);
-    stick.current = true;
-    const userMsg: Msg = { id: `u-${Date.now()}`, role: "user", content: message, files };
-    const replyId = `a-${Date.now()}`;
-    setMessages((m) => [...m, userMsg, { id: replyId, role: "assistant", content: "", files: [] }]);
-    setText("");
-    setAttached([]);
-    requestAnimationFrame(grow);
+    setMessages(o.regenerate ? [...kept, { id: replyId, role: "assistant", content: "", files: [] }] : [...kept, userMsg, { id: replyId, role: "assistant", content: "", files: [] }]);
+    if (fromBox) { setText(""); setAttached([]); requestAnimationFrame(grow); }
 
     const ctl = new AbortController();
     abort.current = ctl;
-    const undo = (code: string) => {
-      setMessages((m) => m.filter((x) => x.id !== userMsg.id && x.id !== replyId));
-      setText(message);
-      setAttached(files);
-      setError(errorText(code));
-    };
     const res = await fetch("/api/ai/chat", {
       method: "POST", headers: { "content-type": "application/json" }, signal: ctl.signal,
-      body: JSON.stringify({ chatId: activeId, message, fileIds: files.map((f) => f.id) }),
+      body: JSON.stringify({
+        chatId: activeId, message: o.regenerate ? undefined : question, mode: m, edit: o.edit, regenerate: o.regenerate,
+        refs: o.regenerate ? undefined : refs.map((r) => ({ kind: r.kind, id: r.id })),
+      }),
     }).catch(() => null);
     if (!res || !res.ok || !res.body) {
       setStreaming(false);
       if (ctl.signal.aborted) return;
-      return undo(res ? ((await res.json().catch(() => null)) as { code?: string } | null)?.code ?? `H${res.status}` : "N001");
+      setMessages(before);
+      if (fromBox) { setText(question); setAttached(refs as Mentionable[]); }
+      return setError(errorText(await codeOf(res)));
     }
 
     let chatId = activeId;
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     let buf = "";
+    type Event = { type: string; chatId?: string; userMessageId?: string; sources?: Ref[]; text?: string; credits?: number; messageId?: string; title?: string; code?: string };
     try {
       for (;;) {
         const { done, value } = await reader.read();
@@ -163,17 +235,23 @@ export function NotifiedAi({ chats: initial, credits: first, files, folders, rea
           const line = buf.slice(0, end).trim();
           buf = buf.slice(end + 2);
           if (!line.startsWith("data:")) continue;
-          const ev = JSON.parse(line.slice(5)) as { type: string; chatId?: string; text?: string; credits?: number; code?: string };
+          const ev = JSON.parse(line.slice(5)) as Event;
           if (ev.type === "meta" && ev.chatId) {
             chatId = ev.chatId;
-            setActiveId(ev.chatId);
             const id = ev.chatId;
-            setChats((c) => (c.some((x) => x.id === id) ? c : [{ id, title: message.replace(/\s+/g, " ").slice(0, 60), updatedAt: Date.now() }, ...c]));
+            setActiveId(id);
+            setChats((c) => (c.some((x) => x.id === id) ? c : [{ id, title: question.replace(/\s+/g, " ").slice(0, 60), pinned: false, updatedAt: Date.now() }, ...c]));
+            setMessages((ms) => ms.map((x) => (x.id === userMsg.id && ev.userMessageId ? { ...x, id: ev.userMessageId } : x.id === replyId ? { ...x, files: ev.sources ?? [] } : x)));
           } else if (ev.type === "delta" && ev.text) {
             const t = ev.text;
-            setMessages((m) => m.map((x) => (x.id === replyId ? { ...x, content: x.content + t } : x)));
+            setMessages((ms) => ms.map((x) => (x.id === replyId ? { ...x, content: x.content + t } : x)));
           } else if (ev.type === "done") {
             if (typeof ev.credits === "number") setLeft(ev.credits);
+            const real = ev.messageId;
+            if (real) setMessages((ms) => ms.map((x) => (x.id === replyId ? { ...x, id: real } : x)));
+          } else if (ev.type === "title" && ev.title && chatId) {
+            const id = chatId, title = ev.title;
+            setChats((c) => c.map((x) => (x.id === id ? { ...x, title } : x)));
           } else if (ev.type === "error") {
             setError(errorText(ev.code ?? "AI104"));
             if (typeof ev.credits === "number") setLeft(ev.credits);
@@ -183,26 +261,32 @@ export function NotifiedAi({ chats: initial, credits: first, files, folders, rea
     } catch {
       if (!ctl.signal.aborted) setError(errorText("N001"));
     }
-    // An answer with nothing in it is not kept (the server gave the credit back).
-    setMessages((m) => m.filter((x) => !(x.id === replyId && !x.content)));
-    if (chatId) setChats((c) => c.map((x) => (x.id === chatId ? { ...x, updatedAt: Date.now() } : x)).sort((a, b) => b.updatedAt - a.updatedAt));
+    // An answer with nothing in it is not kept (the server gave the credits back).
+    setMessages((ms) => ms.filter((x) => !(x.id === replyId && !x.content)));
+    if (chatId) setChats((c) => c.map((x) => (x.id === chatId ? { ...x, updatedAt: Date.now() } : x)));
     setStreaming(false);
     abort.current = null;
     if (ctl.signal.aborted) void fetch("/api/ai/chats").then((r) => r.json() as Promise<{ credits?: { left: number } }>).then((j) => { if (j.credits) setLeft(j.credits.left); }).catch(() => {});
   }
 
+  async function saveAnswer(messageId: string) {
+    const res = await fetch("/api/ai/save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chatId: activeId, messageId }) }).catch(() => null);
+    return res?.ok ? null : errorText(await codeOf(res));
+  }
+
   function onKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (mention && matches.length) {
-      if (e.key === "ArrowDown") { e.preventDefault(); setPickIndex((i) => (i + 1) % matches.length); return; }
-      if (e.key === "ArrowUp") { e.preventDefault(); setPickIndex((i) => (i - 1 + matches.length) % matches.length); return; }
-      if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pick(matches[Math.min(pickIndex, matches.length - 1)]); return; }
+    if (mention && options.length) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setPickIndex((i) => (i + 1) % options.length); return; }
+      if (e.key === "ArrowUp") { e.preventDefault(); setPickIndex((i) => (i - 1 + options.length) % options.length); return; }
+      if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pick(options[Math.min(pickIndex, options.length - 1)]); return; }
     }
     if (mention && e.key === "Escape") { e.preventDefault(); setPickerOff(true); return; }
     if (e.key === "Enter" && !e.shiftKey && !window.matchMedia("(pointer: coarse)").matches && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); }
   }
 
-  const list = <ChatList chats={chats} activeId={activeId} onOpen={openChat} onDelete={removeChat} />;
+  const list = <ChatList chats={chats} activeId={activeId} onOpen={openChat} onDelete={removeChat} onPatch={patchChat} />;
   const empty = !messages.length && !loading;
+  const lastAnswer = messages.length ? messages[messages.length - 1] : null;
 
   return (
     <div className="flex h-full min-h-0 bg-canvas">
@@ -231,59 +315,87 @@ export function NotifiedAi({ chats: initial, credits: first, files, folders, rea
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
           <div className="mx-auto flex min-h-full w-full max-w-[720px] flex-col gap-5 px-4 pb-6 pt-5 md:px-6">
             {!ready && <Notice>Notified AI is being set up. You can write your questions now; answers start once it is switched on.</Notice>}
-            {empty && <Welcome onAsk={(q) => { setText(q); requestAnimationFrame(() => { input.current?.focus(); grow(); }); }} hasFiles={files.length > 0} />}
+            {empty && <Welcome onAsk={(q) => setDraft(q)} />}
             {loading && <div className="flex flex-col gap-3 pt-2" role="status" aria-label="Loading chat">{[70, 100, 55].map((w, i) => <div key={i} className="h-12 animate-pulse rounded-[18px] bg-fill" style={{ width: `${w}%`, animationDelay: `${i * 120}ms` }} />)}</div>}
-            {messages.map((m, i) => <Bubble key={m.id} m={m} live={streaming && i === messages.length - 1} />)}
+            {messages.map((m, i) => {
+              const live = streaming && i === messages.length - 1;
+              return m.role === "user"
+                ? <UserBubble key={m.id} m={m} canEdit={!streaming && !isTemp(m.id)} onResend={(t) => void send({ question: t, refs: m.files, edit: m.id })} />
+                : <AnswerBubble key={m.id} m={m} live={live} chatId={activeId} last={m === lastAnswer && !streaming && !isTemp(m.id)}
+                    onRegenerate={() => void send({ regenerate: m.id })}
+                    onFlashcards={() => void send({ question: "Make flashcards from your last answer.", refs: [], mode: "flashcards" })}
+                    onSave={() => saveAnswer(m.id)} />;
+            })}
             {error && <p role="alert" className="m-0 rounded-[14px] bg-red/10 px-3.5 py-2.5 text-[13px] text-red">{error}</p>}
           </div>
         </div>
 
-        {/* The composer: files chosen with @ sit above the text; the list opens above it. */}
+        {/* The composer: modes above it, what was @-mentioned in it, and the list of things to mention opens over it. */}
         <div className="shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1 md:px-6">
           <div className="relative mx-auto w-full max-w-[720px]">
-            {mention && (
-              <FilePicker files={matches} index={pickIndex} folderName={folderName} full={attached.length >= MAX_FILES} none={!files.length} onPick={pick} onHover={setPickIndex} />
-            )}
+            {mention && <MentionList options={options} index={pickIndex} full={attached.length >= MAX_REFS} none={!mentions.length} onPick={pick} onHover={setPickIndex} />}
+            <div role="radiogroup" aria-label="Study mode" className="-mx-1 mb-2 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {MODE_ORDER.map((k) => (
+                <button key={k} type="button" role="radio" aria-checked={mode === k} title={MODES[k].hint} onClick={() => setMode(k)}
+                  className={`h-8 shrink-0 rounded-full border-0 px-3.5 text-[13px] font-medium transition-colors ${mode === k ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}>
+                  {MODES[k].label}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-col gap-2 rounded-[24px] bg-surface p-2 shadow-[0_0_0_0.5px_var(--hairline),0_4px_18px_rgba(0,0,0,0.06)] focus-within:shadow-[0_0_0_2px_var(--color-blue)]">
               {attached.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 px-1 pt-1">
                   {attached.map((f) => (
-                    <span key={f.id} className="flex max-w-full items-center gap-1.5 rounded-full bg-fill py-1 pl-2.5 pr-1 text-xs font-medium">
-                      <FileGlyph name={f.name} />
+                    <span key={`${f.kind}:${f.id}`} className="flex max-w-full items-center gap-1.5 rounded-full bg-fill py-1 pl-2.5 pr-1 text-xs font-medium">
+                      <RefGlyph kind={f.kind} name={f.name} />
                       <span className="max-w-[200px] truncate">{f.name}</span>
-                      <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setAttached((a) => a.filter((x) => x.id !== f.id))} className="flex size-5 items-center justify-center rounded-full border-0 bg-transparent text-muted hover:bg-edge/10">
+                      <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setAttached((a) => a.filter((x) => !(x.kind === f.kind && x.id === f.id)))} className="flex size-5 items-center justify-center rounded-full border-0 bg-transparent text-muted hover:bg-edge/10">
                         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden><path d="m2 2 6 6M8 2 2 8" /></svg>
                       </button>
                     </span>
                   ))}
                 </div>
               )}
+              {attached.length > 0 && !text.trim() && (
+                <div className="flex flex-wrap gap-1.5 px-1">
+                  {(Object.keys(QUICK) as (keyof typeof QUICK)[]).map((k) => (
+                    <button key={k} type="button" onClick={() => setDraft(QUICK[k][1])} className="h-7 rounded-full border-0 bg-blue/10 px-3 text-xs font-semibold text-link">{QUICK[k][0]}</button>
+                  ))}
+                </div>
+              )}
               <div className="flex items-end gap-1.5">
-                <button type="button" aria-label="Attach a file from My Files" title="Attach a file (@)" disabled={noCredits}
+                <button type="button" aria-label="Attach a file, case or topic" title="Attach (@)" disabled={noCredits}
                   onClick={() => { const el = input.current; const at = el?.selectionStart ?? text.length; const pre = text.slice(0, at); const sep = pre && !/\s$/.test(pre) ? " " : ""; setText(pre + sep + "@" + text.slice(at)); setPickerOff(false); requestAnimationFrame(() => { el?.focus(); const c = at + sep.length + 1; el?.setSelectionRange(c, c); setCaret(c); }); }}
                   className="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-0 bg-fill text-ink transition-transform active:scale-90 disabled:opacity-40">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M9 3.5v11M3.5 9h11" /></svg>
                 </button>
                 <textarea ref={input} rows={1} value={text} disabled={noCredits} maxLength={MAX_QUESTION}
-                  placeholder={noCredits ? (first.allowance === 0 ? "Your plan has no Notify Credits" : "No Notify Credits left this month") : "Ask about Ghanaian law, or type @ for a file"}
+                  placeholder={noCredits ? (first.allowance === 0 ? "Your plan has no Notify Credits" : "No Notify Credits left this month") : mode === "quiz" ? "Name a topic to be quizzed on" : "Ask about Ghanaian law, or type @ to add a file, case or topic"}
                   aria-label="Message Notified AI"
                   onChange={(e) => { setText(e.target.value); setCaret(e.target.selectionStart); setPickerOff(false); setPickIndex(0); grow(); }}
                   onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
                   onKeyDown={onKey}
                   className="max-h-[180px] min-h-9 min-w-0 flex-1 resize-none self-center border-0 bg-transparent px-1 py-1.5 text-[16px] leading-[1.35] text-ink outline-none placeholder:text-faint disabled:opacity-60" />
+                {hearing && !streaming && (
+                  <button type="button" aria-label={listening ? "Stop dictating" : "Dictate"} aria-pressed={listening} disabled={noCredits} onClick={toggleVoice}
+                    className={`mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-0 transition-transform active:scale-90 disabled:opacity-40 ${listening ? "animate-pulse bg-red text-white" : "bg-transparent text-muted hover:bg-fill"}`}>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="6.5" y="2" width="5" height="9" rx="2.5" /><path d="M3.8 8.5a5.2 5.2 0 0 0 10.4 0M9 13.7V16" /></svg>
+                  </button>
+                )}
                 {streaming ? (
                   <button type="button" aria-label="Stop" onClick={() => abort.current?.abort()} className="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-0 bg-strong text-strong-fg transition-transform active:scale-90">
                     <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden><rect width="12" height="12" rx="2.5" fill="currentColor" /></svg>
                   </button>
                 ) : (
-                  <button type="button" aria-label="Send" disabled={!text.trim() || noCredits} onClick={() => void send()} className="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-0 bg-blue text-white transition-[transform,opacity] active:scale-90 disabled:opacity-30">
+                  <button type="button" aria-label="Send" disabled={!text.trim() || noCredits || short} onClick={() => void send()} className="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-0 bg-blue text-white transition-[transform,opacity] active:scale-90 disabled:opacity-30">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 14.5v-11M4.5 8 9 3.5 13.5 8" /></svg>
                   </button>
                 )}
               </div>
             </div>
             <p className="m-0 px-2 pt-2 text-center text-[11px] leading-snug text-faint">
-              Notified AI can make mistakes. Check important points against the law itself.
+              {short ? <span className="font-medium text-red" role="alert">This question needs {cost} credits and you have {left}. Attach less, or change the mode.</span>
+                : <>This will use {cost} {cost === 1 ? "credit" : "credits"}{attachedChars > 8_000 ? " (long documents cost more)" : ""}. Notified AI can make mistakes: check important points against the law itself.</>}
               <span className="lg:hidden"> · <Credits allowance={first.allowance} left={left} inline /></span>
             </p>
           </div>
@@ -295,9 +407,9 @@ export function NotifiedAi({ chats: initial, credits: first, files, folders, rea
   );
 }
 
-// ---- Pieces -------------------------------------------------------------------------------------------------------
+// ---- Messages -----------------------------------------------------------------------------------------------------
 
-function Welcome({ onAsk, hasFiles }: { onAsk: (q: string) => void; hasFiles: boolean }) {
+function Welcome({ onAsk }: { onAsk: (q: string) => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 py-8 text-center">
       <div aria-hidden className="grid size-16 place-items-center rounded-[20px] bg-gradient-to-br from-[#5e5ce6] via-[#bf5af2] to-[#ff9f0a] text-white shadow-[0_8px_24px_rgba(94,92,230,0.35)]">
@@ -305,8 +417,8 @@ function Welcome({ onAsk, hasFiles }: { onAsk: (q: string) => void; hasFiles: bo
       </div>
       <div className="flex flex-col gap-1.5">
         <h2 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.03em]">Ask about Ghanaian law</h2>
-        <p className="m-0 max-w-[420px] text-[15px] leading-snug text-muted">
-          {hasFiles ? <>Type <b className="rounded bg-fill px-1.5 py-0.5 font-semibold text-ink">@</b> to bring one of your files into the question.</> : <>Upload notes or cases in <Link href="/files" className="text-link">My Files</Link>, then type <b className="rounded bg-fill px-1.5 py-0.5 font-semibold text-ink">@</b> to ask about them.</>}
+        <p className="m-0 max-w-[440px] text-[15px] leading-snug text-muted">
+          Type <b className="rounded bg-fill px-1.5 py-0.5 font-semibold text-ink">@</b> to bring in your <Link href="/files" className="text-link">files</Link>, <Link href="/case-law" className="text-link">case briefs</Link> or library topics. Answers cite what they use.
         </p>
       </div>
       <div className="grid w-full max-w-[520px] gap-2 sm:grid-cols-2">
@@ -318,20 +430,46 @@ function Welcome({ onAsk, hasFiles }: { onAsk: (q: string) => void; hasFiles: bo
   );
 }
 
-function Bubble({ m, live }: { m: Msg; live: boolean }) {
-  const [copied, setCopied] = useState(false);
-  if (m.role === "user") {
-    return (
-      <div className="flex flex-col items-end gap-1.5">
-        {m.files.length > 0 && (
-          <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
-            {m.files.map((f) => <span key={f.id} className="flex max-w-full items-center gap-1.5 rounded-full bg-fill px-2.5 py-1 text-xs font-medium"><FileGlyph name={f.name} /><span className="truncate">{f.name}</span></span>)}
+function UserBubble({ m, canEdit, onResend }: { m: Msg; canEdit: boolean; onResend: (text: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(m.content);
+  return (
+    <div className="group flex flex-col items-end gap-1.5">
+      {m.files.length > 0 && (
+        <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
+          {m.files.map((f) => <Link key={`${f.kind}:${f.id}`} href={f.href} className="flex max-w-full items-center gap-1.5 rounded-full bg-fill px-2.5 py-1 text-xs font-medium" style={{ textDecoration: "none", color: "inherit" }}><RefGlyph kind={f.kind} name={f.name} /><span className="truncate">{f.name}</span></Link>)}
+        </div>
+      )}
+      {editing ? (
+        <div className="flex w-full max-w-[85%] flex-col gap-2 rounded-[20px] bg-surface p-2.5 shadow-[0_0_0_2px_var(--color-blue)]">
+          <textarea autoFocus value={draft} maxLength={MAX_QUESTION} onChange={(e) => setDraft(e.target.value)} rows={Math.min(8, Math.max(2, draft.split("\n").length))} aria-label="Edit your question"
+            className="w-full resize-none border-0 bg-transparent text-[16px] leading-[1.4] text-ink outline-none" />
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => { setEditing(false); setDraft(m.content); }} className="h-8 rounded-full border-0 bg-fill px-3.5 text-[13px] font-medium">Cancel</button>
+            <button type="button" disabled={!draft.trim()} onClick={() => { setEditing(false); onResend(draft); }} className="h-8 rounded-full border-0 bg-blue px-3.5 text-[13px] font-semibold text-white disabled:opacity-40">Send again</button>
           </div>
-        )}
-        <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-[20px] rounded-br-[6px] bg-blue px-4 py-2.5 text-[16px] leading-[1.4] text-white">{m.content}</div>
-      </div>
-    );
-  }
+          <p className="m-0 text-[11px] text-faint">This replaces the answers after it.</p>
+        </div>
+      ) : (
+        <div className="flex max-w-[85%] items-end gap-1">
+          {canEdit && (
+            <button type="button" aria-label="Edit question" onClick={() => setEditing(true)} className="mb-1 flex size-8 shrink-0 items-center justify-center rounded-full border-0 bg-transparent text-faint opacity-70 hover:bg-fill hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M10.8 2.7a1.6 1.6 0 0 1 2.3 2.3L6 12.2 2.8 13.2l1-3.2z" /></svg>
+            </button>
+          )}
+          <div className="whitespace-pre-wrap break-words rounded-[20px] rounded-br-[6px] bg-blue px-4 py-2.5 text-[16px] leading-[1.4] text-white">{m.content}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnswerBubble({ m, live, chatId, last, onRegenerate, onFlashcards, onSave }: {
+  m: Msg; live: boolean; chatId: string | null; last: boolean; onRegenerate: () => void; onFlashcards: () => void; onSave: () => Promise<string | null>;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [save, setSave] = useState<{ s: "idle" | "saving" | "saved" } | { s: "error"; text: string }>({ s: "idle" });
+  const done = m.content && !live && !isTemp(m.id);
   return (
     <div className="flex gap-3">
       <span aria-hidden className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#5e5ce6] via-[#bf5af2] to-[#ff9f0a] text-white">
@@ -340,7 +478,7 @@ function Bubble({ m, live }: { m: Msg; live: boolean }) {
       <div className="min-w-0 flex-1">
         {m.content ? (
           <div className="text-[16px] leading-[1.55] [&>*:first-child]:mt-0">
-            <Markdown source={m.content} from={3} />
+            <Markdown source={withCitations(m.content, m.files)} from={3} />
             {live && <span aria-hidden className="ml-0.5 inline-block size-2 animate-pulse rounded-full bg-faint align-middle" />}
           </div>
         ) : (
@@ -348,36 +486,58 @@ function Bubble({ m, live }: { m: Msg; live: boolean }) {
             {[0, 1, 2].map((i) => <span key={i} className="size-2 animate-pulse rounded-full bg-faint" style={{ animationDelay: `${i * 160}ms` }} />)}
           </div>
         )}
-        {m.content && !live && (
-          <button type="button" onClick={() => { void navigator.clipboard?.writeText(m.content).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }); }}
-            className="mt-1.5 flex h-7 items-center gap-1.5 rounded-full border-0 bg-transparent px-2 text-xs font-medium text-muted hover:bg-fill">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden><rect x="5.5" y="5.5" width="8" height="8" rx="1.8" /><path d="M10.5 5.5v-1A1.8 1.8 0 0 0 8.7 2.7H4.5a1.8 1.8 0 0 0-1.8 1.8v4.2a1.8 1.8 0 0 0 1.8 1.8h1" /></svg>
-            {copied ? "Copied" : "Copy"}
-          </button>
+        {m.content && m.files.length > 0 && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Sources</span>
+            {m.files.map((f, i) => (
+              <Link key={`${f.kind}:${f.id}`} href={f.href} className="flex max-w-full items-center gap-1.5 rounded-full bg-fill py-1 pl-1.5 pr-2.5 text-xs font-medium" style={{ textDecoration: "none", color: "inherit" }}>
+                <span className="grid size-4 place-items-center rounded-full bg-blue/15 text-[10px] font-bold text-link">{i + 1}</span><span className="max-w-[220px] truncate">{f.name}</span>
+              </Link>
+            ))}
+          </div>
         )}
+        {done && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-0.5 text-xs font-medium text-muted">
+            <Action onClick={() => { void navigator.clipboard?.writeText(m.content).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }); }} icon={<path d="M5.5 5.5h8v8h-8zM10.5 5.5v-1A1.8 1.8 0 0 0 8.7 2.7H4.5a1.8 1.8 0 0 0-1.8 1.8v4.2a1.8 1.8 0 0 0 1.8 1.8h1" />}>{copied ? "Copied" : "Copy"}</Action>
+            {chatId && (save.s === "saved"
+              ? <Link href="/files" className="flex h-7 items-center gap-1.5 rounded-full px-2 text-green" style={{ textDecoration: "none" }}>Saved · View</Link>
+              : <Action disabled={save.s === "saving"} onClick={async () => { setSave({ s: "saving" }); const err = await onSave(); setSave(err ? { s: "error", text: err } : { s: "saved" }); }} icon={<path d="M4 2.5h6l2.5 2.5v8.5H4zM6 2.5v3h4v-3M6 13.5V9h4v4.5" />}>{save.s === "saving" ? "Saving…" : "Save to My Files"}</Action>)}
+            {last && <Action onClick={onRegenerate} icon={<path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v2.8h-2.8" />}>Regenerate</Action>}
+            {last && <Action onClick={onFlashcards} icon={<path d="M3.5 4.5h8A1.5 1.5 0 0 1 13 6v6.5a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 2 12.5V6a1.5 1.5 0 0 1 1.5-1.5zM5 2.5h7.5A1.5 1.5 0 0 1 14 4v6" />}>Flashcards</Action>}
+          </div>
+        )}
+        {save.s === "error" && <p role="alert" className="m-0 mt-1 text-xs text-red">{save.text}</p>}
       </div>
     </div>
   );
 }
 
-/** The files matching what follows "@": a card above the composer, the first match ready for Return. */
-function FilePicker({ files, index, folderName, full, none, onPick, onHover }: {
-  files: StoredFile[]; index: number; folderName: Map<string, string>; full: boolean; none: boolean; onPick: (f: StoredFile) => void; onHover: (i: number) => void;
-}) {
+const Action = ({ onClick, icon, children, disabled }: { onClick: () => void; icon: React.ReactNode; children: React.ReactNode; disabled?: boolean }) => (
+  <button type="button" onClick={onClick} disabled={disabled} className="flex h-7 items-center gap-1.5 rounded-full border-0 bg-transparent px-2 text-xs font-medium text-muted hover:bg-fill disabled:opacity-50">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{icon}</svg>
+    {children}
+  </button>
+);
+
+/** What matches the text after "@", grouped as files, case briefs and library topics: a card above the composer, the first match ready for Return. */
+function MentionList({ options, index, full, none, onPick, onHover }: { options: Mentionable[]; index: number; full: boolean; none: boolean; onPick: (m: Mentionable) => void; onHover: (i: number) => void }) {
+  const TITLES: Record<RefKind, string> = { file: "My Files", case: "Case law", topic: "Library" };
   return (
-    <div role="listbox" aria-label="Your files" className="absolute inset-x-0 bottom-full z-30 mb-2 max-h-[min(320px,45dvh)] overflow-y-auto overscroll-contain rounded-[18px] bg-surface/95 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.18),0_0_0_0.5px_var(--hairline)] backdrop-blur-xl animate-[tt-pop_140ms_ease-out]">
-      <div className="px-2.5 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">My Files</div>
-      {full ? <Hint>You can attach up to {MAX_FILES} files to one question.</Hint>
-        : files.length === 0 ? <Hint>{none ? <>You have no files yet. <Link href="/files" className="text-link">Upload one in My Files</Link>.</> : "No file matches."}</Hint>
-        : files.map((f, i) => (
-          <button key={f.id} type="button" role="option" aria-selected={i === index} onMouseEnter={() => onHover(i)} onMouseDown={(e) => e.preventDefault()} onClick={() => onPick(f)}
-            className={`flex min-h-12 w-full items-center gap-3 rounded-[12px] border-0 px-2.5 text-left ${i === index ? "bg-fill" : "bg-transparent"}`}>
-            <FileGlyph name={f.name} large />
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[14px] font-medium">{f.name}</span>
-              <span className="truncate text-xs text-muted">{f.folderId ? folderName.get(f.folderId) ?? "Folder" : "My Files"} · {f.kind.toUpperCase()}</span>
-            </span>
-          </button>
+    <div role="listbox" aria-label="Files, cases and topics" className="absolute inset-x-0 bottom-full z-30 mb-2 max-h-[min(340px,48dvh)] overflow-y-auto overscroll-contain rounded-[18px] bg-surface/95 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,0.18),0_0_0_0.5px_var(--hairline)] backdrop-blur-xl animate-[tt-pop_140ms_ease-out]">
+      {full ? <Hint>You can attach up to {MAX_REFS} things to one question.</Hint>
+        : options.length === 0 ? <Hint>{none ? <>Nothing to attach yet. <Link href="/files" className="text-link">Upload a file in My Files</Link>.</> : "Nothing matches."}</Hint>
+        : options.map((m, i) => (
+          <div key={`${m.kind}:${m.id}`}>
+            {(i === 0 || options[i - 1].kind !== m.kind) && <div className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">{TITLES[m.kind]}</div>}
+            <button type="button" role="option" aria-selected={i === index} onMouseEnter={() => onHover(i)} onMouseDown={(e) => e.preventDefault()} onClick={() => onPick(m)}
+              className={`flex min-h-12 w-full items-center gap-3 rounded-[12px] border-0 px-2.5 text-left ${i === index ? "bg-fill" : "bg-transparent"}`}>
+              <RefGlyph kind={m.kind} name={m.name} large />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-[14px] font-medium">{m.name}</span>
+                <span className="truncate text-xs text-muted">{m.sub}</span>
+              </span>
+            </button>
+          </div>
         ))}
     </div>
   );
@@ -386,11 +546,10 @@ function FilePicker({ files, index, folderName, full, none, onPick, onHover }: {
 const Hint = ({ children }: { children: React.ReactNode }) => <p className="m-0 px-2.5 py-3 text-[13px] text-muted">{children}</p>;
 const Notice = ({ children }: { children: React.ReactNode }) => <p role="status" className="m-0 rounded-[14px] bg-fill px-3.5 py-2.5 text-[13px] leading-snug text-muted">{children}</p>;
 
-function FileGlyph({ name, large }: { name: string; large?: boolean }) {
-  const pdf = /\.pdf$/i.test(name);
-  return (
-    <span aria-hidden className={`grid shrink-0 place-items-center rounded-[7px] font-bold text-white ${large ? "size-9 text-[9px]" : "size-5 text-[7px]"} ${pdf ? "bg-[#ff3b30]" : "bg-[#0a84ff]"}`}>{pdf ? "PDF" : "DOC"}</span>
-  );
+/** A small badge for what was attached: red PDF, blue Word, orange case, green topic. */
+function RefGlyph({ kind, name, large }: { kind: RefKind; name: string; large?: boolean }) {
+  const [label, bg] = kind === "case" ? ["LAW", "bg-[#ff9f0a]"] : kind === "topic" ? ["LIB", "bg-[#34c759]"] : /\.pdf$/i.test(name) ? ["PDF", "bg-[#ff3b30]"] : ["DOC", "bg-[#0a84ff]"];
+  return <span aria-hidden className={`grid shrink-0 place-items-center rounded-[7px] font-bold text-white ${bg} ${large ? "size-9 text-[9px]" : "size-5 text-[7px]"}`}>{label}</span>;
 }
 
 function Credits({ allowance, left, inline }: { allowance: number; left: number; inline?: boolean }) {
@@ -404,35 +563,59 @@ const IconButton = ({ label, onClick, children }: { label: string; onClick: () =
 const Compose = () => <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 4H5.5A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V11" /><path d="m15.2 3.8 1 1a1.4 1.4 0 0 1 0 2L10 13l-3 .6.6-3 6.2-6.2a1.4 1.4 0 0 1 2 0z" /></svg>;
 const Clock = () => <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="10" cy="10" r="7" /><path d="M10 6v4l2.6 1.6" /></svg>;
 
-/** Conversations grouped as Today, Yesterday, the last 7 days, then older; a tap opens one, a second tap on the bin deletes it. */
-function ChatList({ chats, activeId, onOpen, onDelete }: { chats: ChatSummary[]; activeId: string | null; onOpen: (id: string) => void; onDelete: (id: string) => void }) {
-  const [sure, setSure] = useState<string | null>(null);
+// ---- Conversations ------------------------------------------------------------------------------------------------
+
+/** Conversations: Pinned, then Today, Yesterday, the last 7 days and earlier. A ⋯ menu renames, pins or deletes. */
+function ChatList({ chats, activeId, onOpen, onDelete, onPatch }: {
+  chats: ChatSummary[]; activeId: string | null; onOpen: (id: string) => void; onDelete: (id: string) => void; onPatch: (id: string, set: { title?: string; pinned?: boolean }) => void;
+}) {
+  const [menu, setMenu] = useState<{ id: string; sure: boolean } | null>(null);
+  const [rename, setRename] = useState<{ id: string; value: string } | null>(null);
   const groups = useMemo(() => {
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const day = 86_400_000;
-    const out: [string, ChatSummary[]][] = [["Today", []], ["Yesterday", []], ["Previous 7 days", []], ["Earlier", []]];
-    for (const c of chats) {
+    const out: [string, ChatSummary[]][] = [["Pinned", []], ["Today", []], ["Yesterday", []], ["Previous 7 days", []], ["Earlier", []]];
+    for (const c of [...chats].sort((a, b) => b.updatedAt - a.updatedAt)) {
       const age = start.getTime() - c.updatedAt;
-      out[age < 0 ? 0 : age < day ? 1 : age < 7 * day ? 2 : 3][1].push(c);
+      out[c.pinned ? 0 : age < 0 ? 1 : age < day ? 2 : age < 7 * day ? 3 : 4][1].push(c);
     }
     return out.filter(([, v]) => v.length);
   }, [chats]);
-  const close = useCallback(() => setSure(null), []);
+  const close = useCallback(() => setMenu(null), []);
+  useEffect(() => {
+    if (!menu) return;
+    const away = (e: PointerEvent) => { if (!(e.target as Element).closest("[data-chat-menu]")) close(); };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [menu, close]);
   if (!chats.length) return <p className="m-0 px-3 py-6 text-center text-[13px] text-muted">Your conversations appear here.</p>;
   return (
-    <div className="flex flex-col gap-3" onMouseLeave={close}>
+    <div className="flex flex-col gap-3">
       {groups.map(([name, items]) => (
         <div key={name}>
           <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">{name}</div>
           {items.map((c) => (
-            <div key={c.id} className={`group flex items-center rounded-[10px] ${c.id === activeId ? "bg-fill" : "hover:bg-fill/60"}`}>
-              <button type="button" onClick={() => onOpen(c.id)} aria-current={c.id === activeId} className="min-h-11 min-w-0 flex-1 truncate border-0 bg-transparent px-3 text-left text-[14px] text-ink">{c.title}</button>
-              {sure === c.id ? (
-                <button type="button" onClick={() => onDelete(c.id)} className="mr-1.5 h-7 rounded-full border-0 bg-red px-2.5 text-xs font-semibold text-white">Delete</button>
+            <div key={c.id} data-chat-menu className={`group relative flex items-center rounded-[10px] ${c.id === activeId ? "bg-fill" : "hover:bg-fill/60"}`}>
+              {rename?.id === c.id ? (
+                <input autoFocus value={rename.value} maxLength={80} aria-label="Chat name" onChange={(e) => setRename({ id: c.id, value: e.target.value })} onBlur={() => setRename(null)}
+                  onKeyDown={(e) => { if (e.key === "Escape") setRename(null); if (e.key === "Enter" && rename.value.trim()) { onPatch(c.id, { title: rename.value.trim() }); setRename(null); } }}
+                  className="m-1 h-9 min-w-0 flex-1 rounded-[8px] border-0 bg-surface px-2.5 text-[14px] text-ink shadow-[0_0_0_2px_var(--color-blue)] outline-none" />
               ) : (
-                <button type="button" aria-label={`Delete ${c.title}`} onClick={() => setSure(c.id)} className="mr-1 flex size-8 items-center justify-center rounded-full border-0 bg-transparent text-faint opacity-60 hover:bg-edge/10 hover:opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
-                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6A1 1 0 0 0 5.7 14h4.6a1 1 0 0 0 1-.9l.7-8.6" /></svg>
+                <button type="button" onClick={() => onOpen(c.id)} aria-current={c.id === activeId} className="flex min-h-11 min-w-0 flex-1 items-center gap-1.5 border-0 bg-transparent px-3 text-left text-[14px] text-ink">
+                  {c.pinned && <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="shrink-0 text-faint" aria-label="Pinned"><path d="M9.5 1.5 14.5 6.5l-2 .5-2.5 2.5.5 3.5-1 1-3-3-4 4-1-1 4-4-3-3 1-1 3.5.5L9 4z" /></svg>}
+                  <span className="truncate">{c.title}</span>
                 </button>
+              )}
+              {rename?.id !== c.id && (
+                <button type="button" aria-label={`Actions for ${c.title}`} aria-expanded={menu?.id === c.id} onClick={() => setMenu(menu?.id === c.id ? null : { id: c.id, sure: false })}
+                  className="mr-1 flex size-8 shrink-0 items-center justify-center rounded-full border-0 bg-transparent text-[18px] leading-none text-faint opacity-70 hover:bg-edge/10 hover:opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100">⋯</button>
+              )}
+              {menu?.id === c.id && (
+                <div role="menu" className="absolute right-1 top-full z-20 mt-1 w-44 rounded-[14px] bg-surface p-1 shadow-[0_12px_36px_rgba(0,0,0,0.18),0_0_0_0.5px_var(--hairline)] animate-[tt-pop_140ms_ease-out]">
+                  <MenuItem onClick={() => { setRename({ id: c.id, value: c.title }); close(); }}>Rename</MenuItem>
+                  <MenuItem onClick={() => { onPatch(c.id, { pinned: !c.pinned }); close(); }}>{c.pinned ? "Unpin" : "Pin"}</MenuItem>
+                  <MenuItem danger onClick={() => (menu.sure ? (onDelete(c.id), close()) : setMenu({ id: c.id, sure: true }))}>{menu.sure ? "Tap again to delete" : "Delete"}</MenuItem>
+                </div>
               )}
             </div>
           ))}
@@ -441,6 +624,10 @@ function ChatList({ chats, activeId, onOpen, onDelete }: { chats: ChatSummary[];
     </div>
   );
 }
+
+const MenuItem = ({ onClick, danger, children }: { onClick: () => void; danger?: boolean; children: React.ReactNode }) => (
+  <button type="button" role="menuitem" onClick={onClick} className={`flex min-h-10 w-full items-center rounded-[10px] border-0 bg-transparent px-3 text-left text-[14px] hover:bg-fill ${danger ? "text-red" : "text-ink"}`}>{children}</button>
+);
 
 /** Phones and tablets: the conversations as a bottom sheet, as in the filter sheets elsewhere. */
 function HistorySheet({ onClose, onNew, children }: { onClose: () => void; onNew: () => void; children: React.ReactNode }) {

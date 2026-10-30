@@ -83,6 +83,17 @@ export async function getTopicBody(courseSlug: string, n: number): Promise<{ id:
   return t?.published ? { id: t.id, title: t.title, body: t.body } : null;
 }
 
+/** A published topic by its Notion page id, with its course and place, or null when it is not live. */
+export async function topicById(topicId: string): Promise<{ id: string; title: string; body: string; course: string; courseSlug: string; level: Level; n: number } | null> {
+  const db = getDb();
+  const [t] = await db.select().from(cmsEntry).where(and(eq(cmsEntry.id, topicId), eq(cmsEntry.kind, "topic")));
+  if (!t?.published || !t.parentId) return null;
+  const [c] = await db.select().from(cmsEntry).where(eq(cmsEntry.id, t.parentId));
+  if (!c?.published || !isLevel(c.level)) return null;
+  const siblings = await db.select({ id: cmsEntry.id }).from(cmsEntry).where(and(eq(cmsEntry.kind, "topic"), eq(cmsEntry.parentId, t.parentId))).orderBy(asc(cmsEntry.position));
+  return { id: t.id, title: t.title, body: t.body, course: c.title, courseSlug: c.slug, level: c.level, n: siblings.findIndex((x) => x.id === topicId) + 1 };
+}
+
 /** Where a published topic sits, by its Notion page id: its course's level and its number in the course. */
 export async function topicPlace(topicId: string): Promise<{ level: Level; n: number } | null> {
   const db = getDb();

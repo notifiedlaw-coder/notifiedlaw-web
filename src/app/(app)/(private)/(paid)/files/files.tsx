@@ -285,6 +285,7 @@ export function Files({ initial }: { initial: FilesState }) {
                             : <a href={`/api/files/${f.id}`} className="block truncate text-sm font-medium text-ink">{f.name}</a>}
                           <div className="truncate text-xs text-muted">{it.f.kind.toUpperCase()} · {size(it.f.size)} · {date(f.createdAt)}{needle ? ` · ${label(it.f.folderId)}` : ""}</div>
                         </div>
+                        <Link href={`/ai?ref=file:${f.id}&ask=summarise`} className={`${plainLink} max-sm:hidden`}>Summarise</Link>
                         <a href={`/api/files/${f.id}`} download className={`${plainLink} max-sm:hidden`}>Download</a>
                       </>
                     )}
@@ -307,6 +308,13 @@ export function Files({ initial }: { initial: FilesState }) {
                       ) : (
                         <>
                           {it.type === "file" && <a href={`/api/files/${f.id}`} download className={`${plainLink} sm:hidden`}>Download</a>}
+                          {it.type === "file" && (
+                            <>
+                              <Link href={`/ai?ref=file:${f.id}&ask=summarise`} className={`${plainLink} sm:hidden`}>Summarise</Link>
+                              <Link href={`/ai?ref=file:${f.id}&ask=issues`} className={plainLink}>Key issues</Link>
+                              <Link href={`/ai?ref=file:${f.id}&ask=revision`} className={plainLink}>Revision notes</Link>
+                            </>
+                          )}
                           <Btn tone="plain" onClick={() => setRename({ id: f.id, value: it.type === "file" ? f.name.replace(/\.(pdf|docx)$/i, "") : f.name })}>Rename</Btn>
                           <label className="flex items-center gap-1.5 text-[13px] text-muted">
                             Move to

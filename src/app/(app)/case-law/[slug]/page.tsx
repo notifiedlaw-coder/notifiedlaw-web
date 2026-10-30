@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CaseBookmark } from "@/components/bookmark";
 import { myBookmarks } from "@/lib/bookmarks";
@@ -62,6 +63,10 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         <div className="flex flex-wrap gap-2 text-xs font-semibold">
           {[c.court, ...c.jurisdiction, ...c.courses].filter(Boolean).map((t) => <span key={t} className="rounded-full bg-fill px-3 py-1">{t}</span>)}
         </div>
+        <Link href={`/ai?ref=case:${c.id}&ask=summarise`} className="inline-flex h-10 w-fit items-center gap-2 rounded-full bg-fill px-4 text-[14px] font-medium text-ink no-underline">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden><path d="M8 1.8l1.6 4.6L14.2 8l-4.6 1.6L8 14.2 6.4 9.6 1.8 8l4.6-1.6z" /></svg>
+          Ask Notified AI about this case
+        </Link>
         <Markdown source={c.body} from={2} />
       </article>
     </Shell>

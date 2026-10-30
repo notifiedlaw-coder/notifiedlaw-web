@@ -127,3 +127,23 @@ export async function kimiExtract(bytes: Uint8Array<ArrayBuffer>, name: string):
     throw e instanceof AiUnavailable ? e : new AiUnavailable(`Kimi file extract failed: ${e instanceof Error ? e.message : e}`);
   }
 }
+
+/** A short plain-text completion (no JSON, no streaming), such as a conversation title. */
+export async function kimiText(system: string, user: string, opts: { maxTokens?: number; timeoutMs?: number } = {}): Promise<string> {
+  const key = process.env.KIMI_API_KEY;
+  if (!key) throw new AiUnavailable("KIMI_API_KEY is not set");
+  try {
+    const res = await fetch(`${base()}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: KIMI_MODEL(), messages: [{ role: "system", content: system }, { role: "user", content: user }], temperature: 0.2, max_tokens: opts.maxTokens ?? 40 }),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 15_000),
+    });
+    if (!res.ok) throw new AiUnavailable(`Kimi answered ${res.status}`);
+    const text = ((await res.json()) as Reply).choices?.[0]?.message?.content;
+    if (!text) throw new AiUnavailable("Kimi sent no content");
+    return text;
+  } catch (e) {
+    throw e instanceof AiUnavailable ? e : new AiUnavailable(`Kimi request failed: ${e instanceof Error ? e.message : e}`);
+  }
+}

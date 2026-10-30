@@ -1,17 +1,18 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { aiChat, aiMessage, subscription } from "@/db/schema";
 import { getDb, planCols, planOf } from "@/lib/auth";
-import { AI_MESSAGE_COST, PLAN_CREDITS } from "@/lib/data";
+import { PLAN_CREDITS } from "@/lib/data";
+import { parseRefs, type Ref } from "@/lib/ai/refs";
 
-export type ChatSummary = { id: string; title: string; updatedAt: number };
-export type ChatFile = { id: string; name: string };
-export type StoredMessage = { id: string; role: "user" | "assistant"; content: string; files: ChatFile[]; createdAt: number };
+export type ChatSummary = { id: string; title: string; pinned: boolean; updatedAt: number };
+/** `files`: on a question the things @-mentioned, on an answer the sources it was given. */
+export type StoredMessage = { id: string; role: "user" | "assistant"; content: string; files: Ref[]; createdAt: number };
 
 /** Most conversations a user keeps; the oldest go when a new one would pass it. */
 export const MAX_CHATS = 200;
 
 export async function chatsOf(userId: string): Promise<ChatSummary[]> {
-  const rows = await getDb().select({ id: aiChat.id, title: aiChat.title, updatedAt: aiChat.updatedAt })
+  const rows = await getDb().select({ id: aiChat.id, title: aiChat.title, pinned: aiChat.pinned, updatedAt: aiChat.updatedAt })
     .from(aiChat).where(eq(aiChat.userId, userId)).orderBy(desc(aiChat.updatedAt)).limit(MAX_CHATS);
   return rows.map((r) => ({ ...r, updatedAt: r.updatedAt.getTime() }));
 }
@@ -22,13 +23,9 @@ export async function ownChat(userId: string, id: string) {
   return row;
 }
 
-const files = (json: string): ChatFile[] => {
-  try { return (JSON.parse(json) as ChatFile[]).filter((f) => f && typeof f.id === "string" && typeof f.name === "string"); } catch { return []; }
-};
-
 export async function messagesOf(chatId: string): Promise<StoredMessage[]> {
   const rows = await getDb().select().from(aiMessage).where(eq(aiMessage.chatId, chatId)).orderBy(asc(aiMessage.createdAt), desc(aiMessage.role));
-  return rows.map((r) => ({ id: r.id, role: r.role as "user" | "assistant", content: r.content, files: files(r.files), createdAt: r.createdAt.getTime() }));
+  return rows.map((r) => ({ id: r.id, role: r.role as "user" | "assistant", content: r.content, files: parseRefs(r.files), createdAt: r.createdAt.getTime() }));
 }
 
 /** A new conversation titled with the first question, shortened. Drops the oldest beyond MAX_CHATS. */
@@ -42,7 +39,7 @@ export async function createChat(userId: string, firstQuestion: string) {
   return id;
 }
 
-export async function addMessage(chatId: string, role: "user" | "assistant", content: string, attached: ChatFile[] = []) {
+export async function addMessage(chatId: string, role: "user" | "assistant", content: string, attached: Ref[] = []) {
   const db = getDb();
   const id = crypto.randomUUID();
   const now = new Date();
@@ -51,8 +48,18 @@ export async function addMessage(chatId: string, role: "user" | "assistant", con
   return id;
 }
 
-export const renameChat = (userId: string, id: string, title: string) =>
-  getDb().update(aiChat).set({ title }).where(and(eq(aiChat.id, id), eq(aiChat.userId, userId)));
+/** Renames and/or pins a conversation. Pinning does not move it in time: pinned chats are listed first. */
+export const updateChat = (userId: string, id: string, set: { title?: string; pinned?: boolean }) =>
+  getDb().update(aiChat).set(set).where(and(eq(aiChat.id, id), eq(aiChat.userId, userId)));
+
+/** Deletes a message and every one after it (used to replace a question or an answer). */
+export async function deleteFrom(chatId: string, messageId: string) {
+  const all = await messagesOf(chatId);
+  const at = all.findIndex((m) => m.id === messageId);
+  if (at < 0) return;
+  const ids = all.slice(at).map((m) => m.id);
+  for (let i = 0; i < ids.length; i += 100) await getDb().delete(aiMessage).where(inArray(aiMessage.id, ids.slice(i, i + 100)));
+}
 export const deleteChat = (userId: string, id: string) =>
   getDb().delete(aiChat).where(and(eq(aiChat.id, id), eq(aiChat.userId, userId)));
 
@@ -65,12 +72,12 @@ export async function creditsLeft(userId: string) {
 }
 
 /** Takes one message's credits, in one statement so two messages at once cannot both spend the last of them. False when short. */
-export async function spendCredits(userId: string, cost = AI_MESSAGE_COST) {
+export async function spendCredits(userId: string, cost: number) {
   const { allowance } = await creditsLeft(userId);
   const res = await getDb().run(sql`UPDATE ${subscription} SET credits_used = credits_used + ${cost} WHERE user_id = ${userId} AND credits_used + ${cost} <= ${allowance}`);
   return res.meta.changes > 0;
 }
 
 /** Gives credits back when a message could not be answered. */
-export const refundCredits = (userId: string, cost = AI_MESSAGE_COST) =>
+export const refundCredits = (userId: string, cost: number) =>
   getDb().run(sql`UPDATE ${subscription} SET credits_used = MAX(0, credits_used - ${cost}) WHERE user_id = ${userId}`);

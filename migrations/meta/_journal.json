@@ -183,6 +183,13 @@
       "when": 1793385617559,
       "tag": "0025_notified_ai",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1793386655544,
+      "tag": "0026_ai_chat_pinned",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE `ai_chat` ADD `pinned` integer DEFAULT false NOT NULL;
