@@ -45,8 +45,8 @@ export default async function Home() {
             <h2 className="text-[22px] font-bold tracking-[-0.02em]">Latest in articles</h2>
             <Link href="/articles" className="text-[13px]">See all</Link>
           </div>
-          <Link href={`/articles/${latest.slug}`} className="group flex flex-col overflow-hidden rounded-[22px] bg-surface shadow-card transition-transform duration-300 active:scale-[0.98] sm:flex-row" style={link}>
-            <span className="relative block aspect-video overflow-hidden sm:aspect-auto sm:w-[44%] sm:min-h-[200px] sm:shrink-0">
+          <Link href={`/articles/${latest.slug}`} className="group flex flex-col overflow-hidden rounded-[20px] bg-surface shadow-card transition-transform duration-300 active:scale-[0.97] sm:flex-row sm:rounded-[22px] sm:active:scale-[0.98]" style={link}>
+            <span className="relative block aspect-[3/2] overflow-hidden sm:aspect-auto sm:w-[44%] sm:min-h-[200px] sm:shrink-0">
               {latest.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={latest.image} alt="" width={1280} height={720} decoding="async" className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
@@ -54,11 +54,11 @@ export default async function Home() {
                 <span aria-hidden className="absolute inset-0 grid place-items-center bg-gradient-to-br from-[#ff9f0a]/25 via-[#af52de]/15 to-[#007aff]/25 text-5xl font-bold text-muted/50">{latest.title[0]}</span>
               )}
             </span>
-            <span className="flex flex-1 flex-col justify-center gap-2 p-5">
-              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#ff9f0a]">New{latest.industry ? ` · ${latest.industry}` : ""}</span>
-              <span className="text-balance text-[20px] font-bold leading-[1.2] tracking-[-0.02em] sm:text-[22px]">{latest.title}</span>
-              {latest.summary && <span className="line-clamp-2 text-[15px] leading-snug text-muted">{latest.summary}</span>}
-              <span className="flex items-center justify-between pt-1 text-xs text-faint">
+            <span className="flex flex-1 flex-col justify-center gap-1.5 px-4 pb-4 pt-3.5 sm:gap-2 sm:p-5">
+              <span className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[#ff9f0a]">New{latest.industry ? ` · ${latest.industry}` : ""}</span>
+              <span className="text-balance text-[22px] font-bold leading-[1.18] tracking-[-0.022em]">{latest.title}</span>
+              {latest.summary && <span className="line-clamp-3 text-[15px] leading-[1.35] text-muted sm:line-clamp-2">{latest.summary}</span>}
+              <span className="flex items-center justify-between pt-2 text-[13px] text-faint sm:pt-1 sm:text-xs">
                 <span>{[latest.date && new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Accra" }).format(latest.date), `${latest.mins} min read`].filter(Boolean).join(" · ")}</span>
                 <span className="font-semibold text-link">Read <span aria-hidden>→</span></span>
               </span>
