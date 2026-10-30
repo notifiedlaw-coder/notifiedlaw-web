@@ -42,7 +42,7 @@ export function Segmented<T extends string>({
   options, value, onChange, labels,
 }: { options: readonly T[]; value: T; onChange: (v: T) => void; labels?: Record<string, string> }) {
   return (
-    <div className="flex max-w-full overflow-x-auto rounded-lg bg-[rgba(118,118,128,0.12)] p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="nl-type-fixed flex max-w-full overflow-x-auto rounded-lg bg-[rgba(118,118,128,0.12)] p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {options.map((o) => (
         <button
           key={o}

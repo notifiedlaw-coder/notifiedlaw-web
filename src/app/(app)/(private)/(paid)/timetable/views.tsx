@@ -89,7 +89,8 @@ export function MonthView({ ctx, cursor, onDay }: { ctx: Ctx; cursor: string; on
   const sessions = shownSessions(ctx);
   const selected = ctx.active?.mode === "session" ? ctx.active.session.id : ctx.active?.mode === "exam" ? ctx.active.courseId : null;
   return (
-    <div className={`${cardCls} flex min-h-0 flex-1 flex-col overflow-hidden`}>
+    // nl-type-fixed: the calendar grids keep their compact sizes on phones; see globals.css.
+    <div className={`${cardCls} nl-type-fixed flex min-h-0 flex-1 flex-col overflow-hidden`}>
       <div className="grid grid-cols-7 border-b border-edge/[0.08] text-right text-[11px] font-semibold uppercase tracking-wide text-muted">
         {WEEKDAYS.map((d) => <div key={d} className="px-2 py-1.5">{d}</div>)}
       </div>
@@ -319,7 +320,7 @@ export function WeekView({ ctx, start }: { ctx: Ctx; start: string }) {
   const block = (a: number, b: number) => ({ top: (a - from) * ppm + 1, height: Math.max(14, (b - a) * ppm - 2) });
 
   return (
-    <div ref={scroller} className={`${cardCls} relative select-none ${mobile ? "max-h-[72dvh] overflow-y-auto overflow-x-hidden" : "min-h-0 flex-1 overflow-auto"}`}>
+    <div ref={scroller} className={`${cardCls} nl-type-fixed relative select-none ${mobile ? "max-h-[72dvh] overflow-y-auto overflow-x-hidden" : "min-h-0 flex-1 overflow-auto"}`}>
       <div className={`grid ${cols}`}>
         {/* Day headers and the all-day row stay put while the hours scroll. */}
         <div ref={head} className={`sticky top-0 z-30 col-span-8 grid ${cols} border-b border-edge/[0.08] bg-surface/90 backdrop-blur-md`}>

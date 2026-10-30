@@ -14,12 +14,12 @@ import { bySemester, PREVIEW_TOPICS, isMaxLevel, LEVEL_LABEL, type Course, type 
 export function TopicRow({ slug, i, topic, locked, preview = false, lockLabel = "Student", done, onToggle }: { slug: string; i: number; topic: TopicInfo; locked: boolean; preview?: boolean; lockLabel?: string; done?: boolean; onToggle?: (on: boolean) => void }) {
   const info = (
     <span className="flex min-w-0 flex-1 flex-col">
-      <span className="truncate text-sm font-medium" style={{ opacity: locked || !topic.ready ? 0.55 : 1 }}>{topic.title}</span>
+      <span className="line-clamp-2 text-sm font-medium sm:line-clamp-none sm:truncate" style={{ opacity: locked || !topic.ready ? 0.55 : 1 }}>{topic.title}</span>
       {topic.ready && <span className="text-xs text-faint">{topic.mins} min read · {topic.chapters} {topic.chapters === 1 ? "chapter" : "chapters"}</span>}
     </span>
   );
   const num = <span className="w-[22px] text-[13px] tabular-nums text-ink/40">{i + 1}</span>;
-  const cls = "flex h-[52px] items-center gap-3.5 border-t border-edge/[0.06] px-4 first:border-0";
+  const cls = "flex min-h-[52px] items-center gap-3.5 border-t py-2.5 sm:py-0 border-edge/[0.06] px-4 first:border-0";
   if (!topic.ready) {
     return <div className={cls}>{num}{info}<span className="text-xs text-faint">Coming soon</span></div>;
   }

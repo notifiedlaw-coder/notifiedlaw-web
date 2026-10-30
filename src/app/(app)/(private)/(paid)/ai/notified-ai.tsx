@@ -370,7 +370,7 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M9 3.5v11M3.5 9h11" /></svg>
                 </button>
                 <textarea ref={input} rows={1} value={text} disabled={noCredits} maxLength={MAX_QUESTION}
-                  placeholder={noCredits ? (first.allowance === 0 ? "Your plan has no Notify Credits" : "No Notify Credits left this month") : mode === "quiz" ? "Name a topic to be quizzed on" : "Ask about Ghanaian law, or type @ to add a file, case or topic"}
+                  placeholder={noCredits ? (first.allowance === 0 ? "Your plan has no Notify Credits" : "No Notify Credits left this month") : mode === "quiz" ? "Name a topic to be quizzed on" : "Ask about Ghanaian law"}
                   aria-label="Message Notified AI"
                   onChange={(e) => { setText(e.target.value); setCaret(e.target.selectionStart); setPickerOff(false); setPickIndex(0); grow(); }}
                   onSelect={(e) => setCaret(e.currentTarget.selectionStart)}

@@ -204,6 +204,20 @@ img {
 @media (min-width: 1920px) { .nl-content { zoom: 1.25; } }
 @media (min-width: 2560px) { .nl-content { zoom: 1.5; } }
 
+/* Phones: page text steps up to the iOS type ramp. The desktop sizes in the markup map to their iOS
+   counterparts: 11 → Caption 12, 12 → Footnote 13, 13 → Subheadline 15, 14 → Callout 16,
+   15 and 16 → Body 17; 17 and up are already iOS sizes. Only page content (main) is mapped: the top bar,
+   tab bar and sheet have their own sizes. Dense widgets (calendar grids, charts) opt out with .nl-type-fixed.
+   Unlayered, so it outranks the utilities it remaps; below sm only, where no sm: size is active. */
+@media (max-width: 639px) {
+  .nl-content { font-size: 17px; }
+  .nl-content :is(.text-\[11px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 12px; }
+  .nl-content :is(.text-xs, .text-\[12px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 13px; }
+  .nl-content :is(.text-\[13px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 15px; }
+  .nl-content :is(.text-sm, .text-\[14px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 16px; }
+  .nl-content :is(.text-\[15px\], .text-\[16px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 17px; }
+}
+
 /* Phones: a chip row becomes one swipeable line that bleeds to the screen edge, instead of wrapping into stacks. */
 @media (max-width: 639px) {
   .scroll-row {

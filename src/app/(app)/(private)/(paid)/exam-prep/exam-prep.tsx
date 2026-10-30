@@ -435,7 +435,7 @@ function Seg<T extends string>({ label, value, onChange, options }: { label: str
   return (
     <div className="flex flex-col gap-1.5">
       <span className="px-1 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted">{label}</span>
-      <div role="radiogroup" aria-label={label} className="flex rounded-[10px] bg-[rgba(118,118,128,0.12)] p-0.5">
+      <div role="radiogroup" aria-label={label} className="nl-type-fixed flex rounded-[10px] bg-[rgba(118,118,128,0.12)] p-0.5">
         {options.map(([k, text]) => (
           <button key={k} type="button" role="radio" aria-checked={k === value} onClick={() => onChange(k)}
             className={`min-h-9 flex-1 rounded-[8px] border-0 px-2 text-[13px] font-medium transition-all ${k === value ? "bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.15)]" : "bg-transparent text-ink"}`}>{text}</button>

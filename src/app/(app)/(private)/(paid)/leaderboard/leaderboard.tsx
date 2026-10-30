@@ -247,7 +247,7 @@ const Dot = ({ c }: { c: string }) => <span aria-hidden className="mr-1 inline-b
 
 function Seg<T extends string>({ label, value, onChange, options }: { label: string; value: T; onChange: (v: T) => void; options: [T, string][] }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex rounded-[10px] bg-[rgba(118,118,128,0.12)] p-0.5 sm:w-[260px]">
+    <div role="radiogroup" aria-label={label} className="nl-type-fixed flex rounded-[10px] bg-[rgba(118,118,128,0.12)] p-0.5 sm:w-[260px]">
       {options.map(([k, text]) => (
         <button key={k} type="button" role="radio" aria-checked={k === value} onClick={() => onChange(k)}
           className={`min-h-9 flex-1 rounded-[8px] border-0 px-3 text-[13px] font-medium transition-all ${k === value ? "bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.15)]" : "bg-transparent text-ink"}`}>{text}</button>
