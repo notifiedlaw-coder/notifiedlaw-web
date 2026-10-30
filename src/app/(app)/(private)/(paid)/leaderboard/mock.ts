@@ -28,6 +28,14 @@ export const PLAYERS: Player[] = [
   { id: "p20", name: "Mawuli Dogbe", school: "KNUST", week: 120, all: 1780, move: -1, streak: 0, hue: 330 },
 ];
 
+/** Sample points for a real friend, steady for each account, until quiz scores are saved. */
+export function sampleScore(id: string): Pick<Player, "week" | "all" | "move" | "streak" | "hue"> {
+  let h = 2166136261;
+  for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  const at = (n: number, mod: number) => Math.floor(h / n) % mod;
+  return { week: 100 + at(1, 85) * 10, all: 1500 + at(7, 50) * 100, move: at(13, 9) - 4, streak: at(17, 22), hue: at(19, 360) };
+}
+
 export type QuizQuestion = { q: string; options: string[]; answer: number; why: string };
 
 export const QUIZ: QuizQuestion[] = [

@@ -1,0 +1,80 @@
+import { and, eq, or, sql } from "drizzle-orm";
+import { friendship, profile, student, user } from "@/db/schema";
+import { getDb } from "@/lib/auth";
+
+/** Friends, requests received and requests sent, together, per account. Keeps lists and sheets short. */
+export const MAX_FRIENDS = 100;
+
+export type Friend = { id: string; name: string; school: string | null };
+export type FriendLists = { friends: Friend[]; incoming: Friend[]; outgoing: Friend[] };
+
+/** The other side of each of a user's friendship rows, named as onboarding recorded them. */
+async function others(userId: string, side: "from" | "to") {
+  const mine = side === "from" ? friendship.fromId : friendship.toId;
+  const theirs = side === "from" ? friendship.toId : friendship.fromId;
+  return getDb()
+    .select({
+      id: user.id, name: user.name, first: profile.firstName, last: profile.lastName,
+      university: profile.university, studentUni: student.university, status: friendship.status, at: friendship.createdAt,
+    })
+    .from(friendship)
+    .innerJoin(user, eq(user.id, theirs))
+    .leftJoin(profile, eq(profile.userId, user.id))
+    .leftJoin(student, eq(student.userId, user.id))
+    .where(eq(mine, userId))
+    .limit(MAX_FRIENDS * 2);
+}
+
+type Row = Awaited<ReturnType<typeof others>>[number];
+const view = (r: Row): Friend => ({ id: r.id, name: r.first ? `${r.first} ${r.last}` : r.name, school: r.studentUni ?? r.university ?? null });
+const byName = (a: Friend, b: Friend) => a.name.localeCompare(b.name);
+
+/** Everyone a user is friends with or has a request open with. */
+export async function friendLists(userId: string): Promise<FriendLists> {
+  const [sent, got] = await Promise.all([others(userId, "from"), others(userId, "to")]);
+  return {
+    friends: [...sent, ...got].filter((r) => r.status === "accepted").map(view).sort(byName),
+    incoming: got.filter((r) => r.status === "pending").sort((a, b) => b.at.getTime() - a.at.getTime()).map(view),
+    outgoing: sent.filter((r) => r.status === "pending").sort((a, b) => b.at.getTime() - a.at.getTime()).map(view),
+  };
+}
+
+const between = (a: string, b: string) => or(and(eq(friendship.fromId, a), eq(friendship.toId, b)), and(eq(friendship.fromId, b), eq(friendship.toId, a)));
+const count = async (userId: string) => {
+  const [r] = await getDb().select({ n: sql<number>`count(*)` }).from(friendship).where(or(eq(friendship.fromId, userId), eq(friendship.toId, userId)));
+  return r?.n ?? 0;
+};
+
+/**
+ * Sends a friend request to the account with this email. If that person already asked, it accepts theirs instead.
+ * Returns an error message for the sender, or null.
+ */
+export async function sendRequest(userId: string, email: string): Promise<string | null> {
+  const db = getDb();
+  const [to] = await db.select({ id: user.id }).from(user).where(eq(sql`lower(${user.email})`, email.toLowerCase()));
+  if (!to) return "No Notified Law account uses that email.";
+  if (to.id === userId) return "That is your own email.";
+  const [row] = await db.select().from(friendship).where(between(userId, to.id));
+  if (row?.status === "accepted") return "You are already friends.";
+  if (row?.fromId === userId) return "You have already sent them a request.";
+  if (row) {
+    await respond(userId, to.id);
+    return null;
+  }
+  if ((await count(userId)) >= MAX_FRIENDS) return `You can have up to ${MAX_FRIENDS} friends and requests.`;
+  if ((await count(to.id)) >= MAX_FRIENDS) return "They cannot take any more friend requests.";
+  await db.insert(friendship).values({ fromId: userId, toId: to.id, createdAt: new Date() }).onConflictDoNothing();
+  return null;
+}
+
+/** Accepts the pending request `fromId` sent the user. False if there is none. */
+export async function respond(userId: string, fromId: string) {
+  const rows = await getDb().update(friendship).set({ status: "accepted", acceptedAt: new Date() })
+    .where(and(eq(friendship.fromId, fromId), eq(friendship.toId, userId), eq(friendship.status, "pending"))).returning();
+  return rows.length > 0;
+}
+
+/** Declines a request, cancels one sent, or ends a friendship: whichever the user has with `otherId`. */
+export async function unfriend(userId: string, otherId: string) {
+  await getDb().delete(friendship).where(between(userId, otherId));
+}

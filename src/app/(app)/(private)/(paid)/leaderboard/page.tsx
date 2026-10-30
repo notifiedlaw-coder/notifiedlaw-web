@@ -1,5 +1,6 @@
 import { Gate, Page, Title, cardCls } from "@/components/ui";
-import { getPlan } from "@/lib/auth";
+import { getPlan, getSession } from "@/lib/auth";
+import { friendLists } from "@/lib/friends";
 import { Leaderboard } from "./leaderboard";
 
 export const metadata = { title: "Leaderboard" };
@@ -19,6 +20,8 @@ export default async function Page_() {
         </div>
       </Page>
     );
-  // A mock-up with sample standings for now; real scores will come from the weekly quiz.
-  return <Leaderboard today={new Date().toISOString().slice(0, 10)} />;
+  // A mock-up with sample standings for now; real scores will come from the weekly quiz. Friends are real.
+  const s = await getSession();
+  const friends = s ? await friendLists(s.user.id).catch(() => null) : null;
+  return <Leaderboard today={new Date().toISOString().slice(0, 10)} initialFriends={friends ?? { friends: [], incoming: [], outgoing: [] }} />;
 }

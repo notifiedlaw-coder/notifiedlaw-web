@@ -119,6 +119,16 @@ export const caseBookmark = sqliteTable("case_bookmark", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [primaryKey({ columns: [t.userId, t.caseId] })]);
 
+// Friend requests and friendships, one row per pair: `fromId` asked, `toId` was asked. Accepting keeps the row and
+// moves it to accepted; declining, cancelling and unfriending delete it. The API never lets a reverse row exist.
+export const friendship = sqliteTable("friendship", {
+  fromId: text("from_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  toId: text("to_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"), // pending | accepted
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
+}, (t) => [primaryKey({ columns: [t.fromId, t.toId] }), index("friendship_to").on(t.toId)]);
+
 // AI comparisons of two case briefs, kept so the same pair is never paid for twice. `pair` is the two Notion page ids
 // in sorted order; `digest` is a hash of both briefs and the prompt version, so edited briefs are compared afresh.
 export const caseComparison = sqliteTable("case_comparison", {
