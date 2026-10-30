@@ -60,12 +60,15 @@ function readList(lines: string[], start: number): { ordered: boolean; items: Li
   return { ordered, items: root, next: i };
 }
 
+// Body text is justified, as in a printed textbook. Hyphenation keeps narrow phone columns free of wide gaps.
+const JUSTIFY = "text-justify hyphens-auto";
+
 function List({ ordered, items, k }: { ordered: boolean; items: ListItem[]; k: string }) {
   const Tag = ordered ? "ol" : "ul";
   return (
     <Tag className={`my-3 space-y-1.5 pl-6 ${ordered ? "list-decimal" : "list-disc"}`}>
       {items.map((it, i) => (
-        <li key={i}>
+        <li key={i} className={JUSTIFY}>
           {inline(it.text, `${k}${i}`)}
           {it.children.length > 0 && <List ordered={ordered} items={it.children} k={`${k}${i}`} />}
         </li>
@@ -141,7 +144,7 @@ export function Markdown({ source, from = 3 }: { source: string; from?: 2 | 3 })
     }
     const para: string[] = [];
     for (; i < lines.length && lines[i].trim() && !/^(#{1,5}\s|>|```|\s*([-*+]|\d+\.)\s+|-{3,}\s*$)/.test(lines[i]); i++) para.push(lines[i]);
-    out.push(<p key={k} className="mb-4">{inline(para.join(" "), k)}</p>);
+    out.push(<p key={k} className={`mb-4 ${JUSTIFY}`}>{inline(para.join(" "), k)}</p>);
   }
   return <>{out}</>;
 }
