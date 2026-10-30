@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { Gate } from "@/components/ui";
+import { CheckCircle, useProgress } from "@/components/progress";
 import { Markdown, splitPages, type Page } from "@/components/markdown";
 import type { TopicNote } from "@/lib/notes";
 import { DEFAULT_COLOR, NOTE_COLORS, isNoteColor, type NoteColor } from "@/lib/note-colors";
@@ -27,9 +28,12 @@ type Detent = "medium" | "large";
  * the AI Summary (coming soon) and Notes, where a highlighted passage can be given a note saved to the reader's
  * account. Wide screens keep the sidebar open; narrower ones show it as a bottom sheet, opened from a glass bar
  * floating over the text. Along the bottom, between the app's
- * sidebar and this one, is a player bar for the topic's podcast (coming soon).
+ * sidebar and this one, is a player bar for the topic's podcast (coming soon). At the end of the last page a signed-in
+ * reader can mark the topic as studied (`studied`: null for a guest).
  */
-export function Reader({ course, slug, n, title, lock = null, body, topicId = null }: { course: string; slug: string; n: number; title: string; lock?: "Student" | "Pro Max" | null; body: string; topicId?: string | null }) {
+export function Reader({ course, slug, n, title, lock = null, body, topicId = null, studied = null }: { course: string; slug: string; n: number; title: string; lock?: "Student" | "Pro Max" | null; body: string; topicId?: string | null; studied?: boolean | null }) {
+  const progress = useProgress(studied === null || !topicId ? null : studied ? [topicId] : []);
+  const isDone = topicId ? progress.done?.has(topicId) : undefined;
   const [cur, setCur] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
@@ -273,6 +277,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
           <h1 className="mb-2 mt-2 text-[26px] font-bold leading-[1.15] tracking-[-0.01em] md:text-[34px]">{title}</h1>
           <div className="mb-6 text-[13px] text-muted" style={SANS}>
             {chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}{total > chapterCount ? ` · ${total} pages` : ""} · {minutes} min read
+            {isDone && <span className="font-semibold text-[#248A3D]"> · Studied</span>}
           </div>
           {cur === 0 || pages[cur - 1].chapter !== page.chapter ? (
             <>
@@ -287,6 +292,9 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
           )}
           {/* Selectable so passages can be highlighted for notes; CopyGuard still blocks copy, cut, drag and right-click. */}
           <div ref={text} onClick={topicId ? onTextClick : undefined} className={topicId ? "nl-selectable" : undefined}>{md}</div>
+          {cur === total - 1 && isDone !== undefined && topicId && (
+            <Studied on={isDone} error={progress.error} onToggle={async () => { if ((await progress.toggle(topicId, !isDone)) && !isDone) navigator.vibrate?.(8); }} />
+          )}
           <Pagination pages={pages} cur={cur} back={`/library/${slug}`} onGo={go} />
         </article>
         </div>
@@ -537,6 +545,23 @@ function Pagination({ pages, cur, back, onGo }: { pages: Page[]; cur: number; ba
         ) : <p className="m-0 mt-5 text-center text-[12px] tabular-nums text-muted">Page {cur + 1} of {pages.length}</p>
       )}
     </nav>
+  );
+}
+
+/** End of the topic: a card to mark it as studied, which turns green once it is and can be tapped again to undo. */
+function Studied({ on, error, onToggle }: { on: boolean; error: string | null; onToggle: () => void }) {
+  return (
+    <div className="mt-10 flex flex-col gap-2" style={SANS}>
+      <button type="button" onClick={onToggle} aria-pressed={on}
+        className={`flex min-h-[60px] items-center gap-3 rounded-[14px] px-4 py-3 text-left transition-colors active:scale-[0.99] ${on ? "bg-green/12" : "bg-fill hover:bg-track/70"}`}>
+        <CheckCircle on={on} size={26} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className={`text-[15px] font-semibold ${on ? "text-[#248A3D]" : ""}`}>{on ? "Studied" : "Mark as studied"}</span>
+          <span className="text-[13px] text-muted">{on ? "Tap to mark it as not studied." : "Keep track of what you have covered in this course."}</span>
+        </span>
+      </button>
+      {error && <p role="alert" className="m-0 text-[13px] text-red">{error}</p>}
+    </div>
   );
 }
 

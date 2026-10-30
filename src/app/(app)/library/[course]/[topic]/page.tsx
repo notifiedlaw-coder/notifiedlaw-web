@@ -4,6 +4,7 @@ import { findIn, getCourses, getTopicBody } from "@/lib/cms";
 import { topicLock } from "@/lib/data";
 import { OG_IMAGE, excerpt } from "@/lib/seo";
 import { SITE } from "@/lib/site";
+import { myCompleted } from "@/lib/progress";
 import { Reader } from "./reader";
 
 // Topics come from Notion (D1), so this page is rendered on request.
@@ -43,5 +44,6 @@ export default async function TopicPage({ params }: { params: Params }) {
   const lock = topicLock(await getPlan(), hit.level, n);
   const cms = lock ? { id: null, title: info.title, body: "" } : await getTopicBody(slug, n);
   if (!cms) notFound();
-  return <Reader course={hit.course.title} slug={hit.course.slug} lock={lock} n={n} title={cms.title} body={cms.body} topicId={cms.id} />;
+  const completed = cms.id ? await myCompleted() : null;
+  return <Reader course={hit.course.title} slug={hit.course.slug} lock={lock} n={n} title={cms.title} body={cms.body} topicId={cms.id} studied={completed && cms.id ? completed.includes(cms.id) : null} />;
 }

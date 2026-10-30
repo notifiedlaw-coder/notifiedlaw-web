@@ -60,7 +60,8 @@ export function topicLock(plan: Plan, level: Level, n: number): "Student" | "Pro
 /** Initials for a course badge, e.g. "Ghana Legal System" -> "GLS". */
 export const abbr = (title: string) => title.split(/\s+/).filter((w) => /^[A-Za-z]/.test(w)).map((w) => w[0]).join("").toUpperCase().slice(0, 3) || "?";
 
-export type TopicInfo = { title: string; ready: boolean; mins: number; chapters: number };
+/** `id` is the topic's Notion page id, which notes and progress are kept against. */
+export type TopicInfo = { id: string; title: string; ready: boolean; mins: number; chapters: number };
 export type Course = { slug: string; title: string; color: string; semester: string; topics: TopicInfo[] };
 
 export const SEMESTER_LABEL = (s: string) => (s === "1" ? "First Semester" : s === "2" ? "Second Semester" : `Semester ${s}`);

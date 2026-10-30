@@ -58,7 +58,7 @@ export async function getCourses(): Promise<Record<Level, Course[]>> {
     const mine = topics.filter((t) => t.parentId === c.id).sort((a, b) => a.position - b.position);
     out[c.level].push({
       slug: c.slug, title: c.title, semester: c.semester ?? "1", color: PALETTE[out[c.level].length % PALETTE.length],
-      topics: mine.map((t) => ({ title: t.title, ready: t.published, mins: readMins(t.body), chapters: splitChapters(t.body, t.title).length })),
+      topics: mine.map((t) => ({ id: t.id, title: t.title, ready: t.published, mins: readMins(t.body), chapters: splitChapters(t.body, t.title).length })),
     });
   }
   return out;

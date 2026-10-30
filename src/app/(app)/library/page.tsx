@@ -1,4 +1,5 @@
 import { getCourses } from "@/lib/cms";
+import { myCompleted } from "@/lib/progress";
 import { LibraryView } from "./library-view";
 
 // Topics can come from Notion (D1), so this page is rendered on request.
@@ -11,5 +12,6 @@ export const metadata = {
 };
 
 export default async function Library() {
-  return <LibraryView courses={await getCourses()} />;
+  const [courses, completed] = await Promise.all([getCourses(), myCompleted()]);
+  return <LibraryView courses={courses} completed={completed} />;
 }

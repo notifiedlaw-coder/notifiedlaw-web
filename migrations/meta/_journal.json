@@ -148,6 +148,13 @@
       "when": 1793281404293,
       "tag": "0020_topic_note_color",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1793320217972,
+      "tag": "0021_topic_progress",
+      "breakpoints": true
     }
   ]
 }

@@ -105,6 +105,13 @@ export const topicNote = sqliteTable("topic_note", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [index("topic_note_user_topic").on(t.userId, t.topicId)]);
 
+// Topics a user has marked as studied, one row each. Keyed on the topic's Notion page id, like topic_note.
+export const topicProgress = sqliteTable("topic_progress", {
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  topicId: text("topic_id").notNull(),
+  completedAt: integer("completed_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [primaryKey({ columns: [t.userId, t.topicId] })]);
+
 // Student accounts: the account's own email is on a university's domain. The row is written, and verifiedAt
 // moved on, every time the user proves they still hold that mailbox by signing in (an emailed link, or Google
 // for universities on Google Workspace). The Student plan needs a proof from the last STUDENT_VERIFY_DAYS.

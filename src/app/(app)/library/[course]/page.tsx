@@ -5,6 +5,7 @@ import { OG_IMAGE, breadcrumbs } from "@/lib/seo";
 import { SITE, abs } from "@/lib/site";
 import { findIn, getCourses } from "@/lib/cms";
 import { abbr, isMaxLevel, LEVEL_LABEL, SEMESTER_LABEL } from "@/lib/data";
+import { myCompleted } from "@/lib/progress";
 import { CourseTopics } from "./course-topics";
 
 // Courses come from Notion (D1), so this page is rendered on request.
@@ -26,7 +27,8 @@ export async function generateMetadata({ params }: { params: Promise<{ course: s
 
 export default async function CoursePage({ params }: { params: Promise<{ course: string }> }) {
   const { course: slug } = await params;
-  const hit = findIn(await getCourses(), slug);
+  const [courses, completed] = await Promise.all([getCourses(), myCompleted()]);
+  const hit = findIn(courses, slug);
   if (!hit) notFound();
   const { course, level } = hit;
   const ready = course.topics.filter((t) => t.ready).length;
@@ -58,7 +60,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
         </div>
       </div>
       <Eyebrow>Topics</Eyebrow>
-      <CourseTopics slug={course.slug} topics={course.topics} maxOnly={isMaxLevel(level)} />
+      <CourseTopics slug={course.slug} topics={course.topics} completed={completed} maxOnly={isMaxLevel(level)} />
     </div>
   );
 }
