@@ -804,3 +804,6 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 
 ## Articles without Notion
 - `scripts/add-article.mjs`: reads a front-matter Markdown file and writes the article and its tags to D1 (local, `--remote`, or `--print`). Rows use a year-2100 `synced_at` so the Notion sync cannot delete them. The two launch articles were seeded live this way.
+
+## Dashboard
+- "Latest in articles" card under the greeting: newest article by date, cover on the left (stacked on phones), "New · industry" label, title, two-line summary, date and read time, "Read →". "See all" links to /articles. Hidden when there are no articles.
