@@ -127,7 +127,7 @@ async function checkPdf(bytes: Uint8Array): Promise<CheckResult> {
 
 // ---- DOCX ------------------------------------------------------------------------------------------------------
 
-type Entry = { name: string; method: number; comp: number; size: number; offset: number };
+export type Entry = { name: string; method: number; comp: number; size: number; offset: number };
 
 const DOCX_MAIN = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml";
 // Parts Word only writes for macros and ActiveX controls.
@@ -137,7 +137,7 @@ const EMBED_OK = /\.(xlsx|docx|pptx|png|jpe?g|gif|emf|wmf|bmp|tiff?)$/i;
 // Field codes that pull data from other programs.
 const DDE = /\bDDE(AUTO)?\b/i;
 
-function zipEntries(b: Uint8Array): Entry[] | string {
+export function zipEntries(b: Uint8Array): Entry[] | string {
   const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
   let eocd = -1;
   for (let i = b.length - 22; i >= Math.max(0, b.length - 22 - 0xffff); i--) {
@@ -192,7 +192,7 @@ function zipEntries(b: Uint8Array): Entry[] | string {
   return entries;
 }
 
-async function readEntry(b: Uint8Array, e: Entry, max: number): Promise<string | null> {
+export async function readEntry(b: Uint8Array, e: Entry, max: number): Promise<string | null> {
   const data = b.subarray(e.offset, e.offset + e.comp);
   if (e.method === 0) return e.size > max ? null : new TextDecoder().decode(data);
   const r = await inflate(data, "deflate-raw", Math.min(max, e.size));

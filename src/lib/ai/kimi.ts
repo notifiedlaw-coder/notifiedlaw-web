@@ -46,3 +46,84 @@ export async function kimiJson(system: string, user: string, opts: { maxTokens?:
   if (choice.finish_reason === "length") throw new AiUnavailable("Kimi's reply was cut off");
   return choice.message.content;
 }
+
+export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+
+const base = () => (process.env.KIMI_BASE_URL || DEFAULT_BASE).replace(/\/+$/, "");
+
+/**
+ * A chat completion as it streams: yields the text of each delta. Throws AiUnavailable if the API cannot be reached
+ * or answers an error (before the first yield) or the stream breaks; `signal` ends it early (the user pressed Stop).
+ */
+export async function* kimiStream(messages: ChatMessage[], opts: { maxTokens?: number; signal?: AbortSignal } = {}): AsyncGenerator<string> {
+  const key = process.env.KIMI_API_KEY;
+  if (!key) throw new AiUnavailable("KIMI_API_KEY is not set");
+  let res: Response;
+  try {
+    res = await fetch(`${base()}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: KIMI_MODEL(), messages, stream: true, temperature: 0.3, max_tokens: opts.maxTokens ?? 2500 }),
+      signal: opts.signal,
+    });
+  } catch (e) {
+    if (opts.signal?.aborted) return;
+    throw new AiUnavailable(`Kimi request failed: ${e instanceof Error ? e.message : e}`);
+  }
+  if (!res.ok || !res.body) throw new AiUnavailable(`Kimi answered ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let nl: number;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line.startsWith("data:")) continue;
+        const data = line.slice(5).trim();
+        if (data === "[DONE]") return;
+        try {
+          const text = (JSON.parse(data) as { choices?: { delta?: { content?: string } }[] }).choices?.[0]?.delta?.content;
+          if (text) yield text;
+        } catch { /* a keep-alive or partial line */ }
+      }
+    }
+  } catch (e) {
+    if (opts.signal?.aborted) return;
+    throw new AiUnavailable(`Kimi stream broke: ${e instanceof Error ? e.message : e}`);
+  }
+}
+
+/**
+ * The text of a document, read by Moonshot's file-extract service (upload with purpose "file-extract", read the
+ * content back, delete the upload). Used for PDFs, whose text cannot be read reliably in the Worker.
+ */
+export async function kimiExtract(bytes: Uint8Array<ArrayBuffer>, name: string): Promise<string> {
+  const key = process.env.KIMI_API_KEY;
+  if (!key) throw new AiUnavailable("KIMI_API_KEY is not set");
+  const auth = { authorization: `Bearer ${key}` };
+  const form = new FormData();
+  form.set("purpose", "file-extract");
+  form.set("file", new Blob([bytes], { type: "application/pdf" }), name);
+  try {
+    const up = await fetch(`${base()}/files`, { method: "POST", headers: auth, body: form, signal: AbortSignal.timeout(60_000) });
+    if (!up.ok) throw new AiUnavailable(`Kimi file upload answered ${up.status}`);
+    const { id } = (await up.json()) as { id?: string };
+    if (!id) throw new AiUnavailable("Kimi gave no file id");
+    try {
+      const res = await fetch(`${base()}/files/${id}/content`, { headers: auth, signal: AbortSignal.timeout(60_000) });
+      if (!res.ok) throw new AiUnavailable(`Kimi file content answered ${res.status}`);
+      const raw = await res.text();
+      // The service answers JSON with a "content" field; fall back to the raw text.
+      try { return String((JSON.parse(raw) as { content?: unknown }).content ?? raw); } catch { return raw; }
+    } finally {
+      void fetch(`${base()}/files/${id}`, { method: "DELETE", headers: auth }).catch(() => {});
+    }
+  } catch (e) {
+    throw e instanceof AiUnavailable ? e : new AiUnavailable(`Kimi file extract failed: ${e instanceof Error ? e.message : e}`);
+  }
+}

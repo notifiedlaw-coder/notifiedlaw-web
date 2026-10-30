@@ -35,6 +35,14 @@ export const ERROR_CODES = {
   C105: "Case comparison: the AI model's reply did not have the expected shape; the reply is in the Worker log",
   C106: "Case comparison: the generated Word file failed the content check",
 
+  AI101: "Notified AI: the message was empty, too long or malformed",
+  AI102: "Notified AI: an @-mentioned file is not the user's, or was deleted",
+  AI103: "Notified AI: no Notify Credits left this month (or the plan includes none)",
+  AI104: "Notified AI: the model is not configured (KIMI_API_KEY) or could not be reached; the cause is in the Worker log",
+  AI105: "Notified AI: an @-mentioned file could not be read (storage, or Kimi file-extract); the cause is in the Worker log",
+  AI106: "Notified AI: conversation not found",
+  AI107: "Notified AI: the answer stopped part-way (the stream broke); the credit was refunded",
+
   M201: "File not found",
   M202: "Rename to an empty name",
   M203: "Move target folder not found",

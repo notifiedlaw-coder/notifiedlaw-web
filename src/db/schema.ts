@@ -136,6 +136,33 @@ export const aiDay = sqliteTable("ai_day", {
   runs: integer("runs").notNull(),
 });
 
+// Notified AI conversations, private to their owner. The title is the first question, shortened.
+export const aiChat = sqliteTable("ai_chat", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [index("ai_chat_user").on(t.userId, t.updatedAt)]);
+
+// One message of a conversation. `files` is JSON [{ id, name }]: the My Files documents @-mentioned in a user message.
+export const aiMessage = sqliteTable("ai_message", {
+  id: text("id").primaryKey(),
+  chatId: text("chat_id").notNull().references(() => aiChat.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // user | assistant
+  content: text("content").notNull(),
+  files: text("files").notNull().default("[]"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [index("ai_message_chat").on(t.chatId, t.createdAt)]);
+
+// The text read out of a My Files document for Notified AI, kept so it is read once. Dropped with the file.
+export const fileText = sqliteTable("file_text", {
+  fileId: text("file_id").primaryKey().references(() => userFile.id, { onDelete: "cascade" }),
+  sha256: text("sha256").notNull(),
+  text: text("text").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 // Student accounts: the account's own email is on a university's domain. The row is written, and verifiedAt
 // moved on, every time the user proves they still hold that mailbox by signing in (an emailed link, or Google
 // for universities on Google Workspace). The Student plan needs a proof from the last STUDENT_VERIFY_DAYS.
