@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Chevron, Chip, Empty, Page, SearchField, Title, cardCls } from "@/components/ui";
+import { PreferredSource } from "@/components/preferred-source";
 
 export type ArticleRow = { slug: string; title: string; summary: string; industry: string; mins: number; date: string | null };
 const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Accra" }).format(new Date(iso)) : "");
@@ -16,7 +17,7 @@ export function Articles({ list }: { list: ArticleRow[] }) {
 
   return (
     <Page>
-      <Title title="Articles" sub="Short explainers on Ghanaian law" />
+      <Title title="Articles" sub="Short explainers on Ghanaian law" right={<PreferredSource />} />
       {list.length === 0 ? (
         <Empty title="No articles yet">Articles appear here once they are published.</Empty>
       ) : (

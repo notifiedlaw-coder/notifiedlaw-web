@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Markdown } from "@/components/markdown";
 import { Eyebrow, Page } from "@/components/ui";
 import { JsonLd } from "@/components/json-ld";
+import { PreferredSource } from "@/components/preferred-source";
 import { getArticles } from "@/lib/cms";
 import { OG_IMAGE, breadcrumbs, excerpt } from "@/lib/seo";
 import { SITE, abs } from "@/lib/site";
@@ -56,6 +57,10 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
       <article aria-labelledby="article-title" style={{ fontFamily: "Georgia, 'Iowan Old Style', serif", fontSize: 17, lineHeight: 1.65 }}>
         <Markdown source={a.body} from={2} />
       </article>
+      <div className="border-t border-edge/10 pt-5">
+        <p className="m-0 mb-3 text-sm text-muted">See more NotifiedLaw explainers in Google Search.</p>
+        <PreferredSource />
+      </div>
     </Page>
   );
 }
