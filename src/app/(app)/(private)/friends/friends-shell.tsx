@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { friendsCall, useFriends } from "@/components/friends";
 import { Icon } from "@/components/icons";
-import { ONLINE_MS, hueOf, seenLabel, shortTime, type Friend, type FriendLists, type Thread } from "@/lib/friend-view";
+import { MESSAGE_RULE, ONLINE_MS, hueOf, seenLabel, shortTime, type Friend, type FriendLists, type Thread } from "@/lib/friend-view";
 
 type Streak = { streak: number; best: number };
 type Ctx = { lists: FriendLists; threads: Thread[]; reloadThreads: () => void; now: number };
@@ -187,7 +187,7 @@ function FriendsList({ lists, setLists, threads, selected, streak, now }: { list
         ) : (
           <p className="m-0 rounded-[16px] bg-surface px-4 py-3 text-[15px] text-muted shadow-card">No friends yet. Add one below to message them, see when they study and follow their streak.</p>
         )}
-        {editing && <p className="m-0 px-1 text-[12px] text-muted">Removing a friend also deletes your messages with them.</p>}
+        <p className="m-0 px-1 text-[12px] text-muted">{editing ? "Removing a friend also deletes your messages with them." : MESSAGE_RULE}</p>
       </section>
 
       <form onSubmit={send} className="flex flex-col gap-2">

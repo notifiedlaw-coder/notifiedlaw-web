@@ -39,11 +39,15 @@ export function hueOf(id: string) {
   return h % 360;
 }
 
-/** Messages are deleted this long after the recipient opens them. */
+/** Messages are deleted this long after the recipient opens them... */
 export const MESSAGE_TTL_MS = 30 * 86_400_000;
+/** ...or this long after they were sent, while still unread. */
+export const UNREAD_TTL_MS = 90 * 86_400_000;
+/** How deletion works, as told to users wherever they message. */
+export const MESSAGE_RULE = "Messages are deleted 30 days after they are read, or 90 days after they are sent if they are never read.";
 export const MAX_MESSAGE = 2000;
 
-/** A message as the signed-in user sees it. `expiresAt` is set once the recipient has read it. */
+/** A message as the signed-in user sees it. `expiresAt`: 90 days after sending while unread, 30 days after reading once read. */
 export type Message = { id: string; fromMe: boolean; body: string; at: number; readAt: number | null; expiresAt: number | null };
 /** A conversation's newest message and how many the user has not read, for the friends list. */
 export type Thread = { friendId: string; last: { body: string; fromMe: boolean; at: number }; unread: number };

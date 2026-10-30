@@ -129,7 +129,8 @@ export const friendship = sqliteTable("friendship", {
   acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
 }, (t) => [primaryKey({ columns: [t.fromId, t.toId] }), index("friendship_to").on(t.toId)]);
 
-// Messages between friends. Opening the conversation as the recipient sets readAt and expiresAt (readAt + 30 days);
+// Messages between friends. Sending sets expiresAt to 90 days on; opening the conversation as the recipient sets readAt
+// and moves expiresAt to readAt + 30 days;
 // reads skip anything past expiresAt, and the Worker's daily cron (custom-worker.ts) deletes it. Unfriending deletes
 // the whole conversation.
 export const message = sqliteTable("message", {

@@ -1,7 +1,7 @@
 const BATCH = 1000;
 
 /**
- * Deletes messages whose 30 days after being read have run out, in batches so one run never holds D1 for long.
+ * Deletes messages past their delete date (30 days after reading, or 90 days after sending if never read), in batches so one run never holds D1 for long.
  * Run by the Worker's daily cron (custom-worker.ts); reads already skip expired messages, so this only frees space.
  */
 export async function purgeExpiredMessages(db: D1Database, now = Date.now()) {

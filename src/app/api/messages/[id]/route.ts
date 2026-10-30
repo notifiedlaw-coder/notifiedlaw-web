@@ -9,7 +9,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /**
  * GET /api/messages/<friend id>?after=<ms>: the conversation, or only what came from `after` on. Opening it marks the
- * friend's messages read, which starts their 30 days.
+ * friend's messages read, which moves their delete date to 30 days from now.
  */
 export async function GET(req: Request, { params }: Ctx) {
   const userId = await userIdFrom(req);

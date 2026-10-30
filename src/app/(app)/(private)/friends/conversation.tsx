@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFriends } from "@/components/friends";
 import { Icon } from "@/components/icons";
-import { MAX_MESSAGE, ONLINE_MS, dayOf, seenLabel, type Message } from "@/lib/friend-view";
+import { MAX_MESSAGE, MESSAGE_RULE, ONLINE_MS, dayOf, seenLabel, type Message } from "@/lib/friend-view";
 import { Avatar, StreakTag, useFriendsShell } from "./friends-shell";
 
 /** How often an open conversation checks for new messages while the page is visible. */
@@ -124,8 +124,8 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
 
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60; }}
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 md:px-6">
-        <p className="mx-auto mb-4 mt-0 flex max-w-[320px] items-center justify-center gap-1.5 text-center text-[12px] text-muted">
-          <Icon name="lock" size={11} />Messages are deleted 30 days after they are read.
+        <p className="mx-auto mb-4 mt-0 flex max-w-[340px] items-start justify-center gap-1.5 text-center text-[12px] leading-snug text-muted">
+          <Icon name="lock" size={11} className="mt-[3px] shrink-0" /><span>{MESSAGE_RULE}</span>
         </p>
         {!messages.length && <p className="m-0 mt-10 text-center text-[15px] text-muted">Say hello to {friend.name.split(" ")[0]}.</p>}
         <ol className="m-0 flex list-none flex-col gap-0.5 p-0">
@@ -141,7 +141,7 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
                   <p title={clock(m.at)} className={`m-0 max-w-[78%] whitespace-pre-wrap break-words rounded-[18px] px-3.5 py-2 text-[16px] leading-snug md:max-w-[65%] ${
                     m.fromMe ? `bg-blue text-white ${tail ? "rounded-br-[6px]" : ""} ${m.pending ? "opacity-60" : ""}` : `bg-surface text-ink shadow-card ${tail ? "rounded-bl-[6px]" : ""}`}`}>{m.body}</p>
                 </div>
-                {sent(m) && <span className="-mt-1 mb-1 pr-1 text-right text-[11px] text-muted">{seen !== null && seen >= m.at ? "Seen" : "Delivered"}</span>}
+                {sent(m) && <span className="-mt-1 mb-1 pr-1 text-right text-[11px] text-muted">{seen !== null && seen >= m.at ? "Seen" : `Delivered${m.expiresAt ? ` · deleted ${new Date(m.expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })} if unread` : ""}`}</span>}
               </li>
             );
           })}

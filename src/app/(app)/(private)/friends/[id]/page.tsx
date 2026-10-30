@@ -4,7 +4,7 @@ import { areFriends } from "@/lib/friends";
 import { conversation } from "@/lib/messages";
 import { Conversation } from "../conversation";
 
-/** A conversation with a friend. Opening it marks their messages read, which starts their 30 days. */
+/** A conversation with a friend. Opening it marks their messages read, which moves their delete date to 30 days from now. */
 export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, s] = await Promise.all([params, getSession()]);
   if (!s) redirect("/login");
