@@ -816,3 +816,4 @@ Running log of every commit and what it changed. Oldest first. Untracked on purp
 - /case-law: the existing Jurisdiction column filter starts on Ghana (clear it, or pick United Kingdom, to change).
 - Bookmarks: `case_bookmark` table (migration 0023), `/api/bookmarks` (GET, PUT {caseId, on}), `src/lib/bookmarks.ts`, `src/components/bookmark.tsx`. A ribbon on each case row and on the case page; a "Bookmarks" pill filters the list. Guests are sent to sign in. Subtitle is now "Case Briefs".
 - Dashboard "Latest in articles" on phones: 3:2 cover, 20px corners, 22px title, three-line summary, 13px meta, press-scale 0.97 (sm and up unchanged in layout).
+- `myBookmarks` falls back to none if the table cannot be read, so /case-law renders even before migration 0023 is applied. Local D1 migration 0023 applied 2026-10-30.

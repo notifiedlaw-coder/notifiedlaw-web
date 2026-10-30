@@ -11,7 +11,9 @@ export async function bookmarkedCases(userId: string): Promise<string[]> {
 /** For server pages: the signed-in user's bookmarked cases, or null for a guest, who cannot keep any. */
 export async function myBookmarks(): Promise<string[] | null> {
   const s = await getSession();
-  return s ? bookmarkedCases(s.user.id) : null;
+  if (!s) return null;
+  // The page must still render if the bookmarks cannot be read.
+  return bookmarkedCases(s.user.id).catch(() => []);
 }
 
 /** Bookmarks a case, or removes the bookmark. Bookmarking it again leaves the first date. */
