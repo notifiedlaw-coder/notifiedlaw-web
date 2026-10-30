@@ -10,6 +10,8 @@ export const ERROR_CODES = {
   N003: "Chosen file is over MAX_FILE_BYTES (checked in the browser)",
   N004: "Chosen file does not fit in the storage left (checked in the browser)",
 
+  S500: "Unhandled Worker error (custom-worker.ts); the cause is in the Worker log",
+
   A001: "Not signed in",
 
   U101: "No plan, so My Files is unavailable",

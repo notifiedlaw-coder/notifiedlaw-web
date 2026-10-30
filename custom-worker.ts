@@ -31,7 +31,16 @@ export default {
       blocked.set(key, now + BLOCK_MS);
       return tooMany(BLOCK_MS / 1000);
     }
-    return handler.fetch(req, env, ctx);
+    try {
+      return await handler.fetch(req, env, ctx);
+    } catch (e) {
+      // Never show a raw platform error. API callers get a code-only body; pages get a plain apology.
+      console.error("unhandled", e);
+      const api = new URL(req.url).pathname.startsWith("/api/");
+      return api
+        ? Response.json({ code: "S500" }, { status: 500, headers: { "cache-control": "private, no-store" } })
+        : new Response("Something went wrong. Please try again. If it keeps happening, email notifiedlaw@gmail.com.", { status: 500, headers: { "content-type": "text/plain; charset=utf-8" } });
+    }
   },
 } satisfies ExportedHandler<CloudflareEnv>;
 

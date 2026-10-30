@@ -13,11 +13,14 @@ export type CheckResult = { ok: true; kind: FileKind } | { ok: false; error: str
 const fail = (error: string): CheckResult => ({ ok: false, error });
 const MB = 1024 * 1024;
 
-/** Bytes as a one-char-per-byte string, so PDF syntax (which is bytes, not UTF-8) can be searched with regexes. */
+/**
+ * Bytes as a one-char-per-byte string, so PDF syntax (which is bytes, not UTF-8) can be searched with regexes.
+ * Native decoding (windows-1252 differs from Latin-1 only above 0x7F, never for the ASCII the checks look for)
+ * costs milliseconds where building the string chunk by chunk cost hundreds, which a Worker's CPU limit counts.
+ */
+const LATIN1 = new TextDecoder("latin1");
 function latin1(b: Uint8Array) {
-  let s = "";
-  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
-  return s;
+  return LATIN1.decode(b);
 }
 
 /**
@@ -60,7 +63,7 @@ const PDF_BANNED = /\/(JavaScript|JS|Launch|EmbeddedFiles?|RichMedia|XFA|SubmitF
 const PDF_ENCRYPT = /\/Encrypt(?![^\s/[\]<>(){}%])/;
 // Every PDF name, so "#xx" escapes (/J#61vaScript is /JavaScript) can be decoded before matching.
 const PDF_NAME = /\/(?:[^\s/[\]<>(){}%#]|#[0-9a-fA-F]{2})*#[0-9a-fA-F]{2}(?:[^\s/[\]<>(){}%#]|#[0-9a-fA-F]{2})*/g;
-const decodeNames = (s: string) => s.replace(PDF_NAME, (n) => n.replace(/#([0-9a-fA-F]{2})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16))));
+const decodeNames = (s: string) => !s.includes("#") ? s : s.replace(PDF_NAME, (n) => n.replace(/#([0-9a-fA-F]{2})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16))));
 
 function pdfProblem(text: string): string | null {
   const t = decodeNames(text);
@@ -88,14 +91,18 @@ async function checkPdf(bytes: Uint8Array): Promise<CheckResult> {
   // chance. Objects can also be packed, compressed, inside object streams (/Type /ObjStm): those are inflated
   // and scanned like the rest.
   let budget = 100 * MB, outside = "", from = 0;
-  const re = /stream\r?\n/g;
-  for (let m; (m = re.exec(s)); ) {
-    if (!/>>\s*$/.test(s.slice(Math.max(0, m.index - 64), m.index))) continue;
-    const dataStart = m.index + m[0].length;
+  for (let at = 0; (at = s.indexOf("stream", at)) >= 0; ) {
+    const index = at;
+    at += 6;
+    // "endstream" holds "stream" too; the keyword proper follows the dictionary's ">>".
+    const eol = s[at] === "\r" && s[at + 1] === "\n" ? 2 : s[at] === "\n" ? 1 : 0;
+    if (!eol || !/>>\s*$/.test(s.slice(Math.max(0, index - 64), index))) continue;
+    const m = { index };
+    const dataStart = at + eol;
     const dataEnd = s.indexOf("endstream", dataStart);
     if (dataEnd < 0) return fail("This PDF looks damaged. Export it again and retry.");
     outside += s.slice(from, dataStart);
-    from = re.lastIndex = dataEnd;
+    from = at = dataEnd;
     const dictEnd = s.lastIndexOf(">>", m.index) + 2;
     const start = dictStart(s, dictEnd);
     if (start < 0) continue;
@@ -233,6 +240,7 @@ async function checkDocx(bytes: Uint8Array): Promise<CheckResult> {
     const xml = await readEntry(bytes, e, 64 * MB);
     if (xml === null) return fail("This Word file is damaged or too large to check.");
     // A field's code can be split across many runs, so join each document's field text before matching.
+    if (!/instr/.test(xml)) continue;
     const codes = [...xml.matchAll(/<w:instrText\b[^>]*>([^<]*)<\/w:instrText>/g)].map((m) => m[1]).join("")
       + [...xml.matchAll(/<w:fldSimple\b[^>]*\bw:instr\s*=\s*"([^"]*)"/g)].map((m) => m[1]).join(" ");
     if (DDE.test(codes)) return fail("This Word file has DDE fields that can run programs, so it cannot be uploaded.");
