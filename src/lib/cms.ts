@@ -118,13 +118,13 @@ export async function getColumns(kind: string): Promise<CmsColumn[]> {
   return Array.isArray(cols) ? cols : [];
 }
 
-export type CmsArticle = { slug: string; title: string; summary: string; area: string; industry: string; date: Date | null; mins: number; body: string; author: string };
+export type CmsArticle = { slug: string; title: string; summary: string; area: string; industry: string; date: Date | null; mins: number; body: string; author: string; image: string };
 
-/** Published articles. Optional Notion columns: SUMMARY, AREA, INDUSTRY, DATE, AUTHOR. */
+/** Published articles. Optional Notion columns: SUMMARY, AREA, INDUSTRY, DATE, AUTHOR, IMAGE (a URL or site path). */
 export async function getArticles(): Promise<CmsArticle[]> {
   return (await entries("article", true)).map((e) => {
     const p = parse(e);
-    return { slug: e.slug, title: e.title, summary: text(p, "Summary", "Description") || lead(e.body), area: text(p, "Area", "Category", "Topic"), industry: text(p, "Industry"), date: dateOf(e, p), mins: readMins(e.body), body: e.body, author: text(p, "Author", "By") };
+    return { slug: e.slug, title: e.title, summary: text(p, "Summary", "Description") || lead(e.body), area: text(p, "Area", "Category", "Topic"), industry: text(p, "Industry"), date: dateOf(e, p), mins: readMins(e.body), body: e.body, author: text(p, "Author", "By"), image: text(p, "Image", "Cover") };
   });
 }
 

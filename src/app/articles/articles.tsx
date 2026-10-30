@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Chevron, Chip, Empty, Page, SearchField, Title, cardCls } from "@/components/ui";
 import { PreferredSource } from "@/components/preferred-source";
 
-export type ArticleRow = { slug: string; title: string; summary: string; industry: string; mins: number; date: string | null };
+export type ArticleRow = { slug: string; title: string; summary: string; industry: string; mins: number; date: string | null; image: string };
 const fmt = (iso: string | null) => (iso ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Accra" }).format(new Date(iso)) : "");
 
 export function Articles({ list }: { list: ArticleRow[] }) {
@@ -30,7 +30,8 @@ export function Articles({ list }: { list: ArticleRow[] }) {
           )}
           <div className={`${cardCls} overflow-hidden`}>
             {shown.map((a) => (
-              <Link key={a.slug} href={`/articles/${a.slug}`} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-3.5 first:border-0 hover:bg-hover" style={{ textDecoration: "none", color: "inherit" }}>
+              <Link key={a.slug} href={`/articles/${a.slug}`} className="flex items-center gap-3.5 border-t border-edge/[0.06] px-4 py-3.5 first:border-0 hover:bg-hover" style={{ textDecoration: "none", color: "inherit" }}>
+                {a.image && <img src={a.image} alt="" width={96} height={96} loading="lazy" decoding="async" className="size-[72px] shrink-0 rounded-xl bg-fill object-cover sm:size-24" />}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-[15px] font-semibold">{a.title}</span>
                   {a.summary && <span className="text-[13px] text-muted">{a.summary}</span>}

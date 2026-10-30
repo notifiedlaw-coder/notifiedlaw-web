@@ -11,6 +11,6 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const list = (await getArticles()).map((a) => ({ slug: a.slug, title: a.title, summary: a.summary, industry: a.industry, mins: a.mins, date: a.date?.toISOString() ?? null }));
+  const list = (await getArticles()).map((a) => ({ slug: a.slug, title: a.title, summary: a.summary, industry: a.industry, mins: a.mins, date: a.date?.toISOString() ?? null, image: a.image }));
   return <Articles list={list} />;
 }

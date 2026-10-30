@@ -20,8 +20,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: a.title,
     description: a.summary || excerpt(a.body),
     alternates: { canonical: url },
-    openGraph: { type: "article", url, siteName: SITE.name, locale: SITE.locale, title: a.title, description: a.summary || excerpt(a.body), images: [OG_IMAGE], authors: [a.author || SITE.name], ...(a.date ? { publishedTime: a.date.toISOString(), modifiedTime: a.date.toISOString() } : {}), ...(a.area ? { section: a.area } : {}) },
-    twitter: { card: "summary_large_image", title: a.title, description: a.summary || excerpt(a.body), images: [SITE.ogImage] },
+    openGraph: { type: "article", url, siteName: SITE.name, locale: SITE.locale, title: a.title, description: a.summary || excerpt(a.body), images: a.image ? [abs(a.image)] : [OG_IMAGE], authors: [a.author || SITE.name], ...(a.date ? { publishedTime: a.date.toISOString(), modifiedTime: a.date.toISOString() } : {}), ...(a.area ? { section: a.area } : {}) },
+    twitter: { card: "summary_large_image", title: a.title, description: a.summary || excerpt(a.body), images: [a.image || SITE.ogImage] },
   };
 }
 
@@ -42,7 +42,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
           ...(a.date ? { datePublished: a.date.toISOString(), dateModified: a.date.toISOString() } : {}),
           inLanguage: "en-GH",
           mainEntityOfPage: url,
-          image: abs(SITE.ogImage),
+          image: a.image ? abs(a.image) : abs(SITE.ogImage),
           wordCount: a.body.split(/\s+/).length,
           author: a.author ? { "@type": "Person", name: a.author } : { "@type": "Organization", name: "NotifiedLaw Editorial", url: SITE.url },
           publisher: { "@id": abs("/#org") },
@@ -61,6 +61,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
           </span>
         </div>
       </header>
+      {a.image && <img src={a.image} alt="" width={1280} height={720} decoding="async" fetchPriority="high" className="aspect-video w-full rounded-2xl bg-fill object-cover shadow-card" />}
       <article aria-labelledby="article-title" className="article-body" style={{ fontFamily: "Georgia, 'Iowan Old Style', serif", fontSize: 18, lineHeight: 1.7 }}>
         <Markdown source={a.body} from={2} />
       </article>
