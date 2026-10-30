@@ -12,6 +12,7 @@ interface __BaseEnv_CloudflareEnv {
 	RL_MEDIA: RateLimit;
 	RL_UNI_EMAIL: RateLimit;
 	RL_PAGES: RateLimit;
+	RL_TIMETABLE: RateLimit;
 	ASSETS: Fetcher;
 	GOOGLE_CLIENT_ID: "776945171684-51d8p7incfdsv3vfaendvmg10vo75br2.apps.googleusercontent.com";
 	NOTION_ROOT_DATABASE_ID: "4062efa9c98e80089682f3481b6c4b67";

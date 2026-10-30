@@ -10,7 +10,9 @@ import {
 
 const MOBILE_PX_PER_MIN = 0.8; // phones scroll the day; an hour is 48px
 const MIN_FIT_PX_PER_MIN = 0.5; // desktop fits the day to the screen, but no tighter than 30px an hour
-const HOURS_COL = 52; // width of the hour labels
+// Hour labels, then the seven days. Phones get a narrower label column so the whole week fits the screen.
+const GRID_COLS = "grid-cols-[52px_repeat(7,minmax(0,1fr))]";
+const GRID_COLS_MOBILE = "grid-cols-[36px_repeat(7,minmax(0,1fr))]";
 const LIST_STEP = 14; // list view: days shown per "Show more"
 const HOLD_MS = 350; // touch: press and hold this long to pick an event up
 
@@ -180,7 +182,7 @@ type Drag = {
  * screen, tap. Either opens a popover to add a session, exam or free time. Events follow the pointer as they are
  * dragged to another day and time (on touch screens, press and hold first), and a session's bottom edge drags to
  * change its length. Weekly free time shows as a green band, and a red line marks the time now.
- * On desktop the day is scaled to fit the screen; phones scroll it.
+ * On desktop the day is scaled to fit the screen; phones fit the whole week across and scroll the hours.
  */
 export function WeekView({ ctx, start }: { ctx: Ctx; start: string }) {
   const mobile = useMedia("(max-width: 767px)");
@@ -216,13 +218,10 @@ export function WeekView({ ctx, start }: { ctx: Ctx; start: string }) {
     return () => ro.disconnect();
   }, [mobile, from, to]);
 
-  // Open scrolled to today (phones show about three days) and to the first thing on the calendar this week.
+  // Phones open scrolled to the first thing on the calendar this week.
   useEffect(() => {
     const el = scroller.current;
-    if (!el) return;
-    const col = el.querySelector<HTMLElement>(`[data-head="${ctx.today}"]`);
-    if (col) el.scrollLeft += col.getBoundingClientRect().left - el.getBoundingClientRect().left - HOURS_COL;
-    if (mobile) el.scrollTop = Math.max(0, (Math.min(17 * 60, ...starts) - from - 30) * MOBILE_PX_PER_MIN);
+    if (el && mobile) el.scrollTop = Math.max(0, (Math.min(17 * 60, ...starts) - from - 30) * MOBILE_PX_PER_MIN);
   }, [start, mobile]); // eslint-disable-line react-hooks/exhaustive-deps -- scroll only when the week changes, not on every edit
 
   // While a finger drags an event, stop the page from scrolling under it.
@@ -316,23 +315,25 @@ export function WeekView({ ctx, start }: { ctx: Ctx; start: string }) {
   // The event being dragged stays where it was, faded, while its copy follows the pointer. It must stay mounted:
   // it holds the pointer capture that brings the drop back to it.
   const lifted = (id: string) => (drag?.id === id && drag.moved ? 0.35 : undefined);
+  const cols = mobile ? GRID_COLS_MOBILE : GRID_COLS;
   const block = (a: number, b: number) => ({ top: (a - from) * ppm + 1, height: Math.max(14, (b - a) * ppm - 2) });
 
   return (
-    <div ref={scroller} className={`${cardCls} relative select-none overflow-auto ${mobile ? "max-h-[72vh]" : "min-h-0 flex-1"}`}>
-      <div className={`grid grid-cols-[52px_repeat(7,minmax(0,1fr))] ${mobile ? "min-w-[760px]" : ""}`}>
+    <div ref={scroller} className={`${cardCls} relative select-none ${mobile ? "max-h-[72dvh] overflow-y-auto overflow-x-hidden" : "min-h-0 flex-1 overflow-auto"}`}>
+      <div className={`grid ${cols}`}>
         {/* Day headers and the all-day row stay put while the hours scroll. */}
-        <div ref={head} className="sticky top-0 z-30 col-span-8 grid grid-cols-[52px_repeat(7,minmax(0,1fr))] border-b border-edge/[0.08] bg-surface/90 backdrop-blur-md">
-          <div className="sticky left-0 flex items-end justify-end bg-surface/90 px-2 pb-1.5 text-[10px] text-faint">{hasAllDay && "all-day"}</div>
+        <div ref={head} className={`sticky top-0 z-30 col-span-8 grid ${cols} border-b border-edge/[0.08] bg-surface/90 backdrop-blur-md`}>
+          <div className={`sticky left-0 flex items-end justify-end bg-surface/90 pb-1.5 text-faint ${mobile ? "px-1 text-[9px]" : "px-2 text-[10px]"}`}>{hasAllDay && (mobile ? "all" : "all-day")}</div>
           {days.map((d) => (
-            <div key={d} data-head={d} className="flex min-w-0 flex-col gap-1 border-l border-edge/[0.06] px-1.5 pb-1.5 pt-2">
-              <div className="flex items-center gap-1.5">
-                <span className={`text-[11px] font-semibold uppercase tracking-wide ${d === ctx.today ? "text-red" : "text-muted"}`}>{WEEKDAYS[weekday(d)]}</span>
-                <DayNumber date={d} today={ctx.today} big />
+            <div key={d} data-head={d} className={`flex min-w-0 flex-col gap-1 border-l border-edge/[0.06] pb-1.5 pt-2 ${mobile ? "px-0.5" : "px-1.5"}`}>
+              {/* Phones stack the day's initial over its number, as calendar apps do in a narrow week. */}
+              <div className={`flex items-center ${mobile ? "flex-col gap-0.5" : "gap-1.5"}`}>
+                <span className={`text-[11px] font-semibold uppercase tracking-wide ${d === ctx.today ? "text-red" : "text-muted"}`}>{mobile ? WEEKDAYS[weekday(d)][0] : WEEKDAYS[weekday(d)]}</span>
+                <DayNumber date={d} today={ctx.today} big={!mobile} />
               </div>
               {exams.filter((c) => c.examDate === d && !c.examTime).map((c) => (
                 <button key={c.id} type="button" {...grab("exam", c.id, EXAM_MINS, null, d, (el) => openExam(c, el))}
-                  className="cursor-grab touch-manipulation truncate rounded-[5px] px-1.5 py-0.5 text-left text-[11px] font-semibold active:cursor-grabbing"
+                  className={`cursor-grab touch-manipulation truncate rounded-[5px] py-0.5 text-left font-semibold active:cursor-grabbing ${mobile ? "px-1 text-[10px]" : "px-1.5 text-[11px]"}`}
                   style={{ ...(selected === c.id ? { background: EXAM_COLOR, color: "#fff" } : { background: tint(EXAM_COLOR).fill, color: tint(EXAM_COLOR).text }), opacity: lifted(c.id) }}>
                   {c.name} exam
                 </button>
@@ -347,10 +348,10 @@ export function WeekView({ ctx, start }: { ctx: Ctx; start: string }) {
         <div className="sticky left-0 z-20 bg-surface" style={{ height }}>
           {Array.from({ length: (to - from) / 60 }, (_, i) => (
             // An hour label the red time-now label would cover is left out, as calendars do.
-            i > 0 && !(now !== null && days.includes(ctx.today) && Math.abs(now - from - i * 60) < 15) && <span key={i} className="absolute right-2 -translate-y-1/2 text-[10px] tabular-nums text-faint" style={{ top: i * 60 * ppm }}>{hourLabel(from + i * 60)}</span>
+            i > 0 && !(now !== null && days.includes(ctx.today) && Math.abs(now - from - i * 60) < 15) && <span key={i} className={`absolute -translate-y-1/2 ${mobile ? "right-1" : "right-2"} text-[10px] tabular-nums text-faint`} style={{ top: i * 60 * ppm }}>{hourLabel(from + i * 60)}</span>
           ))}
           {now !== null && days.includes(ctx.today) && now >= from && (
-            <span className="absolute right-1 z-10 -translate-y-1/2 rounded-full bg-red px-1 text-[10px] font-semibold tabular-nums text-white" style={{ top: (now - from) * ppm }}>{toHhmm(now)}</span>
+            <span className="absolute right-0.5 z-10 -translate-y-1/2 rounded-full bg-red px-1 text-[10px] font-semibold tabular-nums text-white" style={{ top: (now - from) * ppm }}>{toHhmm(now)}</span>
           )}
         </div>
 

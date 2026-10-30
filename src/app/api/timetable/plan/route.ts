@@ -6,7 +6,7 @@ import { canPlan, planTimetable, timetableFor } from "@/lib/timetable-db";
 export async function POST(req: Request) {
   const userId = await userIdFrom(req);
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
-  const rl = await limited(req, "WRITES", userId);
+  const rl = (await limited(req, "TIMETABLE", userId)) ?? (await limited(req, "WRITES", userId));
   if (rl) return rl;
   if (!(await canPlan(userId))) return Response.json({ error: "Choose a plan to use TimeTable." }, { status: 402 });
   const t = await timetableFor(userId);

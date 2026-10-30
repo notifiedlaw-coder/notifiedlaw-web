@@ -13,7 +13,7 @@ import { canPlan, saveInput } from "@/lib/timetable-db";
 export async function PUT(req: Request) {
   const userId = await userIdFrom(req);
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
-  const rl = await limited(req, "WRITES", userId);
+  const rl = (await limited(req, "TIMETABLE", userId)) ?? (await limited(req, "WRITES", userId));
   if (rl) return rl;
   if (!(await canPlan(userId))) return Response.json({ error: "Choose a plan to use TimeTable." }, { status: 402 });
   const input = cleanTimetable(await readJson(req));
@@ -26,7 +26,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   const userId = await userIdFrom(req);
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
-  const rl = await limited(req, "WRITES", userId);
+  const rl = (await limited(req, "TIMETABLE", userId)) ?? (await limited(req, "WRITES", userId));
   if (rl) return rl;
   const db = getDb();
   await db.batch([db.delete(timetableSession).where(eq(timetableSession.userId, userId)), db.delete(timetable).where(eq(timetable.userId, userId))]);

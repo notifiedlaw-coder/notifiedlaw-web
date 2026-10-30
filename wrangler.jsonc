@@ -41,7 +41,10 @@
     { "name": "RL_UNI_EMAIL", "namespace_id": "1005", "simple": { "limit": 3, "period": 60 } },
     // Every Worker request, per signed-in user or else per IP (custom-worker.ts). High enough for a shared
     // campus or mobile IP of guests; going over it blocks that session or IP for 10 minutes.
-    { "name": "RL_PAGES", "namespace_id": "1006", "simple": { "limit": 600, "period": 60 } }
+    { "name": "RL_PAGES", "namespace_id": "1006", "simple": { "limit": 600, "period": 60 } },
+    // TimeTable saves, per user. A person editing a calendar stays well under 12 in 10 seconds; going over
+    // means a script, so src/lib/rate-limit.ts then refuses that user's calendar changes for 5 minutes.
+    { "name": "RL_TIMETABLE", "namespace_id": "1007", "simple": { "limit": 12, "period": 10 } }
   ],
   "vars": {
     "GOOGLE_CLIENT_ID": "776945171684-51d8p7incfdsv3vfaendvmg10vo75br2.apps.googleusercontent.com",

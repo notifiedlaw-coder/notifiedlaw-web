@@ -25,6 +25,8 @@ export const MAX_EXAM_DAYS = 366;
 export const MAX_PLAN_DAYS = 180;
 /** Saved sessions per user, counting the past ones kept when the plan is rebuilt. */
 export const MAX_SESSIONS = 5000;
+/** Sessions a student can put on one day by hand; the planner is held only by their free time. */
+export const MAX_DAY_SESSIONS = 24;
 /** Lengths a session can be given on the calendar, in minutes. */
 export const MIN_SESSION_MINS = 15;
 export const MAX_SESSION_MINS = 240;
