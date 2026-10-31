@@ -92,4 +92,3 @@ export const ATTEMPTS: MockAttempt[] = [
 ];
 
 /** Practice minutes in the last seven days, Monday first. */
-export const WEEK_MINUTES = [35, 0, 62, 20, 48, 0, 25];

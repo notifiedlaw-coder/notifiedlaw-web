@@ -368,5 +368,4 @@ function Ring({ value, size, stroke, color, label, text, small }: { value: numbe
   );
 }
 
-const Chevron = () => <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-faint" aria-hidden><path d="m1.5 1.5 5 5.5-5 5.5" /></svg>;
 const Tick = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-link" aria-hidden><path d="m3 8.5 3.2 3.2L13 4.5" /></svg>;
