@@ -69,7 +69,7 @@ export function Avatar({ id, name, src, size, online, group, plan }: { id: strin
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   const hue = hueOf(id);
   return (
-    <span aria-hidden className="relative shrink-0" style={{ width: size, height: size }}>
+    <span aria-hidden className="relative block shrink-0" style={{ width: size, height: size }}>
       {src
         // eslint-disable-next-line @next/next/no-img-element -- a 256 px WebP from our own route; next/image adds nothing
         ? <img src={src} alt="" width={size} height={size} loading="lazy" decoding="async" className={`size-full object-cover ${group ? "rounded-[30%]" : "rounded-full"}`} />

@@ -108,7 +108,7 @@ function ProfilePhoto({ name, email }: { name: string; email: string }) {
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-5 pt-2">
       <button type="button" onClick={() => file.current?.click()} disabled={busy} aria-label={avatar ? "Change your profile picture" : "Add a profile picture"} className="relative shrink-0 cursor-pointer border-0 bg-transparent p-0 disabled:opacity-50">
         <Avatar id={email} name={name} src={avatar} plan={plan} size={64} />
         <span aria-hidden className="absolute -bottom-0.5 -right-0.5 grid size-6 place-items-center rounded-full bg-blue text-white ring-2 ring-canvas">
