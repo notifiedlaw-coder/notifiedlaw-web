@@ -157,12 +157,12 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
   };
 
   return (
-    <div className="flex flex-col gap-3 px-4 pb-8 pt-4 md:h-full md:flex-row md:gap-0 md:p-0">
-      <aside className="hidden w-[236px] shrink-0 flex-col gap-5 overflow-y-auto border-r border-edge/[0.08] bg-surface/60 px-3 py-4 lg:flex" aria-label="TimeTable">
+    <div className="flex flex-col gap-3 px-[18px] pb-8 pt-5 md:h-full md:flex-row md:gap-0 md:p-0">
+      <aside className="hidden w-[248px] shrink-0 flex-col gap-5 overflow-y-auto border-r border-edge/[0.08] bg-sidebar/60 px-3.5 py-5 lg:flex" aria-label="TimeTable">
         <MiniMonth cursor={cursor} today={today} marked={marked} onPick={setCursor} />
         <section className="flex flex-col gap-1">
           <div className="flex items-center justify-between px-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Courses</span>
+            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Courses</span>
           </div>
           <ul className="m-0 flex list-none flex-col p-0">
             {input.courses.map(courseRow)}
@@ -196,20 +196,25 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
         <p className="m-0 px-1.5 text-[11px] leading-snug text-faint">Only you can see your TimeTable.</p>
       </aside>
 
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 md:px-5 md:pb-5 md:pt-4" aria-label="Calendar">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 md:px-7 md:pb-6 md:pt-6" aria-label="Calendar">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <h2 className="m-0 min-w-0 flex-1 basis-full truncate sm:basis-auto text-[22px] font-bold tracking-[-0.02em] md:text-[26px]" aria-live="polite">
-            {view === "List" ? "Upcoming" : <>{month} <span className="font-normal text-muted">{year}</span></>}
-          </h2>
-          <div className="flex items-center gap-2">
-            <div className="w-[200px]"><Segmented options={VIEWS} value={view} onChange={setView} /></div>
+          <div className="flex min-w-0 flex-1 basis-full flex-col gap-1 sm:basis-auto">
+            {view === "Week" && <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Week of {fmt(weekStart, { day: "numeric", month: "long" })}</span>}
+            <h1 className="m-0 truncate text-[34px] leading-[1.05] md:text-[40px]" aria-live="polite">
+              {view === "List" ? "Upcoming" : <>{month} <span className="text-muted">{year}</span></>}
+            </h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-[240px]"><Segmented options={VIEWS} value={view} onChange={setView} /></div>
             {view !== "List" && (
-              <div className="flex h-8 items-center overflow-hidden rounded-[8px] bg-surface shadow-[0_0_0_0.5px_var(--hairline),0_1px_2px_rgba(0,0,0,0.05)]">
-                <button type="button" onClick={() => shift(-1)} aria-label={`Previous ${view.toLowerCase()}`} className="flex h-full w-8 items-center justify-center text-[17px] text-muted hover:bg-fill">‹</button>
-                <button type="button" onClick={() => setCursor(today)} className="h-full border-x border-edge/[0.08] px-3 text-[13px] font-medium hover:bg-fill">Today</button>
-                <button type="button" onClick={() => shift(1)} aria-label={`Next ${view.toLowerCase()}`} className="flex h-full w-8 items-center justify-center text-[17px] text-muted hover:bg-fill">›</button>
+              <div className="flex h-11 items-center overflow-hidden rounded-full border border-edge/15 bg-surface">
+                <button type="button" onClick={() => shift(-1)} aria-label={`Previous ${view.toLowerCase()}`} className="flex h-full w-10 items-center justify-center text-[20px] text-muted hover:bg-hover">‹</button>
+                <button type="button" onClick={() => setCursor(today)} className="h-full border-x border-edge/[0.08] px-4 text-[15px] font-semibold hover:bg-hover">Today</button>
+                <button type="button" onClick={() => shift(1)} aria-label={`Next ${view.toLowerCase()}`} className="flex h-full w-10 items-center justify-center text-[20px] text-muted hover:bg-hover">›</button>
               </div>
             )}
+            {/* Hick's law: one creation action on the page. */}
+            <button type="button" onClick={openFrom({ mode: "new", date: cursor < today ? today : cursor, start: "16:00", end: "17:00" })} className="h-11 rounded-full border-0 bg-blue px-5 text-[16px] font-semibold text-white hover:bg-blue-press">Add session</button>
           </div>
         </div>
 
@@ -219,13 +224,13 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
               const off = hidden.has(c.id);
               return (
                 <button key={c.id} type="button" onClick={openFrom({ mode: "course", courseId: c.id })}
-                  className={`flex h-8 shrink-0 items-center gap-2 rounded-full bg-surface px-3 text-[13px] shadow-[0_0_0_0.5px_var(--hairline)] hover:bg-fill ${off ? "text-muted" : ""}`}>
+                  className={`flex h-10 shrink-0 items-center gap-2 rounded-full border border-edge/15 bg-surface px-4 text-[15px] hover:bg-hover ${off ? "text-muted" : ""}`}>
                   <span className="size-2.5 rounded-full" style={{ background: colorOf(input.courses, c.id), opacity: off ? 0.35 : 1 }} aria-hidden />
                   {c.name}
                 </button>
               );
             })}
-            <button type="button" onClick={openFrom({ mode: "course", courseId: null })} className="h-8 shrink-0 rounded-full px-3 text-[13px] font-medium text-blue hover:bg-fill">+ Course</button>
+            <button type="button" onClick={openFrom({ mode: "course", courseId: null })} className="h-10 shrink-0 rounded-full px-3 text-[15px] font-semibold text-link hover:bg-hover">+ Course</button>
           </div>
           {next >= 0 && (
             <p className="m-0 flex items-start gap-2 rounded-[10px] bg-surface px-3 py-2 text-[12px] leading-snug shadow-[0_0_0_0.5px_var(--hairline)]">
@@ -244,7 +249,7 @@ export function Timetable({ initial, suggestions }: { initial: TimetableState | 
 
       {toast && (
         <div role={toast.tone === "error" ? "alert" : "status"}
-          className="fixed bottom-[calc(var(--tabbar)+1.5rem)] left-1/2 z-[70] flex max-w-[min(480px,calc(100vw-32px))] -translate-x-1/2 items-center gap-3 rounded-full bg-[#1c1c1e]/90 py-2 pl-4 pr-2 text-[13px] text-white shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl animate-[tt-pop_160ms_ease-out]">
+          className="fixed bottom-[calc(var(--tabbar)+1.5rem)] left-1/2 z-[70] flex max-w-[min(480px,calc(100vw-32px))] -translate-x-1/2 items-center gap-3 rounded-full bg-[#161A26]/95 py-2 pl-4 pr-2 text-[13px] text-white shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl animate-[tt-pop_160ms_ease-out]">
           {toast.tone === "error" && <span className="size-2 shrink-0 rounded-full bg-red" aria-hidden />}
           <span className="min-w-0">{toast.text}</span>
           <button type="button" onClick={() => setToast(null)} aria-label="Dismiss" className="flex size-6 shrink-0 items-center justify-center rounded-full text-white/70 hover:bg-white/10">×</button>
