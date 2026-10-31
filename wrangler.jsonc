@@ -63,7 +63,7 @@
     // The Notion LAW DATABASE that the CMS sync reads (Notified Law Admin page).
     "NOTION_ROOT_DATABASE_ID": "4062efa9c98e80089682f3481b6c4b67",
     // Cloudflare Realtime SFU app for calls (dashboard: Realtime > SFU). Its secret is REALTIME_APP_SECRET.
-    "REALTIME_APP_ID": ""
+    "REALTIME_APP_ID": "e259f6754e78087eeec448961473a39e"
   },
   "routes": [
     { "pattern": "notifiedlaw.com", "custom_domain": true },
