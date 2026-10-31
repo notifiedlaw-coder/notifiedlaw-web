@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ATTEMPTS, COURSES, WEEK_MINUTES, type MockCourse, type MockQuestion } from "./mock";
+import { ATTEMPTS, COURSES, type MockCourse, type MockQuestion } from "./mock";
 
 // ---- Setup and scoring (all sample behaviour: real marking will come from Notified AI) ------------------------------
 
@@ -36,10 +36,7 @@ export function ExamPrep({ today }: { today: string }) {
   const [result, setResult] = useState<Result | null>(null);
 
   const next = useMemo(() => [...COURSES].sort((a, b) => a.examInDays - b.examInDays)[0], []);
-  const weak = useMemo(() => COURSES.flatMap((c) => c.topics.map((t) => ({ ...t, code: c.code, color: c.color }))).sort((a, b) => a.score - b.score).slice(0, 4), []);
   const lowest = useMemo(() => [...COURSES].sort((a, b) => a.readiness - b.readiness)[0], []);
-  const overall = COURSES.reduce((n, c) => n + c.readiness, 0) / COURSES.length;
-  const weekTotal = WEEK_MINUTES.reduce((a, b) => a + b, 0);
 
   function start(course: MockCourse, format: Format, size: Size) {
     setSheet(null);
@@ -52,104 +49,41 @@ export function ExamPrep({ today }: { today: string }) {
   }
   if (session) return <ExamRoom s={session} onExit={() => setSession(null)} onSubmit={(answers, seconds) => setResult({ session, answers, seconds })} />;
 
+  const pick = lowest.questions[0];
+  const last = ATTEMPTS[0];
   return (
-    <div className="mx-auto flex max-w-[1080px] flex-col gap-7 px-5 pb-[max(3rem,env(safe-area-inset-bottom))] pt-5 sm:px-6 md:gap-8 md:px-10 md:pt-8">
-      <h1 className="sr-only">Exam Prep</h1>
-      <p role="note" className="m-0 w-fit rounded-full bg-fill px-3 py-1 text-xs font-medium text-muted">Preview with sample questions and marking</p>
+    <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-7 px-[18px] pb-[max(2rem,env(safe-area-inset-bottom))] pt-5 md:px-8 md:pt-7 lg:px-14 lg:pt-10">
+      <div className="flex flex-col gap-2">
+        <h1 className="m-0 text-[38px] leading-[1.02] md:text-[46px] lg:text-[56px]">Exam prep</h1>
+        <p role="note" className="m-0 text-[14px] text-faint">Preview with sample questions and marking</p>
+      </div>
 
-      {/* Hero: the next exam, and how ready you are for all of them. */}
-      <section aria-label="Exam readiness" className="relative overflow-hidden rounded-[24px] bg-surface p-5 shadow-card md:p-7">
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full opacity-[0.14] blur-3xl" style={{ background: next.color }} />
-        <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-5">
-            <Ring value={overall} size={104} stroke={10} color={next.color} label="Overall readiness" />
-            <div className="flex min-w-0 flex-col gap-1">
-              <span className="text-[12px] font-semibold uppercase tracking-[0.05em] text-muted">Next exam</span>
-              <span className="text-[22px] font-bold leading-tight tracking-[-0.02em] md:text-[26px]">{next.course}</span>
-              <span className="text-[14px] text-muted">In {next.examInDays} days · {dayName(today, next.examInDays)}</span>
-            </div>
+      {/* Hick's law: one recommended question from the weakest course; choosing a course is the fallback. */}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <section aria-label="Recommended question" className="flex flex-col gap-4 rounded-[22px] border border-edge/10 bg-surface p-7">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-peach px-2.5 py-1 text-[13px] font-bold text-[var(--peach-fg)]">Recommended</span>
+            <span className="text-[14px] text-faint">Your weakest course · {lowest.course}</span>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row md:flex-col lg:flex-row">
-            <button type="button" onClick={() => setSheet({ course: next, format: "timed" })} className="h-12 rounded-[14px] border-0 bg-blue px-6 text-[16px] font-semibold text-white transition-transform active:scale-[0.98]">Start a mock exam</button>
-            <button type="button" onClick={() => start(lowest, "practice", "quick")} className="h-12 rounded-[14px] border-0 bg-fill px-6 text-[16px] font-semibold text-ink transition-transform active:scale-[0.98]">Practise a weak spot</button>
-          </div>
-        </div>
-      </section>
-
-      {/* Three ways to practise. */}
-      <section aria-label="Start a session" className="grid gap-3 md:grid-cols-3">
-        <SessionCard title="Timed mock exam" body="A real paper under a real clock, from 20 minutes to 3 hours." color="#23305C" icon={<path d="M10 4.5V10l3 2M10 17.5a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15zM8 1.5h4" />} onClick={() => setSheet({ course: next, format: "timed" })} />
-        <SessionCard title="Practice questions" body="Work at your own pace with no clock, then see how you did." color="#34C759" icon={<path d="M4 3.5h9a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 13 16.5H4zM7 7.5h5M7 10.5h5M7 13.5h3" />} onClick={() => setSheet({ course: COURSES[0], format: "practice" })} />
-        <SessionCard title="Weak spots" body={`Starts with ${lowest.course}, your lowest course right now.`} color="#C4552B" icon={<path d="M3 15.5 8 10l3 3 6-7.5M12.5 5.5H17V10" />} onClick={() => start(lowest, "practice", "quick")} />
-      </section>
-
-      <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-8">
-        <div className="flex min-w-0 flex-col gap-7">
-          <Section title="Your courses" aside="Tap one to practise">
-            <ul className="m-0 flex list-none flex-col overflow-hidden rounded-[18px] bg-surface p-0 shadow-card">
-              {[...COURSES].sort((a, b) => a.examInDays - b.examInDays).map((c) => (
-                <li key={c.code} className="border-t border-edge/[0.06] first:border-0">
-                  <button type="button" onClick={() => setSheet({ course: c, format: "timed" })} className="flex w-full items-center gap-3.5 border-0 bg-transparent px-4 py-3.5 text-left transition-colors hover:bg-hover active:bg-fill">
-                    <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-[12px] text-[12px] font-bold text-white" style={{ background: c.color }}>{c.code}</span>
-                    <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                      <span className="flex items-baseline justify-between gap-3">
-                        <span className="truncate text-[15px] font-semibold">{c.course}</span>
-                        <span className="shrink-0 text-[13px] font-semibold tabular-nums" style={{ color: c.color }}>{Math.round(c.readiness * 100)}%</span>
-                      </span>
-                      <span className="h-1.5 overflow-hidden rounded-full bg-track" role="progressbar" aria-valuenow={Math.round(c.readiness * 100)} aria-valuemin={0} aria-valuemax={100} aria-label={`${c.course} readiness`}>
-                        <span className="block h-full rounded-full" style={{ width: `${c.readiness * 100}%`, background: c.color }} />
-                      </span>
-                      <span className="text-[12px] text-muted">Exam in {c.examInDays} days · {dayName(today, c.examInDays)}</span>
-                    </span>
-                    <Chevron />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Section>
-
-          <Section title="Recent attempts">
-            <ul className="m-0 flex list-none flex-col overflow-hidden rounded-[18px] bg-surface p-0 shadow-card">
-              {ATTEMPTS.map((a) => (
-                <li key={a.daysAgo} className="flex items-center gap-3.5 border-t border-edge/[0.06] px-4 py-3 first:border-0">
-                  <Ring value={a.score} size={44} stroke={5} color={a.score >= 0.6 ? "#34C759" : "#C4552B"} label={`Score ${Math.round(a.score * 100)} percent`} text={`${Math.round(a.score * 100)}`} small />
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-[15px] font-medium">{a.course}</span>
-                    <span className="text-[12px] text-muted">{a.title} · {a.minutes} min · {a.daysAgo === 1 ? "Yesterday" : `${a.daysAgo} days ago`}</span>
-                  </span>
-                  <span className="rounded-full bg-fill px-2.5 py-1 text-[12px] font-bold tabular-nums">{grade(a.score)}</span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        </div>
-
-        <div className="flex flex-col gap-7">
-          <Section title="Weak spots" aside="Lowest topics">
-            <div className="flex flex-col gap-2.5 rounded-[18px] bg-surface p-4 shadow-card">
-              {weak.map((t) => (
-                <div key={`${t.code}-${t.name}`} className="flex items-center gap-3">
-                  <span className="w-9 shrink-0 text-[11px] font-bold" style={{ color: t.color }}>{t.code}</span>
-                  <span className="min-w-0 flex-1 truncate text-[14px]">{t.name}</span>
-                  <span className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-track" aria-hidden><span className="block h-full rounded-full bg-[#C4552B]" style={{ width: `${t.score * 100}%` }} /></span>
-                  <span className="w-9 shrink-0 text-right text-[13px] font-semibold tabular-nums">{Math.round(t.score * 100)}%</span>
-                </div>
-              ))}
+          <h2 className="m-0 line-clamp-5 text-[28px] leading-[1.15] md:text-[30px]">{pick.kind}: {pick.text}</h2>
+          <div className="flex flex-wrap gap-4 text-[15px] text-muted"><span>{SIZES.quick.minutes} minutes</span><span>{pick.marks} marks</span>{pick.kind === "Problem question" && <span>IRAC expected</span>}</div>
+          <button type="button" onClick={() => start(lowest, "timed", "quick")} className="h-[52px] cursor-pointer self-start rounded-full border-0 bg-blue px-6 text-[16px] font-semibold text-white active:scale-[0.98]">Start timed answer</button>
+        </section>
+        <div className="flex flex-col gap-3">
+          {last && (
+            <div className="flex flex-col gap-1.5 rounded-[18px] bg-tint p-5">
+              <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-link">Feedback ready</span>
+              <span className="font-display text-[40px] leading-none">{Math.round(last.score * 100)}<span className="text-[22px] text-muted"> / 100</span></span>
+              <span className="text-[15px]">{last.course} · {last.title} · grade {grade(last.score)}</span>
             </div>
-          </Section>
-
-          <Section title="This week" aside={`${weekTotal} min`}>
-            <div className="rounded-[18px] bg-surface p-4 shadow-card">
-              <div className="flex h-24 items-end gap-2" role="img" aria-label={`Minutes practised each day this week: ${WEEK_MINUTES.join(", ")}`}>
-                {WEEK_MINUTES.map((m, i) => (
-                  <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
-                    <span className="w-full rounded-[6px] bg-blue/80" style={{ height: `${Math.max(4, (m / 70) * 80)}px`, opacity: m ? 1 : 0.18 }} />
-                    <span className="text-[11px] text-muted">{"MTWTFSS"[i]}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Section>
+          )}
+          <div className="px-1 pt-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Or choose a course</div>
+          {[...COURSES].sort((x, y) => x.examInDays - y.examInDays).map((c) => (
+            <button key={c.code} type="button" onClick={() => setSheet({ course: c, format: "timed" })} className="flex min-h-14 cursor-pointer items-center justify-between gap-3 rounded-[14px] border border-edge/10 bg-surface px-[18px] text-left text-[16px] text-ink hover:bg-hover">
+              <span className="truncate">{c.course}</span><span className="shrink-0 text-[14px] text-faint">Exam in {c.examInDays} days · {dayName(today, c.examInDays)}</span>
+            </button>
+          ))}
+          <p className="m-0 px-1 pt-1 text-[14px] text-faint">Your next exam: {next.course}, {dayName(today, next.examInDays)}.</p>
         </div>
       </div>
 
@@ -204,7 +138,7 @@ function SessionSheet({ init, onClose, onStart }: { init: { course: MockCourse; 
           </p>
         </div>
         <div className="shrink-0 border-t border-edge/[0.08] bg-canvas/90 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
-          <button ref={go} type="button" onClick={() => onStart(course, format, size)} className="h-[50px] w-full rounded-[14px] border-0 bg-blue text-[17px] font-semibold text-white transition-transform active:scale-[0.98]">{format === "timed" ? "Start exam" : "Start practice"}</button>
+          <button ref={go} type="button" onClick={() => onStart(course, format, size)} className="h-[50px] w-full rounded-full border-0 bg-blue text-[17px] font-semibold text-white transition-transform active:scale-[0.98]">{format === "timed" ? "Start exam" : "Start practice"}</button>
         </div>
       </div>
     </div>
@@ -403,33 +337,6 @@ const Feedback = ({ tone, title, items }: { tone: "good" | "warn"; title: string
 );
 
 // ---- Small pieces -----------------------------------------------------------------------------------------------------
-
-function Section({ title, aside, children }: { title: string; aside?: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2.5">
-      <div className="flex items-baseline justify-between gap-3 px-1">
-        <h2 className="m-0 text-[22px] font-bold tracking-[-0.02em]">{title}</h2>
-        {aside && <span className="truncate text-[13px] text-muted">{aside}</span>}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function SessionCard({ title, body, color, icon, onClick }: { title: string; body: string; color: string; icon: React.ReactNode; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="flex items-center gap-3.5 rounded-[18px] border-0 bg-surface p-4 text-left shadow-card transition-transform active:scale-[0.98] md:flex-col md:items-start md:gap-3">
-      <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-[12px] text-white" style={{ background: color }}>
-        <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">{icon}</svg>
-      </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[16px] font-semibold tracking-[-0.01em]">{title}</span>
-        <span className="text-[13px] leading-snug text-muted">{body}</span>
-      </span>
-      <span className="md:hidden"><Chevron /></span>
-    </button>
-  );
-}
 
 function Seg<T extends string>({ label, value, onChange, options }: { label: string; value: T; onChange: (v: T) => void; options: [T, string][] }) {
   return (
