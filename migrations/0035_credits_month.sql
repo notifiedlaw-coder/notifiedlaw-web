@@ -1,0 +1,1 @@
+ALTER TABLE `subscription` ADD `credits_month` text DEFAULT '' NOT NULL;

@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { aiChat, aiMessage, subscription } from "@/db/schema";
-import { getDb, planCols, planOf } from "@/lib/auth";
+import { creditMonth, getDb, planCols, planOf, usedThisMonth } from "@/lib/auth";
 import { PLAN_CREDITS } from "@/lib/data";
 import { parseRefs, type Ref } from "@/lib/ai/refs";
 
@@ -67,17 +67,24 @@ export const deleteChat = (userId: string, id: string) =>
 
 /** Credits left this month on the user's plan. */
 export async function creditsLeft(userId: string) {
-  const [row] = await getDb().select({ ...planCols, used: subscription.creditsUsed }).from(subscription).where(eq(subscription.userId, userId));
-  return { allowance: PLAN_CREDITS[planOf(row)], left: Math.max(0, PLAN_CREDITS[planOf(row)] - (row?.used ?? 0)) };
+  const [row] = await getDb().select({ ...planCols, creditsUsed: subscription.creditsUsed, creditsMonth: subscription.creditsMonth })
+    .from(subscription).where(eq(subscription.userId, userId));
+  return { allowance: PLAN_CREDITS[planOf(row)], left: Math.max(0, PLAN_CREDITS[planOf(row)] - usedThisMonth(row)) };
 }
 
-/** Takes one message's credits, in one statement so two messages at once cannot both spend the last of them. False when short. */
+/**
+ * Takes one message's credits, in one statement so two messages at once cannot both spend the last of them. The
+ * first spend of a new month starts the count again. False when short.
+ */
 export async function spendCredits(userId: string, cost: number) {
   const { allowance } = await creditsLeft(userId);
-  const res = await getDb().run(sql`UPDATE ${subscription} SET credits_used = credits_used + ${cost} WHERE user_id = ${userId} AND credits_used + ${cost} <= ${allowance}`);
+  const month = creditMonth();
+  const used = sql`(CASE WHEN credits_month = ${month} THEN credits_used ELSE 0 END)`;
+  const res = await getDb().run(sql`UPDATE ${subscription} SET credits_used = ${used} + ${cost}, credits_month = ${month}
+    WHERE user_id = ${userId} AND ${used} + ${cost} <= ${allowance}`);
   return res.meta.changes > 0;
 }
 
-/** Gives credits back when a message could not be answered. */
+/** Gives credits back when a message could not be answered, to this month's count only. */
 export const refundCredits = (userId: string, cost: number) =>
-  getDb().run(sql`UPDATE ${subscription} SET credits_used = MAX(0, credits_used - ${cost}) WHERE user_id = ${userId}`);
+  getDb().run(sql`UPDATE ${subscription} SET credits_used = MAX(0, credits_used - ${cost}) WHERE user_id = ${userId} AND credits_month = ${creditMonth()}`);

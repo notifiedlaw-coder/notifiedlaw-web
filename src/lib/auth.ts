@@ -198,6 +198,12 @@ export function getDb() {
 
 /** The plan a subscription row grants: its paid plan or a live promo plan, whichever is higher; else None. */
 export const planOf = (row: { plan: string; promoPlan?: string | null; promoUntil?: Date | null } | undefined): Plan => effectivePlan(row);
+/** This month (UTC) as YYYY-MM: credits are counted per calendar month. */
+export const creditMonth = (now = new Date()) => now.toISOString().slice(0, 7);
+/** Credits used this month: a count from an earlier month is spent history, so it reads as 0. */
+export const usedThisMonth = (row: { creditsUsed: number; creditsMonth: string } | undefined) =>
+  row && row.creditsMonth === creditMonth() ? row.creditsUsed : 0;
+
 /** The subscription columns planOf needs. */
 export const planCols = { plan: schema.subscription.plan, promoPlan: schema.subscription.promoPlan, promoUntil: schema.subscription.promoUntil };
 
@@ -233,7 +239,7 @@ export async function meFor(userId: string): Promise<Me> {
       ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",
       jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
     } as Me["profile"] : null,
-    subscription: { plan: planOf(s), creditsUsed: s?.creditsUsed ?? 0, promoUntil: s?.promoUntil && planOf(s) !== planOf({ plan: s.plan }) ? s.promoUntil.getTime() : null },
+    subscription: { plan: planOf(s), creditsUsed: usedThisMonth(s), promoUntil: s?.promoUntil && planOf(s) !== planOf({ plan: s.plan }) ? s.promoUntil.getTime() : null },
     student: st ? {
       email: st.email, university: st.university, studentId: st.studentId ?? "",
       verifiedAt: st.verifiedAt.getTime(), eligible: studentEligible(st.verifiedAt.getTime()),

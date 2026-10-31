@@ -74,6 +74,7 @@ export const subscription = sqliteTable("subscription", {
   userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
   plan: text("plan").notNull().default("None"), // None | Student | Pro | Pro Max
   creditsUsed: integer("credits_used").notNull().default(0),
+  creditsMonth: text("credits_month").notNull().default(""), // YYYY-MM (UTC) creditsUsed counts; another month counts as 0
   // A plan granted by a promo code, on top of the plan above, until promoUntil. It never replaces `plan`, so a
   // Student plan is still there when the promo ends.
   promoPlan: text("promo_plan"),

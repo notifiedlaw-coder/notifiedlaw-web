@@ -1,4 +1,4 @@
-import { getDb, studentOf, userIdFrom } from "@/lib/auth";
+import { creditMonth, getDb, studentOf, userIdFrom } from "@/lib/auth";
 import { subscription } from "@/db/schema";
 import { DEMO_BILLING } from "@/lib/site";
 import { limited } from "@/lib/rate-limit";
@@ -22,7 +22,9 @@ export async function PUT(req: Request) {
     if (!st || !studentEligible(st.verifiedAt.getTime())) return Response.json({ error: "The Student plan needs a student account verified in the last year." }, { status: 403 });
   }
   const now = new Date();
-  await getDb().insert(subscription).values({ userId: id, updatedAt: now, ...s })
-    .onConflictDoUpdate({ target: subscription.userId, set: { ...s, updatedAt: now } });
+  // A count set here is this month's.
+  const set = s.creditsUsed !== undefined ? { ...s, creditsMonth: creditMonth(now) } : s;
+  await getDb().insert(subscription).values({ userId: id, updatedAt: now, ...set })
+    .onConflictDoUpdate({ target: subscription.userId, set: { ...set, updatedAt: now } });
   return Response.json({ ok: true });
 }
