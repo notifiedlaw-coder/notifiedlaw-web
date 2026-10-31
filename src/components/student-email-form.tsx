@@ -52,9 +52,9 @@ export function StudentEmailForm({ cta }: { cta: string }) {
 
   if (sent)
     return (
-      <div className="flex flex-col gap-3 rounded-xl bg-fill p-4 text-sm">
+      <div className="flex flex-col gap-3 rounded-[18px] bg-tint p-5 text-[15px]">
         <p className="m-0"><b>Check your inbox.</b> We sent a link to <b>{sent.email}</b>. Open it within {LINK_MINUTES} minutes, on any device. Check your junk folder if you do not see it.</p>
-        {error && <p className="m-0 text-red" role="alert">{error}</p>}
+        {error && <p className="m-0 text-plum" role="alert">{error}</p>}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button type="button" className="text-muted" onClick={() => { setValue(sent.email); setSent(null); setError(""); }}>Use a different email</button>
           <button type="button" className="font-semibold text-blue disabled:opacity-50" disabled={busy || left > 0 || !token} onClick={() => void send(sent.email)}>{busy ? "Sending…" : left > 0 ? `Resend in ${left}s` : "Resend link"}</button>
@@ -65,13 +65,13 @@ export function StudentEmailForm({ cta }: { cta: string }) {
 
   return (
     <form className="flex flex-col gap-2.5" onSubmit={(e) => { e.preventDefault(); void send(value); }}>
-      <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-ink">University email
-        <input type="email" inputMode="email" autoComplete="email" value={value} onChange={(e) => { setValue(e.target.value); setError(""); }} maxLength={254} placeholder="you@st.ug.edu.gh" aria-invalid={!!error} className={fieldCls} />
+      <label className="flex flex-col gap-1.5 text-[14px] font-semibold text-ink">University email
+        <input type="email" inputMode="email" autoComplete="email" value={value} onChange={(e) => { setValue(e.target.value); setError(""); }} maxLength={254} placeholder="you@st.ug.edu.gh" aria-invalid={!!error} className={`${fieldCls} h-[52px]! rounded-[14px]! text-[17px]!`} />
       </label>
       {check}
-      {error && <p className="m-0 text-sm text-red" role="alert">{error}</p>}
-      <button type="submit" disabled={busy || !value.trim() || !token} className="h-11 rounded-full bg-blue px-4 text-[15px] font-semibold text-white disabled:opacity-50">{busy ? "Sending…" : cta}</button>
-      <details className="text-xs text-muted">
+      {error && <p className="m-0 text-[14px] text-plum" role="alert">{error}</p>}
+      <button type="submit" disabled={busy || !value.trim() || !token} className="h-[52px] rounded-full bg-blue px-4 text-[17px] font-semibold text-white hover:bg-blue-press disabled:opacity-50">{busy ? "Sending…" : cta}</button>
+      <details className="text-[14px] text-muted">
         <summary className="cursor-pointer">Supported universities</summary>
         <p className="m-0 mt-1.5">{UNIVERSITIES.map((u) => u.name).join(", ")}. Not listed? Email notifiedlaw@gmail.com.</p>
       </details>

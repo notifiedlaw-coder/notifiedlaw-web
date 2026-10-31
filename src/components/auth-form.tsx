@@ -4,6 +4,7 @@ import { Roboto } from "next/font/google";
 import Link from "next/link";
 import { useState } from "react";
 import { StudentEmailForm } from "@/components/student-email-form";
+import { LogoMark, Wordmark } from "@/components/app-shell";
 import { authClient } from "@/lib/auth-client";
 import { PLAN_PRICES, cedis } from "@/lib/content";
 
@@ -37,37 +38,39 @@ export default function AuthForm({ mode, elsewhere = false }: { mode: "login" | 
     if (error) setBusy(false);
   };
   const googleBtn = (
-    <button type="button" onClick={google} disabled={busy} className={`google-btn ${roboto.className} flex h-11 cursor-pointer items-center justify-center gap-2.5 rounded-full px-4 text-[15px] disabled:opacity-60`}>
+    <button type="button" onClick={google} disabled={busy} className={`google-btn ${roboto.className} flex h-[52px] cursor-pointer items-center justify-center gap-2.5 rounded-full px-4 text-[16px] disabled:opacity-60`}>
       <GoogleG />
       {busy ? "Redirecting to Google…" : "Continue with Google"}
     </button>
   );
-  const back = <button type="button" onClick={() => setPath("choose")} className="self-start text-sm text-muted">← Back</button>;
+  const back = <button type="button" onClick={() => setPath("choose")} className="self-start text-[15px] font-semibold text-link">‹ Back</button>;
+  const h = "m-0 text-[40px] leading-[1.02] md:text-[44px]";
+  const lede = "m-0 text-[16px] leading-normal text-muted";
 
   let body: React.ReactNode;
   if (login) {
     body = (
       <>
-        <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">Sign in to NotifiedLaw</h2>
-        <p className="m-0 text-sm text-muted">Professionals sign in with Google.</p>
+        <h2 className={h}>Welcome.</h2>
+        <p className={lede}>Professionals sign in with Google. Students use their university email.</p>
         {googleBtn}
-        <div className="my-1 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-edge/10" />Students<span className="h-px flex-1 bg-edge/10" /></div>
+        <div className="my-1 flex items-center gap-3 text-[13px] text-faint"><span className="h-px flex-1 bg-edge/10" />Students<span className="h-px flex-1 bg-edge/10" /></div>
         <StudentEmailForm cta="Email me a sign-in link" />
       </>
     );
   } else if (path === "choose") {
     body = (
       <>
-        <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">Create your account</h2>
-        <p className="m-0 text-sm text-muted">Which describes you?</p>
-        <div className="flex flex-col gap-2">
+        <h2 className={h}>Welcome.</h2>
+        <p className={lede}>Which describes you?</p>
+        <div className="flex flex-col gap-2.5">
           {([
             ["student", "I’m a student", `Student plan from ${cedis(PLAN_PRICES.Student)} a month. Needs your university email.`],
             ["professional", "I’m a professional", "Senior Judicial (Pro) or Supreme Justice (Max). Sign up with Google."],
           ] as const).map(([id, title, hint]) => (
-            <button key={id} type="button" onClick={() => setPath(id)} className="rounded-xl bg-surface px-4 py-3.5 text-left shadow-[0_0_0_0.5px_var(--hairline)] hover:shadow-[0_0_0_2px_#23305C]">
-              <div className="text-[15px] font-semibold">{title}</div>
-              <div className="text-xs text-muted">{hint}</div>
+            <button key={id} type="button" onClick={() => setPath(id)} className="rounded-[18px] border border-edge/15 bg-surface px-5 py-4 text-left hover:border-transparent hover:shadow-[0_0_0_2px_var(--primary)]">
+              <div className="font-display text-[24px] leading-tight">{title}</div>
+              <div className="mt-1 text-[14px] text-muted">{hint}</div>
             </button>
           ))}
         </div>
@@ -77,8 +80,8 @@ export default function AuthForm({ mode, elsewhere = false }: { mode: "login" | 
     body = (
       <>
         {back}
-        <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">Verify you’re a student</h2>
-        <p className="m-0 text-sm text-muted">Enter the email your university gave you. We’ll send a link to confirm it, then you’ll set up your profile and choose your plan.</p>
+        <h2 className={h}>Verify you’re a student.</h2>
+        <p className={lede}>Enter the email your university gave you. We’ll send a link to confirm it, then you’ll set up your profile and choose your plan.</p>
         <StudentEmailForm cta="Send verification link" />
       </>
     );
@@ -86,8 +89,8 @@ export default function AuthForm({ mode, elsewhere = false }: { mode: "login" | 
     body = (
       <>
         {back}
-        <h2 className="text-xl font-bold md:text-2xl tracking-[-0.02em]">Sign up as a professional</h2>
-        <p className="m-0 text-sm text-muted">Continue with your Google account, set up your profile, then choose Senior Judicial (Pro) or Supreme Justice (Max).</p>
+        <h2 className={h}>Sign up as a professional.</h2>
+        <p className={lede}>Continue with your Google account, set up your profile, then choose Senior Judicial (Pro) or Supreme Justice (Max).</p>
         {googleBtn}
       </>
     );
@@ -108,29 +111,33 @@ export default function AuthForm({ mode, elsewhere = false }: { mode: "login" | 
           fetchPriority="high"
           className="absolute inset-0 size-full object-cover object-[50%_15%]"
         />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(28,28,30,0.2) 0%, rgba(28,28,30,0.75) 45%, rgba(28,28,30,0.97) 100%)" }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(22,26,38,0.15) 0%, rgba(22,26,38,0.7) 45%, rgba(22,26,38,0.96) 100%)" }} />
         <div className="relative flex flex-col gap-2 md:gap-4">
-          <Link href="/" aria-label="NotifiedLaw home" className="w-fit text-[17px] font-semibold" style={{ color: "#fff", textDecoration: "none" }}>Notified<span className="font-normal text-amber-soft">Law</span></Link>
-          <h1 className="text-balance text-[26px] font-bold leading-[1.05] tracking-[-0.04em] sm:text-3xl md:text-6xl md:tracking-[-0.045em]">Ghanaian law, made learnable.</h1>
-          <ul className="hidden flex-col gap-2 text-[15px] text-white/80 md:flex">
+          <Link href="/" aria-label="NotifiedLaw home" className="w-fit" style={{ color: "#F6F5F2", textDecoration: "none" }}><Wordmark className="text-[24px] md:text-[28px]" /></Link>
+          <h1 className="m-0 text-balance text-[30px] leading-[1.02] sm:text-[38px] md:text-[60px]">Ghanaian law, made learnable.</h1>
+          <ul className="m-0 hidden list-none flex-col gap-2 p-0 text-[16px] text-[#CFD3DE] md:flex">
             {BULLETS.map((b) => <li key={b} className="flex items-center gap-2.5"><span aria-hidden className="size-1.5 rounded-full bg-amber-soft" />{b}</li>)}
           </ul>
         </div>
       </div>
-      <main id="main" tabIndex={-1} className="relative flex items-start justify-center bg-surface px-5 py-6 sm:px-6 md:items-center md:py-10">
-        <Link href="/" className="absolute right-5 top-5 hidden text-sm font-medium md:block" style={{ color: "var(--color-link)", textDecoration: "none" }}>← Back to home</Link>
-        <div className="flex w-full max-w-[360px] flex-col gap-3">
+      <main id="main" tabIndex={-1} className="nl-scale relative flex items-start justify-center bg-canvas px-[18px] py-8 sm:px-6 md:items-center md:py-10">
+        <Link href="/" className="absolute right-6 top-6 hidden text-[15px] font-semibold md:block" style={{ color: "var(--color-link)", textDecoration: "none" }}>‹ Back to home</Link>
+        <div className="flex w-full max-w-[400px] flex-col gap-4">
+          <Link href="/" aria-label="NotifiedLaw home" className="mb-2 hidden w-fit items-center gap-2.5 text-ink! no-underline md:flex">
+            <LogoMark />
+            <Wordmark className="text-[26px]" />
+          </Link>
           {elsewhere && (
-            <p role="status" className="m-0 rounded-xl bg-fill p-4 text-sm">
+            <p role="status" className="m-0 rounded-[18px] bg-tint p-4 text-[15px]">
               <b>You were signed out because you signed in on another device.</b> An account can be signed in on one device at a time. Sign in again to use NotifiedLaw here; that signs out the other device.
             </p>
           )}
           {body}
-          <p className="text-center text-sm text-muted">
+          <p className="m-0 text-center text-[15px] text-muted">
             {login ? "New here? " : "Already have an account? "}
-            <Link href={login ? "/signup" : "/login"} style={{ color: "var(--color-link)" }}>{login ? "Create an account" : "Sign in"}</Link>
+            <Link href={login ? "/signup" : "/login"} className="font-semibold" style={{ color: "var(--color-link)" }}>{login ? "Create an account" : "Sign in"}</Link>
           </p>
-          <p className="text-center text-xs text-muted">By continuing you agree to the <Link href="/terms-of-service" style={{ color: "var(--color-link)" }}>Terms</Link> and <Link href="/privacy" style={{ color: "var(--color-link)" }}>Privacy Policy</Link>.</p>
+          <p className="m-0 text-center text-[13px] text-faint">By continuing you agree to the <Link href="/terms-of-service" style={{ color: "var(--color-link)" }}>Terms</Link> and <Link href="/privacy" style={{ color: "var(--color-link)" }}>Privacy Policy</Link>.</p>
         </div>
       </main>
     </div>
