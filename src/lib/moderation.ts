@@ -39,6 +39,21 @@ export async function block(userId: string, otherId: string) {
   await leaveGroupCalls(userId, theirs.map((g) => g.id));
 }
 
+/**
+ * Whether the user could have come across the other account: a friendship or request either way, or a group they are
+ * both in. Blocking needs it, so an id cannot be blocked blind and then read back with a name and picture.
+ */
+export async function related(userId: string, otherId: string) {
+  const db = getDb();
+  const mine = db.select({ id: groupMember.groupId }).from(groupMember).where(eq(groupMember.userId, userId));
+  const [[f], [g]] = await Promise.all([
+    db.select({ x: friendship.fromId }).from(friendship)
+      .where(or(and(eq(friendship.fromId, userId), eq(friendship.toId, otherId)), and(eq(friendship.fromId, otherId), eq(friendship.toId, userId)))).limit(1),
+    db.select({ x: groupMember.userId }).from(groupMember).where(and(eq(groupMember.userId, otherId), inArray(groupMember.groupId, mine))).limit(1),
+  ]);
+  return !!(f || g);
+}
+
 export async function unblock(userId: string, otherId: string) {
   await getDb().delete(userBlock).where(and(eq(userBlock.blockerId, userId), eq(userBlock.blockedId, otherId)));
 }
@@ -71,7 +86,10 @@ export async function report(userId: string, kind: ReportKind, target: string, r
     if (!m) return "That message is no longer available.";
     snapshot = JSON.stringify({ group: m.m.groupId, from: m.m.fromId, body: m.m.body, at: m.m.createdAt.getTime() });
   } else if (kind === "group") {
-    const [g] = await db.select().from(chatGroup).where(eq(chatGroup.id, target));
+    // Members only: someone outside a group has not seen it, so their report would only add noise.
+    const [g] = await db.select({ g: chatGroup }).from(chatGroup)
+      .innerJoin(groupMember, and(eq(groupMember.groupId, chatGroup.id), eq(groupMember.userId, userId)))
+      .where(eq(chatGroup.id, target)).then((r) => r.map((x) => x.g));
     if (!g) return "That group no longer exists.";
     snapshot = JSON.stringify({ name: g.name, owner: g.ownerId, avatar: g.avatarKey });
   }

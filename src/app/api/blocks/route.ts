@@ -1,7 +1,7 @@
 import { userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
 import { readJson } from "@/lib/http";
-import { block, blockedBy, unblock } from "@/lib/moderation";
+import { block, blockedBy, related, unblock } from "@/lib/moderation";
 
 /** GET /api/blocks: the accounts the signed-in user has blocked. */
 export async function GET(req: Request) {
@@ -21,7 +21,10 @@ export async function POST(req: Request) {
   const b = (await readJson(req)) as { userId?: unknown; on?: unknown } | null;
   const other = typeof b?.userId === "string" && b.userId.length <= 64 ? b.userId : "";
   if (!other || other === userId || typeof b?.on !== "boolean") return Response.json({ error: "Choose someone." }, { status: 400 });
-  if (b.on) await block(userId, other);
+  if (b.on) {
+    if (!(await related(userId, other))) return Response.json({ error: "Choose someone." }, { status: 400 });
+    await block(userId, other);
+  }
   else await unblock(userId, other);
   return Response.json({ blocked: await blockedBy(userId) });
 }
