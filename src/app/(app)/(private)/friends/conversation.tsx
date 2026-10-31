@@ -9,13 +9,13 @@ import { useFriends } from "@/components/friends";
 import { ReportSheet, type ReportTarget } from "@/components/report";
 import { Sheet } from "@/components/sheet";
 import { MESSAGE_RULE, ONLINE_MS, seenLabel, type FriendLists, type Message } from "@/lib/friend-view";
-import { ChatView, HeaderButton, InfoIcon, PhoneIcon, VideoIcon, type ChatMessage } from "./chat";
+import { ChatView, HeaderButton, InfoIcon, PhoneIcon, type ChatMessage } from "./chat";
 import { StreakTag, useFriendsShell } from "./friends-shell";
 
 /** How often an open conversation checks for new messages while the page is visible. */
 const POLL_MS = 4_000;
 
-/** A conversation with one friend: messages, polled while open, voice and video calls, report and block. */
+/** A conversation with one friend: messages, polled while open, voice calls, report and block. */
 export function Conversation({ friendId, initial, initialSeen }: { friendId: string; initial: Message[]; initialSeen: number | null }) {
   const router = useRouter();
   const { lists, setLists, reload, now, setBlocked } = useFriendsShell();
@@ -101,8 +101,7 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
         </span>
         <span className={`truncate text-[12px] ${online ? "font-medium text-green" : "text-muted"}`}>{seenLabel(friend.lastSeen, now)}</span>
       </span>
-      <HeaderButton label="Voice call" onClick={() => start({ friendId }, friend.name, false)}><PhoneIcon /></HeaderButton>
-      <HeaderButton label="Video call" onClick={() => start({ friendId }, friend.name, true)}><VideoIcon /></HeaderButton>
+      <HeaderButton label="Voice call" onClick={() => start({ friendId }, friend.name)}><PhoneIcon /></HeaderButton>
       <HeaderButton label="More" onClick={() => setOptions(true)}><InfoIcon /></HeaderButton>
     </header>
   );

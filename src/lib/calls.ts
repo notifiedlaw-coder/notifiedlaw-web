@@ -12,7 +12,8 @@ export const RING_MS = 45_000;
 const PRESENT_MS = 20_000;
 /** Calls one account may start in an hour. */
 const CALLS_PER_HOUR = 20;
-export const TRACK_NAMES = ["audio", "video"] as const;
+/** Calls are voice only. */
+export const TRACK_NAMES = ["audio"] as const;
 
 type Row = typeof call.$inferSelect;
 type Published = { name: string; mid: string };
@@ -91,7 +92,7 @@ async function currentCall(userId: string) {
  * Starts a call with a friend or a group. A group with a call already going returns that call to join instead, and
  * so does a direct call already open between the two.
  */
-export async function startCall(userId: string, target: { friendId?: string; groupId?: string }, video: boolean): Promise<CallInfo> {
+export async function startCall(userId: string, target: { friendId?: string; groupId?: string }): Promise<CallInfo> {
   if (!sfuConfigured(env())) throw new CallError("Calls are not available yet.", 503);
   const db = getDb();
   const now = Date.now();
@@ -119,7 +120,7 @@ export async function startCall(userId: string, target: { friendId?: string; gro
   if ((recent?.n ?? 0) >= CALLS_PER_HOUR) throw new CallError("You have started a lot of calls. Try again in a while.", 429);
 
   const row: Row = {
-    id: crypto.randomUUID(), groupId: target.groupId ?? null, callerId: userId, calleeId: target.friendId ?? null, video,
+    id: crypto.randomUUID(), groupId: target.groupId ?? null, callerId: userId, calleeId: target.friendId ?? null, video: false,
     startedAt: new Date(now), endsAt: new Date(now + MAX_CALL_MS), endedAt: null, endReason: null,
   };
   await db.insert(call).values(row);
@@ -182,11 +183,11 @@ async function me(userId: string, callId: string) {
   return p;
 }
 
-/** Publishes the user's microphone and camera; returns the SFU's answer for the browser. */
+/** Publishes the user's microphone; returns the SFU's answer for the browser. */
 export async function publish(userId: string, callId: string, offer: string, tracks: { mid: string; name: string }[]) {
   const p = await me(userId, callId);
   const names = tracks.map((t) => t.name);
-  if (!tracks.length || tracks.length > 2 || new Set(names).size !== names.length || !names.every((n) => (TRACK_NAMES as readonly string[]).includes(n)))
+  if (!tracks.length || tracks.length > TRACK_NAMES.length || new Set(names).size !== names.length || !names.every((n) => (TRACK_NAMES as readonly string[]).includes(n)))
     throw new CallError("Unexpected tracks.");
   const res = await pushTracks(env(), p.sessionId, offer, tracks.map((t) => ({ mid: t.mid, trackName: t.name })));
   const published: Published[] = [...(JSON.parse(p.tracks) as Published[]).filter((t) => !names.includes(t.name)), ...tracks];

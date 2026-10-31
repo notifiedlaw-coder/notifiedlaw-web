@@ -8,7 +8,7 @@ import { useFriends } from "@/components/friends";
 import { ReportSheet, type ReportTarget } from "@/components/report";
 import { Sheet } from "@/components/sheet";
 import { GROUP_MESSAGE_RULE, MAX_GROUP_MEMBERS, MAX_GROUP_NAME, type GroupDetail, type GroupMessage } from "@/lib/friend-view";
-import { ChatView, HeaderButton, InfoIcon, PhoneIcon, VideoIcon, type ChatMessage } from "./chat";
+import { ChatView, HeaderButton, InfoIcon, PhoneIcon, type ChatMessage } from "./chat";
 import { SheetRow } from "./conversation";
 import { Check, uploadPhoto, useFriendsShell } from "./friends-shell";
 
@@ -84,11 +84,8 @@ export function GroupConversation({ initialGroup, initial }: { initialGroup: Gro
         </span>
       </button>
       {callOn
-        ? <button type="button" onClick={() => start({ groupId: group.id }, group.name, false)} className="h-9 shrink-0 rounded-full border-0 bg-green px-4 text-[15px] font-semibold text-white">Join</button>
-        : <>
-          <HeaderButton label="Group voice call" onClick={() => start({ groupId: group.id }, group.name, false)}><PhoneIcon /></HeaderButton>
-          <HeaderButton label="Group video call" onClick={() => start({ groupId: group.id }, group.name, true)}><VideoIcon /></HeaderButton>
-        </>}
+        ? <button type="button" onClick={() => start({ groupId: group.id }, group.name)} className="h-9 shrink-0 rounded-full border-0 bg-green px-4 text-[15px] font-semibold text-white">Join</button>
+        : <HeaderButton label="Group voice call" onClick={() => start({ groupId: group.id }, group.name)}><PhoneIcon /></HeaderButton>}
       <HeaderButton label="Group info" onClick={() => setInfo(true)}><InfoIcon /></HeaderButton>
     </header>
   );

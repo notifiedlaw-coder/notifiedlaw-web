@@ -13,7 +13,7 @@ const str = (v: unknown, max: number) => (typeof v === "string" && v.length <= m
 /**
  * POST /api/calls/<id>/<action>, the call screen's signalling:
  * - join: a fresh SFU session; returns ICE servers and when the call must end.
- * - publish { sdp, tracks: [{ mid, name: audio|video }] }: returns the SFU's answer.
+ * - publish { sdp, tracks: [{ mid, name: audio }] }: returns the SFU's answer.
  * - subscribe { tracks: [{ userId, name }] }: returns an offer to answer (or none) and the mid of each track.
  * - answer { sdp }: the answer to a subscribe offer.
  * - leave, decline.

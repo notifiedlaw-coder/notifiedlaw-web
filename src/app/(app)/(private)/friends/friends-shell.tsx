@@ -53,8 +53,10 @@ export function FriendsShell({ me, initialLists, initialThreads, initialGroups, 
   const [blocked, setBlocked] = useState(initialBlocked);
   const [now, setNow] = useState(() => Date.now());
 
+  // Friends too, so a request accepted on someone else's phone (and who is online) shows within seconds.
   const reload = useCallback(() => {
     const get = <T,>(url: string) => fetch(url).then((r) => (r.ok ? (r.json() as Promise<T>) : null)).catch(() => null);
+    void get<FriendLists>("/api/friends").then((d) => d && setListsState(d));
     void get<{ threads: Thread[] }>("/api/messages").then((d) => d && setThreads(d.threads));
     void get<{ groups: GroupSummary[] }>("/api/groups").then((d) => d && setGroups(d.groups));
   }, []);
