@@ -40,60 +40,63 @@ export function Checkout() {
 
   if (target === "Student" && !student?.eligible)
     return (
-      <div className="mx-auto flex max-w-[480px] flex-col items-center gap-3 px-5 py-20 text-center">
-        <h1 className="text-2xl font-bold">The Student plan needs a verified student account</h1>
-        <p className="text-sm text-muted">{student ? "Your student verification is over a year old. Re-verify from Plans." : "Create a student account with your university email to choose it."}</p>
+      <div className="mx-auto flex max-w-[520px] flex-col items-center gap-4 px-[18px] py-20 text-center">
+        <h1 className="m-0 text-[36px] leading-[1.05]">The Student plan needs a verified student account.</h1>
+        <p className="m-0 text-[16px] text-muted">{student ? "Your student verification is over a year old. Re-verify from Plans." : "Create a student account with your university email to choose it."}</p>
         <Btn href="/plans">Back to plans</Btn>
       </div>
     );
 
   if (stage !== "form")
     return (
-      <div className="mx-auto flex max-w-[480px] flex-col items-center gap-3 px-5 py-20 text-center">
-        <div className="flex size-16 items-center justify-center rounded-full text-3xl text-white" style={{ background: stage === "done" ? "#34C759" : "#C4552B" }}>{stage === "done" ? "✓" : "…"}</div>
-        <h1 className="text-2xl font-bold" aria-live="polite">{stage === "done" ? `You’re on ${PLAN_NAMES[target]}` : "Approve the prompt on your phone"}</h1>
-        <p className="text-sm text-muted">{stage === "done" ? "Everything is unlocked. Happy studying." : `We sent a ${NETWORKS[net].label} request to +233 ${phone}.`}</p>
+      <div className="mx-auto flex max-w-[520px] flex-col items-center gap-4 px-[18px] py-20 text-center">
+        <div className="flex size-16 items-center justify-center rounded-full text-3xl text-white" style={{ background: stage === "done" ? "var(--primary)" : "#E0683A" }}>{stage === "done" ? "✓" : "…"}</div>
+        <h1 className="m-0 text-[36px] leading-[1.05]" aria-live="polite">{stage === "done" ? `You’re on ${PLAN_NAMES[target]}` : "Approve the prompt on your phone"}</h1>
+        <p className="m-0 text-[16px] text-muted">{stage === "done" ? "Everything is unlocked. Happy studying." : `We sent a ${NETWORKS[net].label} request to +233 ${phone}.`}</p>
         {stage === "done" && <Btn href="/dashboard">Go to Home</Btn>}
       </div>
     );
 
   return (
-    <div className="mx-auto grid max-w-[880px] gap-6 px-5 pb-12 pt-8 md:px-10 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <section className="flex flex-col gap-5">
-        <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.02em]">Subscribe to {item}</h1>
-          <p className="mt-1 text-sm text-muted">Pay securely with Mobile Money or card.</p>
-        </div>
+    <div className="mx-auto grid w-full max-w-[960px] gap-7 px-[18px] pb-12 pt-5 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:px-8 md:pt-7 lg:px-14 lg:pt-10">
+      <section className="flex flex-col gap-6">
+        <header className="flex flex-col gap-2">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Last step</div>
+          <h1 className="m-0 text-[38px] leading-[1.02] md:text-[46px]">Subscribe to {item.split(" (")[0]}.</h1>
+          <p className="m-0 text-[17px] text-muted">Pay securely with Mobile Money.</p>
+        </header>
+        <div className="flex flex-col gap-4 rounded-[22px] border border-edge/10 bg-surface p-5 sm:p-6">
         <div className="flex flex-col gap-2">
-          <div className="text-xs font-semibold text-muted">Mobile Money network</div>
+          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Mobile Money network</div>
           <div className="grid gap-2 sm:grid-cols-3">
             {NETWORKS.map((n, i) => (
-              <button key={n.label} type="button" aria-pressed={i === net} onClick={() => setNet(i)} className="flex items-center gap-2.5 rounded-xl bg-surface px-3 py-2.5 text-left text-[13px] font-medium" style={{ boxShadow: i === net ? "0 0 0 2px #23305C" : "0 0 0 0.5px var(--hairline)" }}>
-                <span className="flex size-7 items-center justify-center rounded-md text-[10px] font-bold" style={{ background: n.bg, color: n.fg }}>{n.mark}</span>{n.label}
+              <button key={n.label} type="button" aria-pressed={i === net} onClick={() => setNet(i)} className="flex h-14 items-center gap-3 rounded-[14px] px-3.5 text-left text-[15px] font-medium" style={{ background: i === net ? "var(--tint)" : "var(--surface)", boxShadow: i === net ? "0 0 0 2px var(--primary)" : "0 0 0 1px color-mix(in srgb, var(--ink) 15%, transparent)" }}>
+                <span className="flex size-8 items-center justify-center rounded-[8px] text-[11px] font-bold" style={{ background: n.bg, color: n.fg }}>{n.mark}</span>{n.label}
               </button>
             ))}
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <label htmlFor="momo-phone" className="text-xs font-semibold text-muted">Phone number</label>
-          <div className="flex h-10 items-center gap-2 rounded-[10px] bg-surface px-3 shadow-[0_0_0_0.5px_var(--hairline)]">
-            <span className="text-sm text-muted">+233</span>
-            <input id="momo-phone" type="tel" autoComplete="tel-national" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d\s]/g, ""))} onBlur={() => setPhoneTouched(true)} maxLength={13} aria-invalid={phoneTouched && !momo} aria-describedby="momo-hint" inputMode="tel" className="flex-1 bg-transparent text-sm outline-none" />
+          <label htmlFor="momo-phone" className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Phone number</label>
+          <div className="flex h-[52px] items-center gap-2.5 rounded-[14px] border border-edge/15 bg-surface px-4 focus-within:border-transparent focus-within:shadow-[0_0_0_2px_var(--primary)]">
+            <span className="text-[17px] text-muted">+233</span>
+            <input id="momo-phone" type="tel" autoComplete="tel-national" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d\s]/g, ""))} onBlur={() => setPhoneTouched(true)} maxLength={13} aria-invalid={phoneTouched && !momo} aria-describedby="momo-hint" inputMode="tel" className="min-w-0 flex-1 bg-transparent text-[17px] outline-none" />
           </div>
-          <p id="momo-hint" className={`text-xs ${phoneTouched && !momo ? "text-red" : "text-muted"}`} role={phoneTouched && !momo ? "alert" : undefined}>{phoneTouched && !momo ? "Enter a 9-digit Ghana mobile number, like 24 123 4567." : "You’ll get a prompt on this number to approve the payment."}</p>
+          <p id="momo-hint" className={`m-0 text-[14px] ${phoneTouched && !momo ? "text-plum" : "text-muted"}`} role={phoneTouched && !momo ? "alert" : undefined}>{phoneTouched && !momo ? "Enter a 9-digit Ghana mobile number, like 24 123 4567." : "You’ll get a prompt on this number to approve the payment."}</p>
         </div>
         {DEMO_BILLING ? (
-          <Btn onClick={pay} disabled={!momo} className="h-11 text-[15px] sm:h-11 sm:text-[15px]">Pay {price}</Btn>
+          <Btn onClick={pay} disabled={!momo} className="h-[52px]! text-[17px]!">Pay {price}</Btn>
         ) : (
-          <p className="m-0 rounded-xl bg-fill px-4 py-3 text-sm text-muted">Payments are not open yet, so your plan has not changed. We will announce it when they are.</p>
+          <p className="m-0 rounded-[14px] bg-fill px-4 py-3 text-[15px] text-muted">Payments are not open yet, so your plan has not changed. We will announce it when they are.</p>
         )}
+        </div>
       </section>
-      <aside className="h-fit rounded-2xl bg-surface p-5 shadow-card">
-        <div className="text-xs font-semibold text-muted">Order summary</div>
-        <div className="mt-2 flex justify-between text-sm"><span>{item}</span><span className="font-semibold">{price}</span></div>
-        <div className="mt-1 text-xs text-muted">Monthly · cancel anytime</div>
-        <div className="mt-3 border-t border-edge/10 pt-3"><PromoCode /></div>
-        <div className="mt-3 border-t border-edge/10 pt-3 text-xs text-muted">Changed your mind? <Link href="/plans">Back to plans</Link></div>
+      <aside className="h-fit rounded-[22px] bg-tint p-6 md:mt-[118px]">
+        <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Order summary</div>
+        <div className="mt-3 flex items-baseline justify-between gap-3"><span className="text-[16px]">{item}</span><span className="font-display text-[30px] leading-none">{price}</span></div>
+        <div className="mt-1 text-[14px] text-muted">Monthly · cancel anytime</div>
+        <div className="mt-4 border-t border-edge/10 pt-4"><PromoCode /></div>
+        <div className="mt-4 border-t border-edge/10 pt-4 text-[14px] text-muted">Changed your mind? <Link href="/plans">Back to plans</Link></div>
       </aside>
     </div>
   );
