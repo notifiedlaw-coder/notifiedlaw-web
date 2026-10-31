@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   /* config options here */
   // Keep the dev badge off the sidebar's user card.
   devIndicators: { position: "bottom-right" },
+  // Dev only: lets a phone on the same Wi-Fi load the app's scripts from this Mac (by its local IP or .local name).
+  // Without it the dev server answers 403 to them and the page arrives without JavaScript.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "172.*.*.*", "*.local"],
   async redirects() {
     return [{
       source: "/:path*",
