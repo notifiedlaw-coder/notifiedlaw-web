@@ -65,10 +65,18 @@ export function getAuth() {
     },
     user: {
       // Settings > Delete account. Accounts have no password, so Better Auth instead refuses unless the session
-      // was created in the last day (freshAge). D1 rows go by cascade; the R2 objects are removed afterwards,
-      // by the user's key prefix. The import is lazy because files.ts imports this file.
+      // was created in the last day (freshAge). D1 rows go by cascade. Before that, the account's calls are ended
+      // at the SFU and the pictures of groups it owns are removed, since both are found through rows the cascade
+      // deletes; its own R2 objects are removed afterwards, by key prefix. The imports are lazy because both
+      // modules import this file.
       deleteUser: {
         enabled: true,
+        beforeDelete: async (u) => {
+          await (await import("@/lib/calls")).endCallsOf(u.id);
+          const { purgePrefix } = await import("@/lib/files");
+          const owned = await db.select({ id: schema.chatGroup.id }).from(schema.chatGroup).where(eq(schema.chatGroup.ownerId, u.id));
+          for (const g of owned) await purgePrefix(`avatars/g/${g.id}/`);
+        },
         afterDelete: async (u) => { await (await import("@/lib/files")).purgeUserObjects(u.id); },
       },
     },

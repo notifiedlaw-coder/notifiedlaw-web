@@ -145,15 +145,21 @@ export async function dropFiles(rows: { id: string; key: string }[]) {
   }
 }
 
-/** Removes every object a user has stored. Used when the account is deleted, after its rows are gone. */
-export async function purgeUserObjects(userId: string) {
+/** Deletes every object under a key prefix. */
+export async function purgePrefix(prefix: string) {
   const bucket = filesBucket();
   let cursor: string | undefined;
   do {
-    const page = await bucket.list({ prefix: fileKey(userId, ""), cursor, limit: 1000 });
+    const page = await bucket.list({ prefix, cursor, limit: 1000 });
     if (page.objects.length) await bucket.delete(page.objects.map((o) => o.key));
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
+}
+
+/** Removes every object a user has stored: files and profile picture. Used when the account is deleted, after its rows are gone. */
+export async function purgeUserObjects(userId: string) {
+  await purgePrefix(fileKey(userId, ""));
+  await purgePrefix(`avatars/u/${userId}/`);
 }
 
 /**
