@@ -72,7 +72,7 @@ export function FriendsShell({ me, initialLists, initialThreads, initialGroups, 
   return (
     <ShellCtx.Provider value={ctx}>
       <div className="flex h-full min-h-0">
-        <aside aria-label="Friends" className={`${selected ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col overflow-y-auto overscroll-contain border-edge/10 bg-canvas md:w-[360px] md:border-r lg:w-[400px]`}>
+        <aside aria-label="Friends" className={`${selected ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col overflow-y-auto overscroll-contain border-edge/10 bg-canvas md:w-[340px] md:border-r lg:w-[380px]`}>
           <FriendsList selected={selected} streak={streak} blocked={blocked} />
         </aside>
         <section aria-label="Conversation" className={`${selected ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col bg-canvas`}>{children}</section>
@@ -83,9 +83,9 @@ export function FriendsShell({ me, initialLists, initialThreads, initialGroups, 
 
 // ---- The list --------------------------------------------------------------------------------------------------------
 
-const label = "m-0 text-[13px] font-semibold uppercase tracking-[0.05em] text-muted";
-const group = "m-0 flex list-none flex-col overflow-hidden rounded-[16px] bg-surface p-0 shadow-card";
-const rowLink = "flex items-center gap-3 px-4 py-2.5 active:bg-fill";
+const label = "m-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-faint";
+const group = "m-0 flex list-none flex-col overflow-hidden rounded-[18px] border border-edge/10 bg-surface p-0";
+const rowLink = "flex min-h-[72px] items-center gap-3 px-4 py-3 active:bg-fill";
 
 function FriendsList({ selected, streak: initialStreak, blocked }: { selected: string | null; streak: Streak; blocked: Blocked[] }) {
   const router = useRouter();
@@ -150,17 +150,17 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
   return (
     <div className="flex flex-col gap-6 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 md:pt-6">
       <div className="-mb-2 flex items-center gap-2 px-1">
-        <h1 className="m-0 flex-1 text-[28px] font-bold tracking-[-0.03em] max-md:sr-only">Friends</h1>
-        <span className="flex-1 md:hidden" />
+        <h1 className="sr-only">Friends</h1>
+        <span className="flex-1" />
         <RoundButton label="About Friends" onClick={() => setAbout(true)}><InfoIcon /></RoundButton>
         <RoundButton label="Add a friend" onClick={() => { setNote(null); setAdding(true); }}><AddFriendIcon /></RoundButton>
       </div>
 
       {/* You: picture and streak. The picture and profile are changed on the Profile page. */}
-      <Link href="/settings" className="flex items-center gap-3 rounded-[16px] bg-surface px-4 py-3 shadow-card active:bg-fill" style={{ textDecoration: "none", color: "inherit" }}>
+      <Link href="/settings" className="flex items-center gap-3 rounded-[18px] border border-edge/10 bg-surface px-4 py-3 active:bg-fill" style={{ textDecoration: "none", color: "inherit" }}>
         <Avatar id={me.id} name={me.name} src={me.avatar} size={52} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-[16px] font-semibold">{me.name}</span>
+          <span className="truncate font-display text-[22px] leading-tight">{me.name}</span>
           <span className={`flex items-center gap-1 text-[13px] ${streak.streak ? "font-medium text-[#C4552B]" : "text-muted"}`}>
             <Icon name="flame" size={13} />{streak.streak ? `${streak.streak}-day streak${streak.best > streak.streak ? ` · best ${streak.best}` : ""}` : "No streak yet"}
           </span>
@@ -178,8 +178,8 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
               <li key={f.id} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-2.5 first:border-0">
                 <Avatar id={f.id} name={f.name} src={f.avatar} size={40} />
                 <Who name={f.name} sub={f.school ?? ""} />
-                <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "DELETE")} className="h-8 shrink-0 rounded-full border-0 bg-fill px-3.5 text-[14px] font-semibold text-ink disabled:opacity-50">Decline</button>
-                <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "POST")} className="h-8 shrink-0 rounded-full border-0 bg-blue px-3.5 text-[14px] font-semibold text-white disabled:opacity-50">Accept</button>
+                <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "DELETE")} className="h-10 shrink-0 rounded-full border border-edge/15 bg-transparent px-4 text-[15px] font-semibold text-ink disabled:opacity-50">Decline</button>
+                <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "POST")} className="h-10 shrink-0 rounded-full border-0 bg-blue px-4 text-[15px] font-semibold text-white disabled:opacity-50">Accept</button>
               </li>
             ))}
           </ul>
@@ -196,18 +196,18 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             {groups.map((g) => (
               <li key={g.id} className="border-t border-edge/[0.06] first:border-0">
                 <Link href={`/friends/group/${g.id}`} aria-current={selected === `g:${g.id}` ? "page" : undefined}
-                  className={`${rowLink} ${selected === `g:${g.id}` ? "bg-blue/[0.08]" : "hover:bg-edge/[0.03]"}`} style={{ textDecoration: "none", color: "inherit" }}>
+                  className={`${rowLink} ${selected === `g:${g.id}` ? "bg-sidebar" : "hover:bg-hover"}`} style={{ textDecoration: "none", color: "inherit" }}>
                   <Avatar id={g.id} name={g.name} src={g.avatar} size={44} group />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-baseline gap-2">
-                      <span className={`min-w-0 flex-1 truncate text-[15px] ${g.unread ? "font-bold" : "font-semibold"}`}>{g.name}</span>
+                      <span className={`min-w-0 flex-1 truncate text-[16px] ${g.unread ? "font-bold" : "font-semibold"}`}>{g.name}</span>
                       {g.last && <span className={`shrink-0 text-[12px] tabular-nums ${g.unread ? "font-semibold text-blue" : "text-muted"}`}>{shortTime(g.last.at, now)}</span>}
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className={`min-w-0 flex-1 truncate text-[13px] ${g.unread ? "font-medium text-ink" : "text-muted"}`}>
+                      <span className={`min-w-0 flex-1 truncate text-[14px] ${g.unread ? "font-medium text-ink" : "text-muted"}`}>
                         {g.call ? <span className="font-medium text-green">Call in progress</span> : typing.groups.includes(g.id) ? <span className="font-medium text-green">typing…</span> : g.last ? `${g.last.fromMe ? "You" : g.last.from}: ${g.last.body}` : `${g.members} ${g.members === 1 ? "member" : "members"}`}
                       </span>
-                      {g.unread > 0 && <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-blue px-1.5 text-[12px] font-semibold text-white">{g.unread}</span>}
+                      {g.unread > 0 && <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[#E0683A] px-1.5 text-[12px] font-bold text-[#161A26]">{g.unread}</span>}
                     </span>
                   </span>
                 </Link>
@@ -215,7 +215,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             ))}
           </ul>
         ) : (
-          <p className="m-0 rounded-[16px] bg-surface px-4 py-3 text-[15px] text-muted shadow-card">No groups yet</p>
+          <p className="m-0 rounded-[18px] border border-edge/10 bg-surface px-4 py-3.5 text-[16px] text-muted">No groups yet</p>
         )}
       </section>
 
@@ -237,15 +237,15 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
                   <Avatar id={f.id} name={f.name} src={f.avatar} size={44} online={on} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-baseline gap-2">
-                      <span className={`min-w-0 flex-1 truncate text-[15px] ${t?.unread ? "font-bold" : "font-semibold"}`}>{f.name}</span>
+                      <span className={`min-w-0 flex-1 truncate text-[16px] ${t?.unread ? "font-bold" : "font-semibold"}`}>{f.name}</span>
                       {!editing && t && <span className={`shrink-0 text-[12px] tabular-nums ${t.unread ? "font-semibold text-blue" : "text-muted"}`}>{shortTime(t.last.at, now)}</span>}
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className={`min-w-0 flex-1 truncate text-[13px] ${t?.unread ? "font-medium text-ink" : on && !t ? "font-medium text-green" : "text-muted"}`}>
+                      <span className={`min-w-0 flex-1 truncate text-[14px] ${t?.unread ? "font-medium text-ink" : on && !t ? "font-medium text-green" : "text-muted"}`}>
                         {typing.friends.includes(f.id) ? <span className="font-medium text-green">typing…</span> : t ? `${t.last.fromMe ? "You: " : ""}${t.last.body}` : seenLabel(f.lastSeen, now)}
                       </span>
                       {!editing && (t?.unread
-                        ? <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-blue px-1.5 text-[12px] font-semibold text-white">{t.unread}</span>
+                        ? <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[#E0683A] px-1.5 text-[12px] font-bold text-[#161A26]">{t.unread}</span>
                         : <StreakTag streak={f.streak} today={f.today} />)}
                     </span>
                   </span>
@@ -256,11 +256,11 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
                   {editing ? (
                     <div className="flex items-center gap-3 px-4 py-2.5">
                       {body}
-                      <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "DELETE")} className="h-8 shrink-0 rounded-full border-0 bg-red px-3.5 text-[14px] font-semibold text-white disabled:opacity-50">Remove</button>
+                      <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "DELETE")} className="h-10 shrink-0 rounded-full border-0 bg-plum px-4 text-[15px] font-semibold text-white disabled:opacity-50">Remove</button>
                     </div>
                   ) : (
                     <Link href={`/friends/${f.id}`} aria-current={selected === `f:${f.id}` ? "page" : undefined}
-                      className={`${rowLink} ${selected === `f:${f.id}` ? "bg-blue/[0.08]" : "hover:bg-edge/[0.03]"}`} style={{ textDecoration: "none", color: "inherit" }}>
+                      className={`${rowLink} ${selected === `f:${f.id}` ? "bg-sidebar" : "hover:bg-hover"}`} style={{ textDecoration: "none", color: "inherit" }}>
                       {body}
                     </Link>
                   )}
@@ -269,7 +269,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             })}
           </ul>
         ) : (
-          <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-3 rounded-[16px] border-0 bg-surface px-4 py-3 text-left text-[15px] text-link shadow-card active:bg-fill">
+          <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-3 rounded-[18px] border border-edge/10 bg-surface px-4 py-3.5 text-left text-[16px] font-semibold text-link active:bg-fill">
             <AddFriendIcon />Add your first friend
           </button>
         )}
@@ -283,16 +283,16 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             {past.map((t) => (
               <li key={t.friendId} className="border-t border-edge/[0.06] first:border-0">
                 <Link href={`/friends/${t.friendId}`} aria-current={selected === `f:${t.friendId}` ? "page" : undefined}
-                  className={`${rowLink} ${selected === `f:${t.friendId}` ? "bg-blue/[0.08]" : "hover:bg-edge/[0.03]"}`} style={{ textDecoration: "none", color: "inherit" }}>
+                  className={`${rowLink} ${selected === `f:${t.friendId}` ? "bg-sidebar" : "hover:bg-hover"}`} style={{ textDecoration: "none", color: "inherit" }}>
                   <Avatar id={t.friendId} name={t.name} src={t.avatar} size={44} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-baseline gap-2">
-                      <span className={`min-w-0 flex-1 truncate text-[15px] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.name}</span>
+                      <span className={`min-w-0 flex-1 truncate text-[16px] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.name}</span>
                       <span className={`shrink-0 text-[12px] tabular-nums ${t.unread ? "font-semibold text-blue" : "text-muted"}`}>{shortTime(t.last.at, now)}</span>
                     </span>
                     <span className="flex items-center gap-2">
-                      <span className={`min-w-0 flex-1 truncate text-[13px] ${t.unread ? "font-medium text-ink" : "text-muted"}`}>{`${t.last.fromMe ? "You: " : ""}${t.last.body}`}</span>
-                      {t.unread > 0 && <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-blue px-1.5 text-[12px] font-semibold text-white">{t.unread}</span>}
+                      <span className={`min-w-0 flex-1 truncate text-[14px] ${t.unread ? "font-medium text-ink" : "text-muted"}`}>{`${t.last.fromMe ? "You: " : ""}${t.last.body}`}</span>
+                      {t.unread > 0 && <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[#E0683A] px-1.5 text-[12px] font-bold text-[#161A26]">{t.unread}</span>}
                     </span>
                   </span>
                 </Link>
@@ -342,7 +342,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             </div>
             <label htmlFor="friend-email" className="sr-only">Their email address</label>
             <input id="friend-email" type="email" inputMode="email" autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus value={email} onChange={(e) => { setEmail(e.target.value); setNote(null); }}
-              placeholder="Their Notified Law email" className="h-11 rounded-[12px] border-0 bg-surface px-3.5 text-[16px] text-ink shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-blue/40" />
+              placeholder="Their Notified Law email" className="h-[52px] rounded-[12px] border border-edge/20 bg-surface px-4 text-[17px] text-ink outline-none placeholder:text-faint focus:ring-2 focus:ring-blue/40" />
             {note && <p role={note.ok ? "status" : "alert"} className={`m-0 px-1 text-[13px] ${note.ok ? "text-green" : "text-red"}`}>{note.text}</p>}
           </form>
         </Sheet>
@@ -383,7 +383,7 @@ function NewGroupSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
       </div>
       <div className="flex flex-col gap-4 overflow-y-auto overscroll-contain px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2">
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={MAX_GROUP_NAME} placeholder="Group name" aria-label="Group name" autoFocus
-          className="h-11 rounded-[12px] border-0 bg-surface px-3.5 text-[16px] text-ink shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-blue/40" />
+          className="h-[52px] rounded-[12px] border border-edge/20 bg-surface px-4 text-[17px] text-ink outline-none placeholder:text-faint focus:ring-2 focus:ring-blue/40" />
         {error && <p role="alert" className="m-0 px-1 text-[13px] text-red">{error}</p>}
         <div className="flex items-baseline justify-between px-1">
           <h3 className={label}>Add friends</h3>
@@ -442,7 +442,7 @@ function AboutSheet({ owned, onClose }: { owned: number; onClose: () => void }) 
 // ---- Small pieces ----------------------------------------------------------------------------------------------------
 
 const RoundButton = ({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) => (
-  <button type="button" onClick={onClick} aria-label={label} title={label} className="grid size-9 shrink-0 place-items-center rounded-full border-0 bg-fill text-blue active:opacity-60">{children}</button>
+  <button type="button" onClick={onClick} aria-label={label} title={label} className="grid size-11 shrink-0 place-items-center rounded-full border border-edge/10 bg-surface text-blue hover:bg-hover active:opacity-60">{children}</button>
 );
 
 const AddFriendIcon = () => (
@@ -451,8 +451,8 @@ const AddFriendIcon = () => (
 
 export const Who = ({ name, sub }: { name: string; sub: string }) => (
   <span className="flex min-w-0 flex-1 flex-col">
-    <span className="truncate text-[15px] font-medium">{name}</span>
-    {sub && <span className="truncate text-[12px] text-muted">{sub}</span>}
+    <span className="truncate text-[16px] font-semibold">{name}</span>
+    {sub && <span className="truncate text-[14px] text-faint">{sub}</span>}
   </span>
 );
 

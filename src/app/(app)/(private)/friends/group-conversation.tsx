@@ -180,7 +180,7 @@ function GroupInfo({ group, setGroup, onClose, onReport }: { group: GroupDetail;
           <form onSubmit={(e) => { e.preventDefault(); if (name.trim() && name !== group.name) { setBusy("name"); void call("PATCH", `/api/groups/${group.id}`, { name }); } }} className="flex gap-2">
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={MAX_GROUP_NAME} aria-label="Group name"
               className="h-11 min-w-0 flex-1 rounded-[12px] border-0 bg-surface px-3.5 text-[16px] text-ink shadow-card outline-none focus:ring-2 focus:ring-blue/40" />
-            <button type="submit" disabled={!name.trim() || name === group.name || busy === "name"} className="h-11 shrink-0 rounded-[12px] border-0 bg-blue px-4 text-[16px] font-semibold text-white disabled:opacity-40">Rename</button>
+            <button type="submit" disabled={!name.trim() || name === group.name || busy === "name"} className="h-11 shrink-0 rounded-full border-0 bg-blue px-4 text-[16px] font-semibold text-white disabled:opacity-40">Rename</button>
           </form>
         ) : <h3 className="m-0 text-center text-[20px] font-semibold">{group.name}</h3>}
 
@@ -212,7 +212,7 @@ function GroupInfo({ group, setGroup, onClose, onReport }: { group: GroupDetail;
               <div className="flex gap-2">
                 <button type="button" onClick={() => setAdding(null)} className="h-11 flex-1 rounded-[12px] border-0 bg-fill text-[16px] text-ink">Cancel</button>
                 <button type="button" disabled={!adding.size || busy === "add"} onClick={() => { setBusy("add"); void call("POST", `/api/groups/${group.id}/members`, { members: [...adding] }).then((ok) => ok && setAdding(null)); }}
-                  className="h-11 flex-1 rounded-[12px] border-0 bg-blue text-[16px] font-semibold text-white disabled:opacity-40">Add {adding.size || ""}</button>
+                  className="h-11 flex-1 rounded-full border-0 bg-blue text-[16px] font-semibold text-white disabled:opacity-40">Add {adding.size || ""}</button>
               </div>
             </>
           ) : (
