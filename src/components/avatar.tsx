@@ -14,3 +14,18 @@ export function Avatar({ id, name, src, size, online, group }: { id: string; nam
     </span>
   );
 }
+
+/** Photos larger than this are refused before upload; the server makes a 256 px WebP of the rest. */
+const MAX_PHOTO = 8 * 1024 * 1024;
+
+/** Uploads a photo as the request body. Returns the new picture's URL, or an error message. */
+export async function uploadPhoto(url: string, file: File): Promise<{ avatar: string } | { error: string }> {
+  if (file.size > MAX_PHOTO) return { error: "Choose a photo under 8 MB." };
+  try {
+    const r = await fetch(url, { method: "POST", body: file });
+    const d = (await r.json().catch(() => ({}))) as { avatar?: string; error?: string };
+    return r.ok && d.avatar ? { avatar: d.avatar } : { error: d.error ?? "The photo was not saved. Try again." };
+  } catch {
+    return { error: "You seem to be offline. Try again." };
+  }
+}

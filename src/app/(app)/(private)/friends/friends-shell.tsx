@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Avatar } from "@/components/avatar";
 import { friendsCall, useFriends } from "@/components/friends";
 import { Icon } from "@/components/icons";
@@ -24,21 +24,6 @@ export const useFriendsShell = () => useContext(ShellCtx)!;
 
 /** How often the list refreshes its conversations and groups while the page is visible. */
 const LIST_MS = 8_000;
-/** Photos larger than this are refused before upload; the server makes a 256 px WebP of the rest. */
-const MAX_PHOTO = 8 * 1024 * 1024;
-
-/** Uploads a photo as the request body. Returns the new picture's URL, or an error message. */
-export async function uploadPhoto(url: string, file: File): Promise<{ avatar: string } | { error: string }> {
-  if (file.size > MAX_PHOTO) return { error: "Choose a photo under 8 MB." };
-  try {
-    const r = await fetch(url, { method: "POST", body: file });
-    const d = (await r.json().catch(() => ({}))) as { avatar?: string; error?: string };
-    return r.ok && d.avatar ? { avatar: d.avatar } : { error: d.error ?? "The photo was not saved. Try again." };
-  } catch {
-    return { error: "You seem to be offline. Try again." };
-  }
-}
-
 /** The Friends page frame: friends and groups on the left (the whole screen on phones), the conversation beside them. */
 export function FriendsShell({ me, initialLists, initialThreads, initialGroups, initialBlocked, streak, children }: {
   me: Me; initialLists: FriendLists; initialThreads: Thread[]; initialGroups: GroupSummary[]; initialBlocked: Blocked[]; streak: Streak; children: React.ReactNode;
@@ -110,9 +95,6 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
   const [sending, setSending] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [newGroup, setNewGroup] = useState(false);
-  const [avatar, setAvatar] = useState(me.avatar);
-  const [photoBusy, setPhotoBusy] = useState(false);
-  const file = useRef<HTMLInputElement>(null);
 
   async function act(id: string, method: "POST" | "DELETE") {
     setBusy(id);
@@ -147,24 +129,6 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
     setNote({ ok: true, text: r.friends.length > was ? "They had already asked, so you are now friends." : "Request sent. They will see it on their Friends page." });
   }
 
-  async function photo(f: File | undefined) {
-    if (!f) return;
-    setPhotoBusy(true);
-    setError("");
-    const r = await uploadPhoto("/api/avatars", f);
-    setPhotoBusy(false);
-    if ("error" in r) return setError(r.error);
-    setAvatar(r.avatar);
-    router.refresh(); // the sidebar's picture
-  }
-  async function removePhoto() {
-    setPhotoBusy(true);
-    await fetch("/api/avatars", { method: "DELETE" }).catch(() => null);
-    setPhotoBusy(false);
-    setAvatar(null);
-    router.refresh();
-  }
-
   // Conversations with the newest message first, then friends without messages by when they were last in.
   const byId = useMemo(() => new Map(threads.map((t) => [t.friendId, t])), [threads]);
   const friends = useMemo(() => [...lists.friends].sort((a, b) =>
@@ -177,24 +141,17 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
       <h1 className="m-0 hidden px-1 text-[28px] font-bold tracking-[-0.03em] md:block">Friends</h1>
       <h1 className="sr-only md:hidden">Friends</h1>
 
-      {/* You: picture and streak. */}
-      <div className="flex items-center gap-3 rounded-[16px] bg-surface px-4 py-3 shadow-card">
-        <button type="button" onClick={() => file.current?.click()} disabled={photoBusy} aria-label={avatar ? "Change your profile picture" : "Add a profile picture"} className="relative shrink-0 border-0 bg-transparent p-0 disabled:opacity-50">
-          <Avatar id={me.id} name={me.name} src={avatar} size={52} />
-          <span aria-hidden className="absolute -bottom-0.5 -right-0.5 grid size-5 place-items-center rounded-full bg-blue text-white ring-2 ring-surface">
-            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M8 3v10M3 8h10" /></svg>
-          </span>
-        </button>
-        <input ref={file} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" hidden onChange={(e) => { void photo(e.target.files?.[0]); e.target.value = ""; }} />
+      {/* You: picture and streak. The picture and profile are changed on the Profile page. */}
+      <Link href="/settings" className="flex items-center gap-3 rounded-[16px] bg-surface px-4 py-3 shadow-card active:bg-fill" style={{ textDecoration: "none", color: "inherit" }}>
+        <Avatar id={me.id} name={me.name} src={me.avatar} size={52} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-[16px] font-semibold">{me.name}</span>
           <span className={`flex items-center gap-1 text-[13px] ${streak.streak ? "font-medium text-[#FF9500]" : "text-muted"}`}>
             <Icon name="flame" size={13} />{streak.streak ? `${streak.streak}-day streak${streak.best > streak.streak ? ` · best ${streak.best}` : ""}` : "Open the app daily to start a streak"}
           </span>
-          {photoBusy ? <span className="text-[12px] text-muted">Saving picture…</span>
-            : avatar && <button type="button" onClick={() => void removePhoto()} className="w-fit border-0 bg-transparent p-0 text-[12px] text-link">Remove picture</button>}
         </span>
-      </div>
+        <Icon name="chevron" size={14} className="shrink-0 -rotate-90 text-faint" />
+      </Link>
 
       {error && <p role="alert" className="m-0 px-1 text-[13px] text-red">{error}</p>}
 

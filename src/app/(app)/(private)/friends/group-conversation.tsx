@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Avatar } from "@/components/avatar";
+import { Avatar, uploadPhoto } from "@/components/avatar";
 import { useCalls } from "@/components/calls";
 import { useFriends } from "@/components/friends";
 import { ReportSheet, type ReportTarget } from "@/components/report";
@@ -10,7 +10,7 @@ import { Sheet } from "@/components/sheet";
 import { GROUP_MESSAGE_RULE, MAX_GROUP_MEMBERS, MAX_GROUP_NAME, type GroupDetail, type GroupMessage } from "@/lib/friend-view";
 import { ChatView, HeaderButton, InfoIcon, PhoneIcon, type ChatMessage } from "./chat";
 import { SheetRow } from "./conversation";
-import { Check, uploadPhoto, useFriendsShell } from "./friends-shell";
+import { Check, useFriendsShell } from "./friends-shell";
 
 const POLL_MS = 4_000;
 
