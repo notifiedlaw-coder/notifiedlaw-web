@@ -15,7 +15,7 @@ import { sendEmail, studentLinkMessage } from "@/lib/email";
 import { limitedBy } from "@/lib/rate-limit";
 import { TURNSTILE_HEADER, verifyTurnstile } from "@/lib/turnstile";
 import { DAILY_SENDS, LINK_MINUTES, RESEND_SECONDS, checkStudentEmail, studentEligible } from "@/lib/student";
-import type { Me } from "@/lib/profile";
+import { accountName, type Me } from "@/lib/profile";
 
 /** Built per request: the D1 binding and secrets only exist inside a Worker request. */
 export function getAuth() {
@@ -37,6 +37,20 @@ export function getAuth() {
       }),
     ],
     databaseHooks: {
+      // Other people see this name, so it follows the profile form's rules on every write path, including Better
+      // Auth's own update-user endpoint and the name a sign-up passes in. A name from Google that does not fit is
+      // left empty until onboarding sets one.
+      user: {
+        create: { before: async (u) => ({ data: { ...u, name: accountName(u.name) ?? "" } }) },
+        update: {
+          before: async (u) => {
+            if (u.name === undefined) return;
+            const name = accountName(u.name);
+            if (!name) throw refuse("Names can only contain letters, spaces, hyphens, apostrophes and full stops.");
+            return { data: { ...u, name } };
+          },
+        },
+      },
       session: {
         // One device at a time: a new sign-in ends every other session of the account, so the old device is
         // signed out on its next request and /login tells it why (signedOutElsewhere). Any sign-in to an account whose email is on a university domain also

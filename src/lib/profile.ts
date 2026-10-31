@@ -59,6 +59,12 @@ export function clean(v: unknown, max: number) {
 
 /** Letters from any script plus the punctuation real names use. */
 const NAME_RE = /^\p{L}[\p{L}\p{M}'’ .-]*$/u;
+
+/** A full name ("First Last") that passes the same rules as the profile form, cleaned; null if it does not. */
+export function accountName(v: unknown) {
+  const t = clean(v, 200);
+  return t && t.length <= 161 && NAME_RE.test(t) ? t : null;
+}
 export const MIN_DOB = "1900-01-01";
 
 /** Ghana mobile number as typed ("024 123 4567", "+233 24 123 4567", "24 123 4567") to "0241234567"; null if invalid. */
