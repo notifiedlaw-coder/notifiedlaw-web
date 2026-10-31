@@ -137,7 +137,7 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
               <SheetRow danger onClick={() => (confirm === "remove" ? void blockOrRemove("remove") : setConfirm("remove"))}>{confirm === "remove" ? "Tap again to remove friend and delete messages" : "Remove friend"}</SheetRow>
               <SheetRow danger onClick={() => (confirm === "block" ? void blockOrRemove("block") : setConfirm("block"))}>{confirm === "block" ? `Tap again to block ${friend.name.split(" ")[0]}` : "Block"}</SheetRow>
             </div>
-            <p className="m-0 px-1 text-[12px] text-muted">Blocking removes them as a friend, deletes your messages, takes them out of your groups and you out of theirs, and stops them finding you, messaging or calling you. They are not told.</p>
+            <p className="m-0 px-1 text-[12px] text-muted">Blocking also removes them as a friend and deletes your messages. They are not told.</p>
           </div>
         </Sheet>
       )}

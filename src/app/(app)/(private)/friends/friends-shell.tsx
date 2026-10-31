@@ -8,6 +8,7 @@ import { friendsCall, useFriends } from "@/components/friends";
 import { Icon } from "@/components/icons";
 import { Sheet } from "@/components/sheet";
 import { MAX_GROUP_MEMBERS, MAX_GROUP_NAME, MAX_OWNED_GROUPS, MESSAGE_RULE, GROUP_MESSAGE_RULE, ONLINE_MS, seenLabel, shortTime, type FriendLists, type GroupSummary, type Thread } from "@/lib/friend-view";
+import { InfoIcon } from "./chat";
 
 type Streak = { streak: number; best: number };
 type Me = { id: string; name: string; avatar: string | null };
@@ -98,6 +99,8 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
   const [sending, setSending] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [newGroup, setNewGroup] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [about, setAbout] = useState(false);
 
   async function act(id: string, method: "POST" | "DELETE") {
     setBusy(id);
@@ -129,7 +132,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
     if (typeof r === "string") return setNote({ ok: false, text: r });
     setLists(r);
     setEmail("");
-    setNote({ ok: true, text: r.friends.length > was ? "They had already asked, so you are now friends." : "Request sent. They will see it on their Friends page." });
+    setNote({ ok: true, text: r.friends.length > was ? "They had already asked, so you are now friends." : "Request sent." });
   }
 
   // Conversations with the newest message first, then friends without messages by when they were last in.
@@ -141,8 +144,12 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 md:pt-6">
-      <h1 className="m-0 hidden px-1 text-[28px] font-bold tracking-[-0.03em] md:block">Friends</h1>
-      <h1 className="sr-only md:hidden">Friends</h1>
+      <div className="-mb-2 flex items-center gap-2 px-1">
+        <h1 className="m-0 flex-1 text-[28px] font-bold tracking-[-0.03em] max-md:sr-only">Friends</h1>
+        <span className="flex-1 md:hidden" />
+        <RoundButton label="About Friends" onClick={() => setAbout(true)}><InfoIcon /></RoundButton>
+        <RoundButton label="Add a friend" onClick={() => { setNote(null); setAdding(true); }}><AddFriendIcon /></RoundButton>
+      </div>
 
       {/* You: picture and streak. The picture and profile are changed on the Profile page. */}
       <Link href="/settings" className="flex items-center gap-3 rounded-[16px] bg-surface px-4 py-3 shadow-card active:bg-fill" style={{ textDecoration: "none", color: "inherit" }}>
@@ -150,7 +157,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-[16px] font-semibold">{me.name}</span>
           <span className={`flex items-center gap-1 text-[13px] ${streak.streak ? "font-medium text-[#FF9500]" : "text-muted"}`}>
-            <Icon name="flame" size={13} />{streak.streak ? `${streak.streak}-day streak${streak.best > streak.streak ? ` · best ${streak.best}` : ""}` : "Open the app daily to start a streak"}
+            <Icon name="flame" size={13} />{streak.streak ? `${streak.streak}-day streak${streak.best > streak.streak ? ` · best ${streak.best}` : ""}` : "No streak yet"}
           </span>
         </span>
         <Icon name="chevron" size={14} className="shrink-0 -rotate-90 text-faint" />
@@ -165,7 +172,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             {lists.incoming.map((f) => (
               <li key={f.id} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-2.5 first:border-0">
                 <Avatar id={f.id} name={f.name} src={f.avatar} size={40} />
-                <Who name={f.name} sub={f.school ?? "Wants to be friends"} />
+                <Who name={f.name} sub={f.school ?? ""} />
                 <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "DELETE")} className="h-8 shrink-0 rounded-full border-0 bg-fill px-3.5 text-[14px] font-semibold text-ink disabled:opacity-50">Decline</button>
                 <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "POST")} className="h-8 shrink-0 rounded-full border-0 bg-blue px-3.5 text-[14px] font-semibold text-white disabled:opacity-50">Accept</button>
               </li>
@@ -203,14 +210,13 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             ))}
           </ul>
         ) : (
-          <p className="m-0 rounded-[16px] bg-surface px-4 py-3 text-[15px] text-muted shadow-card">{lists.friends.length ? `Start a group with up to ${MAX_GROUP_MEMBERS} people to study and call together.` : "Add friends first, then start a group with them."}</p>
+          <p className="m-0 rounded-[16px] bg-surface px-4 py-3 text-[15px] text-muted shadow-card">No groups yet</p>
         )}
-        <p className="m-0 px-1 text-[12px] text-muted">{GROUP_MESSAGE_RULE} You can run up to {MAX_OWNED_GROUPS} groups{owned ? ` (you run ${owned})` : ""}.</p>
       </section>
 
       <section className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between px-1">
-          <h2 className={label}>Messages</h2>
+          <h2 className={label}>Chats</h2>
           <span className="flex items-baseline gap-3">
             {online > 0 && <span className="text-[13px] font-medium text-green">{online} online</span>}
             {friends.length > 0 && <button type="button" onClick={() => setEditing(!editing)} className="border-0 bg-transparent p-0 text-[15px] text-link">{editing ? "Done" : "Edit"}</button>}
@@ -258,21 +264,12 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             })}
           </ul>
         ) : (
-          <p className="m-0 rounded-[16px] bg-surface px-4 py-3 text-[15px] text-muted shadow-card">No friends yet. Add one below to message and call them, see when they study and follow their streak.</p>
+          <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-3 rounded-[16px] border-0 bg-surface px-4 py-3 text-left text-[15px] text-link shadow-card active:bg-fill">
+            <AddFriendIcon />Add your first friend
+          </button>
         )}
-        <p className="m-0 px-1 text-[12px] text-muted">{editing ? "Removing a friend also deletes your messages with them." : MESSAGE_RULE}</p>
+        {editing && <p className="m-0 px-1 text-[12px] text-muted">Removing a friend deletes your messages with them.</p>}
       </section>
-
-      <form onSubmit={send} className="flex flex-col gap-2">
-        <label htmlFor="friend-email" className={`${label} px-1`}>Add a friend</label>
-        <div className="flex gap-2">
-          <input id="friend-email" type="email" inputMode="email" autoComplete="off" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => { setEmail(e.target.value); setNote(null); }}
-            placeholder="Their email address" className="h-11 min-w-0 flex-1 rounded-[12px] border-0 bg-surface px-3.5 text-[16px] text-ink shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-blue/40" />
-          <button type="submit" disabled={!email.trim() || sending} className="h-11 shrink-0 rounded-[12px] border-0 bg-blue px-5 text-[16px] font-semibold text-white disabled:opacity-40">{sending ? "Sending" : "Send"}</button>
-        </div>
-        {note ? <p role={note.ok ? "status" : "alert"} className={`m-0 px-1 text-[13px] ${note.ok ? "text-green" : "text-red"}`}>{note.text}</p>
-          : <p className="m-0 px-1 text-[13px] text-muted">Use the email they signed up to Notified Law with.</p>}
-      </form>
 
       {lists.outgoing.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -281,7 +278,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             {lists.outgoing.map((f) => (
               <li key={f.id} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-2.5 first:border-0">
                 <Avatar id={f.id} name={f.name} src={f.avatar} size={36} />
-                <Who name={f.name} sub="Waiting for them to accept" />
+                <Who name={f.name} sub="Pending" />
                 <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "DELETE")} className="shrink-0 border-0 bg-transparent text-[15px] text-link disabled:opacity-50">Cancel</button>
               </li>
             ))}
@@ -296,7 +293,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             {blocked.map((b) => (
               <li key={b.id} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-2.5 first:border-0">
                 <Avatar id={b.id} name={b.name} src={b.avatar} size={36} />
-                <Who name={b.name} sub="Cannot find you, message, call or add you" />
+                <Who name={b.name} sub="" />
                 <button type="button" disabled={busy === b.id} onClick={() => void unblock(b.id)} className="shrink-0 border-0 bg-transparent text-[15px] text-link disabled:opacity-50">Unblock</button>
               </li>
             ))}
@@ -304,6 +301,22 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
         </section>
       )}
 
+      {adding && (
+        <Sheet label="Add a friend" onClose={() => setAdding(false)}>
+          <form onSubmit={send} className="flex flex-col gap-3 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2.5">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+              <button type="button" onClick={() => setAdding(false)} className="justify-self-start border-0 bg-transparent text-[17px] text-link">Close</button>
+              <h2 className="m-0 text-[17px] font-semibold">Add a friend</h2>
+              <button type="submit" disabled={!email.trim() || sending} className="justify-self-end border-0 bg-transparent text-[17px] font-semibold text-link disabled:opacity-40">{sending ? "Sending" : "Send"}</button>
+            </div>
+            <label htmlFor="friend-email" className="sr-only">Their email address</label>
+            <input id="friend-email" type="email" inputMode="email" autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus value={email} onChange={(e) => { setEmail(e.target.value); setNote(null); }}
+              placeholder="Their Notified Law email" className="h-11 rounded-[12px] border-0 bg-surface px-3.5 text-[16px] text-ink shadow-card outline-none placeholder:text-faint focus:ring-2 focus:ring-blue/40" />
+            {note && <p role={note.ok ? "status" : "alert"} className={`m-0 px-1 text-[13px] ${note.ok ? "text-green" : "text-red"}`}>{note.text}</p>}
+          </form>
+        </Sheet>
+      )}
+      {about && <AboutSheet owned={owned} onClose={() => setAbout(false)} />}
       {newGroup && <NewGroupSheet onClose={() => setNewGroup(false)} onCreated={(id) => { setNewGroup(false); reload(); router.push(`/friends/group/${id}`); }} />}
     </div>
   );
@@ -361,18 +374,54 @@ function NewGroupSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
             );
           })}
         </ul>
-        <p className="m-0 px-1 text-[12px] text-muted">You will be the group&apos;s admin: only you can add or remove people, rename it or change its picture.</p>
       </div>
+    </Sheet>
+  );
+}
+
+/** Everything the page used to say in footnotes, in one place: how chats, groups, calls, streaks and blocking work. */
+function AboutSheet({ owned, onClose }: { owned: number; onClose: () => void }) {
+  const items: [string, string][] = [
+    ["Adding friends", "Send a request to the email they use for Notified Law. Once they accept, you can chat, call and compare streaks. You can have up to 100 friends."],
+    ["Messages", `${MESSAGE_RULE} Removing a friend deletes your messages with them.`],
+    ["Groups", `Groups hold up to ${MAX_GROUP_MEMBERS} people. Whoever makes a group is its only admin and can add or remove people, rename it and change its picture. You can run up to ${MAX_OWNED_GROUPS} groups${owned ? ` (you run ${owned})` : ""}. ${GROUP_MESSAGE_RULE}`],
+    ["Calls", "Call a friend, or anyone in a group can start a group call. Calls are voice only and end after 3 hours. Minimise a call to keep it going while you use the app."],
+    ["Streaks", "Open the app on consecutive days to build a streak. A grey flame means today does not count yet."],
+    ["Blocking and reports", "Blocking someone removes them as a friend, deletes your messages, takes you out of each other's groups and stops them finding, messaging or calling you. They are not told. Hold a message to report it."],
+  ];
+  return (
+    <Sheet label="About Friends" onClose={onClose}>
+      <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center px-4 pb-2 pt-2.5">
+        <span />
+        <h2 className="m-0 text-[17px] font-semibold">About Friends</h2>
+        <button type="button" onClick={onClose} className="justify-self-end border-0 bg-transparent text-[17px] font-semibold text-link">Done</button>
+      </div>
+      <dl className="m-0 flex flex-col gap-4 overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2">
+        {items.map(([title, text]) => (
+          <div key={title} className="flex flex-col gap-1">
+            <dt className="text-[15px] font-semibold">{title}</dt>
+            <dd className="m-0 text-[14px] leading-snug text-muted">{text}</dd>
+          </div>
+        ))}
+      </dl>
     </Sheet>
   );
 }
 
 // ---- Small pieces ----------------------------------------------------------------------------------------------------
 
+const RoundButton = ({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) => (
+  <button type="button" onClick={onClick} aria-label={label} title={label} className="grid size-9 shrink-0 place-items-center rounded-full border-0 bg-fill text-blue active:opacity-60">{children}</button>
+);
+
+const AddFriendIcon = () => (
+  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><circle cx="10" cy="8" r="3.5" /><path d="M3.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5M19 8v6M16 11h6" /></svg>
+);
+
 export const Who = ({ name, sub }: { name: string; sub: string }) => (
   <span className="flex min-w-0 flex-1 flex-col">
     <span className="truncate text-[15px] font-medium">{name}</span>
-    <span className="truncate text-[12px] text-muted">{sub}</span>
+    {sub && <span className="truncate text-[12px] text-muted">{sub}</span>}
   </span>
 );
 
