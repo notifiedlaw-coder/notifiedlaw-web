@@ -77,7 +77,11 @@ export function getAuth() {
           const owned = await db.select({ id: schema.chatGroup.id }).from(schema.chatGroup).where(eq(schema.chatGroup.ownerId, u.id));
           for (const g of owned) await purgePrefix(`avatars/g/${g.id}/`);
         },
-        afterDelete: async (u) => { await (await import("@/lib/files")).purgeUserObjects(u.id); },
+        afterDelete: async (u) => {
+          await (await import("@/lib/files")).purgeUserObjects(u.id);
+          // Keyed by email, so it does not cascade: the send counter for this address goes with the account.
+          await db.delete(schema.studentLink).where(eq(schema.studentLink.email, u.email.trim().toLowerCase()));
+        },
       },
     },
   });

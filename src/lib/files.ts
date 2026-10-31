@@ -198,5 +198,12 @@ export async function saveFile(userId: string, quota: number, f: { name: string;
     await dropRow(id);
     return { ok: false, code: "U113", status: 502 };
   }
+  // The account (and with it this row) may have been deleted while the bytes were going up, after its objects were
+  // purged; then the object would be left with nothing pointing at it.
+  const [still] = await getDb().select({ id: userFile.id }).from(userFile).where(eq(userFile.id, id));
+  if (!still) {
+    await filesBucket().delete(row.key);
+    return { ok: false, code: "U113", status: 502 };
+  }
   return { ok: true, file: { id, name: f.name, kind: f.kind, size: row.size, folderId: f.folderId, createdAt: row.createdAt.getTime() } };
 }
