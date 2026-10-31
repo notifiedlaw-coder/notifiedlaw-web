@@ -8,7 +8,8 @@ import type { ReactNode } from "react";
 /** Line endings made "\n", and Notion's no-break spaces made plain ones: a run of them never wraps, and pushed lines off the screen. */
 const tidy = (md: string) => md.replace(/\r\n/g, "\n").replace(/[\u00A0\u2007\u202F]/g, " ");
 
-const safeHref = (u: string) => (/^(https?:|mailto:|\/)/i.test(u) ? u : "#");
+// "//host" and "/\host" look site-relative but open another site, so a bare slash must start a path.
+const safeHref = (u: string) => (/^(https?:|mailto:|\/(?![/\\]))/i.test(u) ? u : "#");
 
 function inline(text: string, key = ""): ReactNode[] {
   const out: ReactNode[] = [];
@@ -27,7 +28,8 @@ function inline(text: string, key = ""): ReactNode[] {
     else if (m[5]) out.push(<em key={k}>{inline(t.slice(1, -1), k)}</em>);
     else {
       const [, label, href] = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(t)!;
-      out.push(<a key={k} href={safeHref(href)} style={{ color: "var(--color-link)" }}>{inline(label, k)}</a>);
+      const to = safeHref(href);
+      out.push(<a key={k} href={to} rel={/^https?:/i.test(to) ? "noopener noreferrer" : undefined} style={{ color: "var(--color-link)" }}>{inline(label, k)}</a>);
     }
     last = m.index + t.length;
   }

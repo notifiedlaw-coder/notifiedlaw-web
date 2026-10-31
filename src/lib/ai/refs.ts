@@ -7,7 +7,7 @@ export type Mentionable = Ref & { sub: string; chars: number };
 
 export const MAX_REFS = 5;
 
-/** A link inside the site: one leading slash, not "//host" or "/\\host", which browsers open on another site. */
+/** A link inside the site: one leading slash, not "//host" or "/\host", which browsers open on another site. */
 const localHref = (h: unknown) => typeof h === "string" && /^\/(?![/\\])/.test(h) ? h : "/files";
 
 /** A stored `files` column as refs: older rows held only { id, name }, and were files. */
