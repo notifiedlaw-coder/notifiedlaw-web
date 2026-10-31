@@ -131,6 +131,10 @@
 }
 /* While the on-screen keyboard is open the tab bar is hidden (app-shell useKeyboardBox), so bottom overlays sit on the keyboard. */
 :root[data-keyboard] { --tabbar: 0px; }
+/* Phones: the app's height follows the keyboard in and out (iOS's keyboard curve) rather than snapping. */
+@media (pointer: coarse) and (prefers-reduced-motion: no-preference) {
+  [data-shell] { transition: height 0.32s cubic-bezier(0.25, 0.8, 0.25, 1); }
+}
 /* Phones while typing: secondary rows (such as the Ask AI modes) step aside so the conversation keeps its room. */
 @media (max-width: 767px) {
   :root[data-keyboard] .nl-kb-hide { display: none; }
