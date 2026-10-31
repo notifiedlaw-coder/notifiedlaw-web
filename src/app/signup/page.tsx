@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import AuthForm from "@/components/auth-form";
-import { getSession } from "@/lib/auth";
+import { devAuthAddress, getSession } from "@/lib/auth";
 
 export const metadata = {
   title: "Create account",
@@ -10,5 +10,5 @@ export const metadata = {
 
 export default async function Signup() {
   if (await getSession()) redirect("/dashboard");
-  return <AuthForm mode="signup" />;
+  return <AuthForm mode="signup" devAddress={await devAuthAddress("/signup")} />;
 }

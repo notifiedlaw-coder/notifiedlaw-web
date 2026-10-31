@@ -157,6 +157,17 @@ async function endOtherSessions(db: Db, userId: string, keepId: string) {
  * True when this browser's session cookie belongs to a session that was ended because the account signed in on
  * another device. Only call it once getSession found no session.
  */
+/**
+ * Development only: when the sign-in page is opened on another address than BETTER_AUTH_URL (such as the Mac's
+ * network IP from a phone), sign-in cannot finish there, because Google returns to BETTER_AUTH_URL and the sign-in
+ * cookie belongs to the other address. Returns the same page on BETTER_AUTH_URL to link to, or null.
+ */
+export async function devAuthAddress(path: string) {
+  if (process.env.NODE_ENV === "production") return null;
+  const base = new URL(getCloudflareContext().env.BETTER_AUTH_URL);
+  return (await headers()).get("host") === base.host ? null : `${base.origin}${path}`;
+}
+
 export async function signedOutElsewhere() {
   const raw = getSessionCookie(await headers());
   if (!raw) return false;

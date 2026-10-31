@@ -27,7 +27,7 @@ function GoogleG() {
 type Path = "choose" | "student" | "professional";
 
 /** `elsewhere`: this device was signed out because the account signed in on another one (src/lib/auth.ts). */
-export default function AuthForm({ mode, elsewhere = false }: { mode: "login" | "signup"; elsewhere?: boolean }) {
+export default function AuthForm({ mode, elsewhere = false, devAddress = null }: { mode: "login" | "signup"; elsewhere?: boolean; devAddress?: string | null }) {
   const login = mode === "login";
   const [path, setPath] = useState<Path>(login ? "professional" : "choose");
   const [busy, setBusy] = useState(false);
@@ -127,6 +127,11 @@ export default function AuthForm({ mode, elsewhere = false }: { mode: "login" | 
             <LogoMark />
             <Wordmark className="text-[26px]" />
           </Link>
+          {devAddress && (
+            <p role="status" className="m-0 rounded-[18px] bg-peach p-4 text-[15px] text-[var(--peach-fg)]">
+              <b>Development: sign in at <a href={devAddress} className="text-[var(--peach-fg)]! underline">{devAddress.replace(/^https?:\/\//, "")}</a>.</b> Google returns to that address only, so signing in on this one fails with &ldquo;state_mismatch&rdquo;.
+            </p>
+          )}
           {elsewhere && (
             <p role="status" className="m-0 rounded-[18px] bg-tint p-4 text-[15px]">
               <b>You were signed out because you signed in on another device.</b> An account can be signed in on one device at a time. Sign in again to use NotifiedLaw here; that signs out the other device.
