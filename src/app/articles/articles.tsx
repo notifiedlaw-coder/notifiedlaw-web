@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Chip, Empty, Page, Title } from "@/components/ui";
+import { Chip, Empty, Page } from "@/components/ui";
 import { PreferredSource } from "@/components/preferred-source";
 
 export type ArticleRow = {
@@ -34,7 +34,7 @@ function TagPills({ tags, max = 3 }: { tags: ArticleRow["tags"]; max?: number })
   if (!tags.length) return null;
   return (
     <span className="flex flex-wrap gap-1.5 pt-0.5">
-      {tags.slice(0, max).map((t) => <span key={t.slug} className="rounded-full bg-fill px-2 py-0.5 text-[11px] font-medium text-muted">{t.name}</span>)}
+      {tags.slice(0, max).map((t) => <span key={t.slug} className="rounded-full bg-peach px-2.5 py-0.5 text-[12px] font-semibold text-[var(--peach-fg)]">{t.name}</span>)}
       {tags.length > max && <span className="px-1 py-0.5 text-[11px] text-faint">+{tags.length - max}</span>}
     </span>
   );
@@ -43,7 +43,7 @@ function TagPills({ tags, max = 3 }: { tags: ArticleRow["tags"]; max?: number })
 function Search({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   return (
-    <div role="search" className="flex h-11 items-center gap-2.5 rounded-[14px] bg-fill px-3.5 transition-shadow focus-within:bg-surface focus-within:shadow-[0_0_0_3.5px_color-mix(in_srgb,var(--color-link)_28%,transparent),0_0_0_1px_var(--color-link)]">
+    <div role="search" className="flex h-12 items-center gap-2.5 rounded-2xl border border-edge/15 bg-surface px-4 transition-shadow md:h-14 focus-within:shadow-[0_0_0_3.5px_color-mix(in_srgb,var(--color-link)_28%,transparent),0_0_0_1px_var(--color-link)]">
       <svg aria-hidden width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-faint"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg>
       <input
         ref={ref}
@@ -113,7 +113,7 @@ function FilterSheet({ onClose, onReset, count, canReset, children }: { onClose:
         </div>
         <div className="flex flex-col gap-5 overflow-y-auto overscroll-contain px-4 pb-4 pt-2">{children}</div>
         <div className="shrink-0 border-t border-edge/[0.08] bg-canvas/90 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
-          <button type="button" onClick={onClose} className="h-[50px] w-full rounded-[14px] bg-blue text-[17px] font-semibold text-white transition-transform active:scale-[0.98]">
+          <button type="button" onClick={onClose} className="h-[52px] w-full rounded-full bg-blue text-[17px] font-semibold text-white transition-transform active:scale-[0.98]">
             {count === 0 ? "No articles" : `Show ${count} ${count === 1 ? "article" : "articles"}`}
           </button>
         </div>
@@ -128,7 +128,7 @@ const Sliders = () => <svg aria-hidden width="20" height="20" viewBox="0 0 20 20
 /** A removable pill for an active filter. */
 function Pill({ children, onRemove }: { children: React.ReactNode; onRemove: () => void }) {
   return (
-    <button type="button" onClick={onRemove} aria-label={`Remove filter ${typeof children === "string" ? children : ""}`} className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-link/10 pl-3 pr-2.5 text-[13px] font-medium text-link transition-transform active:scale-95">
+    <button type="button" onClick={onRemove} aria-label={`Remove filter ${typeof children === "string" ? children : ""}`} className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-tint pl-4 pr-3 text-[15px] font-medium text-link transition-transform active:scale-95">
       {children}
       <svg aria-hidden width="9" height="9" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="m1.5 1.5 7 7M8.5 1.5l-7 7" /></svg>
     </button>
@@ -179,7 +179,13 @@ export function Articles({ list, initial }: { list: ArticleRow[]; initial: Initi
 
   return (
     <Page>
-      <Title title="Articles" sub="Short explainers on Ghanaian law" right={<PreferredSource />} />
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Short explainers on Ghanaian law</div>
+          <h1 className="m-0 text-[38px] leading-[1.02] md:text-[46px] lg:text-[56px]">Articles</h1>
+        </div>
+        <PreferredSource />
+      </header>
       {list.length === 0 ? (
         <Empty title="No articles yet">Articles appear here once they are published.</Empty>
       ) : (
@@ -187,7 +193,7 @@ export function Articles({ list, initial }: { list: ArticleRow[]; initial: Initi
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
               <div className="min-w-0 flex-1"><Search value={q} onChange={setQ} /></div>
-              <button type="button" onClick={() => setOpen(true)} aria-label={`Filters${filters ? `, ${filters} active` : ""}`} aria-haspopup="dialog" className={`relative grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-95 ${filters ? "bg-link text-white" : "bg-fill text-ink"}`}>
+              <button type="button" onClick={() => setOpen(true)} aria-label={`Filters${filters ? `, ${filters} active` : ""}`} aria-haspopup="dialog" className={`relative grid size-12 shrink-0 place-items-center rounded-full border transition-transform active:scale-95 md:size-14 ${filters ? "border-transparent bg-blue text-white" : "border-edge/15 bg-surface text-ink hover:bg-hover"}`}>
                 <Sliders />
                 {filters > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-red px-1 text-[11px] font-bold leading-none text-white ring-2 ring-canvas">{filters}</span>}
               </button>
@@ -202,7 +208,7 @@ export function Articles({ list, initial }: { list: ArticleRow[]; initial: Initi
             )}
           </div>
 
-          <div className="flex items-center justify-between px-1 text-[13px] text-muted" aria-live="polite">
+          <div className="-mt-3 flex items-center justify-between text-[14px] text-faint" aria-live="polite">
             <span>{shown.length} {shown.length === 1 ? "article" : "articles"}{active ? " match" : ""}</span>
             {active > 0 && <button type="button" onClick={reset} className="font-medium text-link">Clear all</button>}
           </div>
@@ -236,32 +242,33 @@ export function Articles({ list, initial }: { list: ArticleRow[]; initial: Initi
           ) : (
             <>
               {lead && (
-                <Link href={`/articles/${lead.slug}`} className="group block overflow-hidden rounded-[26px] bg-surface shadow-card transition-transform duration-300 active:scale-[0.985] sm:grid sm:grid-cols-[1.35fr_1fr]" style={{ textDecoration: "none", color: "inherit" }}>
+                <Link href={`/articles/${lead.slug}`} className="group block overflow-hidden rounded-[22px] border border-edge/10 bg-surface transition-transform duration-300 active:scale-[0.985] sm:grid sm:grid-cols-[1.35fr_1fr]" style={{ textDecoration: "none", color: "inherit" }}>
                   <span className="relative block aspect-video overflow-hidden sm:aspect-auto sm:min-h-[300px]"><Cover a={lead} eager /></span>
                   <span className="flex flex-col gap-2 p-5 sm:justify-center sm:p-8">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#C4552B]">Featured{lead.industry ? ` · ${lead.industry}` : ""}</span>
-                    <span className="text-balance text-[24px] font-bold leading-[1.15] tracking-[-0.022em] sm:text-[28px]">{lead.title}</span>
-                    {lead.summary && <span className="line-clamp-3 text-[15px] leading-snug text-muted">{lead.summary}</span>}
+                    <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-plum">Featured{lead.industry ? ` · ${lead.industry}` : ""}</span>
+                    <span className="text-balance font-display text-[30px] leading-[1.08] sm:text-[36px]">{lead.title}</span>
+                    {lead.summary && <span className="line-clamp-3 text-[16px] leading-snug text-muted">{lead.summary}</span>}
                     <TagPills tags={lead.tags} max={4} />
-                    <span className="flex items-center justify-between pt-1 text-xs text-faint">
+                    <span className="flex items-center justify-between pt-1 text-[14px] text-faint">
                       <span>{meta(lead)}</span>
                       <span className="font-semibold text-link">Read <span aria-hidden>→</span></span>
                     </span>
                   </span>
                 </Link>
               )}
+              {/* Hick's law: one featured piece, then a plain list. */}
               {rest.length > 0 && (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="flex flex-col overflow-hidden rounded-[18px] border border-edge/10 bg-surface">
                   {rest.map((a) => (
-                    <Link key={a.slug} href={`/articles/${a.slug}`} className="group flex flex-col overflow-hidden rounded-[22px] bg-surface shadow-card transition-transform duration-300 active:scale-[0.98]" style={{ textDecoration: "none", color: "inherit" }}>
-                      <span className="relative block aspect-video overflow-hidden"><Cover a={a} /></span>
-                      <span className="flex flex-1 flex-col gap-1.5 p-4">
-                        {a.industry && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#C4552B]">{a.industry}</span>}
-                        <span className="text-balance text-[18px] font-semibold leading-snug tracking-[-0.01em]">{a.title}</span>
-                        {a.summary && <span className="line-clamp-2 text-[14px] leading-snug text-muted">{a.summary}</span>}
+                    <Link key={a.slug} href={`/articles/${a.slug}`} className="group flex items-start gap-4 border-t border-edge/[0.07] px-5 py-4 first:border-0 hover:bg-hover" style={{ textDecoration: "none", color: "inherit" }}>
+                      <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        {a.industry && <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-plum">{a.industry}</span>}
+                        <span className="text-balance font-display text-[22px] leading-[1.15]">{a.title}</span>
+                        {a.summary && <span className="line-clamp-2 text-[15px] leading-snug text-muted">{a.summary}</span>}
                         <TagPills tags={a.tags} />
-                        <span className="mt-auto pt-1 text-xs text-faint">{meta(a)}</span>
+                        <span className="pt-0.5 text-[13px] text-faint">{meta(a)}</span>
                       </span>
+                      <span className="relative mt-1 hidden aspect-[4/3] w-[132px] shrink-0 overflow-hidden rounded-[12px] sm:block md:w-[168px]"><Cover a={a} /></span>
                     </Link>
                   ))}
                 </div>

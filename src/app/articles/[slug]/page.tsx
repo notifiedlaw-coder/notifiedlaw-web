@@ -69,35 +69,35 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
         breadcrumbs([["Articles", "/articles"], [a.title, `/articles/${a.slug}`]]),
       ]} />
       <header className="flex flex-col gap-3">
-        {a.area && <Eyebrow color="#C4552B">{a.area}</Eyebrow>}
-        <h1 id="article-title" className="text-balance m-0 text-[28px] font-bold leading-[1.15] tracking-[-0.025em] md:text-[40px]">{a.title}</h1>
-        {a.summary && <p id="article-answer" className="text-pretty m-0 text-[17px] leading-snug text-muted md:text-[19px]">{a.summary}</p>}
+        {a.area && <Eyebrow color="var(--color-plum)">{a.area}</Eyebrow>}
+        <h1 id="article-title" className="text-balance m-0 text-[38px] leading-[1.04] md:text-[48px] lg:text-[54px]">{a.title}</h1>
+        {a.summary && <p id="article-answer" className="text-pretty m-0 text-[17px] leading-snug text-muted md:text-[20px]">{a.summary}</p>}
         <div className="mt-1 flex items-center gap-3 border-y border-edge/[0.08] py-3">
-          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-fill text-sm font-semibold text-muted">{(a.author || "NL").split(/\s+/).map((w) => w[0]).slice(0, 2).join("")}</span>
-          <span className="flex min-w-0 flex-col text-[13px] leading-snug">
-            <span className="text-[15px] font-semibold">{a.author || "NotifiedLaw Editorial"}</span>
+          <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-peach text-[14px] font-bold text-[var(--peach-fg)]">{(a.author || "NL").split(/\s+/).map((w) => w[0]).slice(0, 2).join("")}</span>
+          <span className="flex min-w-0 flex-col text-[14px] leading-snug">
+            <span className="text-[16px] font-semibold">{a.author || "NotifiedLaw Editorial"}</span>
             <span className="text-muted">{a.date && <time dateTime={a.date.toISOString()}>{when}</time>}{a.date ? " · " : ""}{a.mins} min read</span>
           </span>
         </div>
         {a.tags.length > 0 && (
           <nav aria-label="Topics" className="flex flex-wrap gap-2">
-            {a.tags.map((t) => <Link key={t.slug} href={`/articles?tag=${t.slug}`} className="rounded-full bg-fill px-3 py-1 text-[13px] font-medium text-muted" style={{ textDecoration: "none" }}>{t.name}</Link>)}
+            {a.tags.map((t) => <Link key={t.slug} href={`/articles?tag=${t.slug}`} className="rounded-full border border-edge/15 bg-surface px-3.5 py-1.5 text-[14px] font-medium text-ink!" style={{ textDecoration: "none" }}>{t.name}</Link>)}
           </nav>
         )}
       </header>
-      {a.image && <img src={a.image} alt="" width={1280} height={720} decoding="async" fetchPriority="high" className="aspect-video w-full rounded-2xl bg-fill object-cover shadow-card" />}
-      <article aria-labelledby="article-title" className="article-body" style={{ fontFamily: "var(--font-serif)", fontSize: 18, lineHeight: 1.7 }}>
+      {a.image && <img src={a.image} alt="" width={1280} height={720} decoding="async" fetchPriority="high" className="aspect-video w-full rounded-[22px] bg-fill object-cover" />}
+      <article aria-labelledby="article-title" className="article-body" style={{ fontFamily: "var(--font-serif)", fontSize: 19, lineHeight: 1.7 }}>
         <Markdown source={a.body} from={2} />
       </article>
       {related.length > 0 && (
         <section aria-labelledby="related" className="flex flex-col gap-3">
-          <h2 id="related" className="m-0 text-[22px] font-bold tracking-[-0.02em]">Keep reading</h2>
+          <h2 id="related" className="m-0 text-[30px]">Keep reading</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {related.map((r) => (
-              <Link key={r.slug} href={`/articles/${r.slug}`} className="flex flex-col gap-1 rounded-2xl bg-surface p-4 shadow-card transition-transform active:scale-[0.98]" style={{ textDecoration: "none", color: "inherit" }}>
-                {r.industry && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#C4552B]">{r.industry}</span>}
-                <span className="text-[16px] font-semibold leading-snug">{r.title}</span>
-                <span className="text-xs text-faint">{r.mins} min read</span>
+              <Link key={r.slug} href={`/articles/${r.slug}`} className="flex flex-col gap-1.5 rounded-[18px] border border-edge/10 bg-surface p-5 transition-transform hover:bg-hover active:scale-[0.98]" style={{ textDecoration: "none", color: "inherit" }}>
+                {r.industry && <span className="text-[12px] font-bold uppercase tracking-[0.08em] text-plum">{r.industry}</span>}
+                <span className="font-display text-[22px] leading-[1.15]">{r.title}</span>
+                <span className="text-[13px] text-faint">{r.mins} min read</span>
               </Link>
             ))}
           </div>
