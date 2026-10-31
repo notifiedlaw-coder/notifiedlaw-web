@@ -14,21 +14,21 @@ import { bySemester, PREVIEW_TOPICS, isMaxLevel, LEVEL_LABEL, type Course, type 
 export function TopicRow({ slug, i, topic, locked, preview = false, lockLabel = "Student", done, onToggle }: { slug: string; i: number; topic: TopicInfo; locked: boolean; preview?: boolean; lockLabel?: string; done?: boolean; onToggle?: (on: boolean) => void }) {
   const info = (
     <span className="flex min-w-0 flex-1 flex-col">
-      <span className="line-clamp-2 text-sm font-medium sm:line-clamp-none sm:truncate" style={{ opacity: locked || !topic.ready ? 0.55 : 1 }}>{topic.title}</span>
-      {topic.ready && <span className="text-xs text-faint">{topic.mins} min read · {topic.chapters} {topic.chapters === 1 ? "chapter" : "chapters"}</span>}
+      <span className="line-clamp-2 text-[16px] sm:line-clamp-none sm:truncate" style={{ opacity: locked || !topic.ready ? 0.55 : 1 }}>{topic.title}</span>
+      {topic.ready && <span className="text-[13px] text-faint">{topic.mins} min read · {topic.chapters} {topic.chapters === 1 ? "chapter" : "chapters"}</span>}
     </span>
   );
-  const num = <span className="w-[22px] text-[13px] tabular-nums text-ink/40">{i + 1}</span>;
-  const cls = "flex min-h-[52px] items-center gap-3.5 border-t py-2.5 sm:py-0 border-edge/[0.06] px-4 first:border-0";
+  const num = <span className="grid size-7 shrink-0 place-items-center rounded-full bg-fill text-[13px] font-bold tabular-nums">{i + 1}</span>;
+  const cls = "flex min-h-[60px] items-center gap-3.5 border-t border-edge/[0.07] px-[18px] py-3 first:border-0";
   if (!topic.ready) {
-    return <div className={cls}>{num}{info}<span className="text-xs text-faint">Coming soon</span></div>;
+    return <div className={cls}>{num}{info}<span className="text-[13px] text-faint">Coming soon</span></div>;
   }
   const tail = (
     <>
       {locked ? (
-        <span className="flex items-center gap-1.5 text-xs text-faint"><Icon name="lock" size={12} />{lockLabel}</span>
+        <span className="flex items-center gap-1.5 text-[13px] text-faint"><Icon name="lock" size={12} />{lockLabel}</span>
       ) : preview && i < PREVIEW_TOPICS ? (
-        <span className="rounded-[5px] bg-green/15 px-[7px] py-0.5 text-[11px] font-semibold text-[#248A3D]">PREVIEW</span>
+        <span className="rounded-full bg-peach px-2.5 py-1 text-[12px] font-bold text-[var(--peach-fg)]">Preview</span>
       ) : null}
       <Chevron />
     </>
@@ -37,7 +37,7 @@ export function TopicRow({ slug, i, topic, locked, preview = false, lockLabel = 
   const link = { textDecoration: "none", color: "inherit" };
   if (onToggle && !locked) {
     return (
-      <div className={`${cls} gap-1.5 pl-1.5 hover:bg-hover`}>
+      <div className={`${cls} gap-1.5 pl-2.5 hover:bg-hover`}>
         <button type="button" onClick={() => onToggle(!done)} aria-pressed={!!done} aria-label={`${topic.title}: ${done ? "studied" : "not studied yet"}`}
           className="flex size-11 shrink-0 items-center justify-center rounded-full active:scale-90 motion-safe:transition-transform">
           <CheckCircle on={!!done} />
