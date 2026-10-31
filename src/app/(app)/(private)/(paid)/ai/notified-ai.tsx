@@ -8,12 +8,13 @@ import { MAX_QUESTION, messageCost } from "@/lib/ai/cost";
 import { MODES, MODE_ORDER, type Mode } from "@/lib/ai/modes";
 import { MAX_REFS, type Mentionable, type Ref, type RefKind } from "@/lib/ai/refs";
 
-const SUGGESTIONS = [
-  "Explain judicial review under the 1992 Constitution",
-  "What makes a contract valid in Ghana?",
-  "Walk me through an IRAC answer on negligence",
-  "Quiz me on the law of evidence",
+const SUGGESTIONS: [string, string][] = [
+  ["Explain", "Explain judicial review under the 1992 Constitution"],
+  ["Ask", "What makes a contract valid in Ghana?"],
+  ["IRAC", "Walk me through an IRAC answer on negligence"],
 ];
+/** Hick's law: the first three modes cover most sessions; the rest open on request. */
+const FIRST_MODES = 3;
 /** One-tap questions about what is attached; also what /ai?ask= writes. */
 const QUICK = {
   summarise: ["Summarise", "Summarise this in plain English: the key points, then what matters most for a student."],
@@ -61,6 +62,7 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
   const [text, setText] = useState(start?.ask ? QUICK[start.ask][1] : "");
   const [attached, setAttached] = useState<Mentionable[]>(start ? [start.ref] : []);
   const [mode, setMode] = useState<Mode>("ask");
+  const [moreModes, setMoreModes] = useState(false);
   const [caret, setCaret] = useState(0);
   const [pickerOff, setPickerOff] = useState(false); // Escape closes the list until the next keystroke
   const [pickIndex, setPickIndex] = useState(0);
@@ -293,7 +295,7 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
       {/* Wide screens: the conversations beside the chat. */}
       <aside className="hidden w-[272px] shrink-0 flex-col border-r border-edge/10 bg-surface/60 lg:flex" aria-label="Conversations">
         <div className="flex items-center justify-between px-4 pb-2 pt-4">
-          <h2 className="m-0 text-[17px] font-semibold tracking-[-0.01em]">Chats</h2>
+          <h2 className="m-0 text-[24px]">Chats</h2>
           <IconButton label="New chat" onClick={newChat}><Compose /></IconButton>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">{list}</div>
@@ -307,13 +309,13 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
           <IconButton label="New chat" onClick={newChat}><Compose /></IconButton>
         </div>
         <div className="hidden shrink-0 items-center justify-between gap-3 px-6 pt-4 lg:flex">
-          <span className="min-w-0 truncate text-[15px] font-semibold">{active?.title ?? "New chat"}</span>
+          <span className="min-w-0 truncate text-[16px] font-semibold">{active?.title ?? "New chat"}</span>
           <Credits allowance={first.allowance} left={left} />
         </div>
 
         <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
-          <div className="mx-auto flex min-h-full w-full max-w-[720px] flex-col gap-5 px-4 pb-6 pt-5 md:px-6">
+          <div className="mx-auto flex min-h-full w-full max-w-[780px] flex-col gap-6 px-[18px] pb-6 pt-5 md:px-8 lg:pt-8">
             {!ready && <Notice>Notified AI is being set up. You can write your questions now; answers start once it is switched on.</Notice>}
             {empty && <Welcome onAsk={(q) => setDraft(q)} />}
             {loading && <div className="flex flex-col gap-3 pt-2" role="status" aria-label="Loading chat">{[70, 100, 55].map((w, i) => <div key={i} className="h-12 animate-pulse rounded-[18px] bg-fill" style={{ width: `${w}%`, animationDelay: `${i * 120}ms` }} />)}</div>}
@@ -334,15 +336,19 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
         <div className="shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1 md:px-6">
           <div className="relative mx-auto w-full max-w-[720px]">
             {mention && <MentionList options={options} index={pickIndex} full={attached.length >= MAX_REFS} none={!mentions.length} onPick={pick} onHover={setPickIndex} />}
-            <div role="radiogroup" aria-label="Study mode" className="-mx-1 mb-2 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {MODE_ORDER.map((k) => (
-                <button key={k} type="button" role="radio" aria-checked={mode === k} title={MODES[k].hint} onClick={() => setMode(k)}
-                  className={`h-8 shrink-0 rounded-full border-0 px-3.5 text-[13px] font-medium transition-colors ${mode === k ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}>
-                  {MODES[k].label}
-                </button>
-              ))}
+            <div className="-mx-1 mb-2.5 flex items-center gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div role="radiogroup" aria-label="Study mode" className="flex shrink-0 gap-2">
+                {MODE_ORDER.filter((k, i) => moreModes || i < FIRST_MODES || k === mode).map((k) => (
+                  <button key={k} type="button" role="radio" aria-checked={mode === k} title={MODES[k].hint} onClick={() => setMode(k)}
+                    className={`h-11 shrink-0 cursor-pointer rounded-full border px-[18px] text-[15px] font-semibold transition-colors ${mode === k ? "border-blue bg-blue text-white" : "border-edge/15 bg-surface text-ink hover:bg-hover"}`}>
+                    {MODES[k].label}
+                  </button>
+                ))}
+              </div>
+              <button type="button" aria-expanded={moreModes} onClick={() => setMoreModes((v) => !v)} className="h-11 shrink-0 cursor-pointer border-0 bg-transparent px-2 text-[15px] font-semibold text-link">{moreModes ? "Fewer" : "More modes"}</button>
+              <span className="hidden shrink-0 text-[14px] text-faint md:inline">{MODES[mode].hint}</span>
             </div>
-            <div className="flex flex-col gap-2 rounded-[24px] bg-surface p-2 shadow-[0_0_0_0.5px_var(--hairline),0_4px_18px_rgba(0,0,0,0.06)] focus-within:shadow-[0_0_0_2px_var(--color-blue)]">
+            <div className="flex flex-col gap-2 rounded-[22px] border border-edge/15 bg-surface p-2.5 pl-3.5 shadow-[0_8px_24px_rgba(22,26,38,0.06)] focus-within:border-blue">
               {attached.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 px-1 pt-1">
                   {attached.map((f) => (
@@ -366,34 +372,34 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
               <div className="flex items-end gap-1.5">
                 <button type="button" aria-label="Attach a file, case or topic" title="Attach (@)" disabled={noCredits}
                   onClick={() => { const el = input.current; const at = el?.selectionStart ?? text.length; const pre = text.slice(0, at); const sep = pre && !/\s$/.test(pre) ? " " : ""; setText(pre + sep + "@" + text.slice(at)); setPickerOff(false); requestAnimationFrame(() => { el?.focus(); const c = at + sep.length + 1; el?.setSelectionRange(c, c); setCaret(c); }); }}
-                  className="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-0 bg-fill text-ink transition-transform active:scale-90 disabled:opacity-40">
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full border-0 bg-fill text-ink transition-transform active:scale-90 disabled:opacity-40">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M9 3.5v11M3.5 9h11" /></svg>
                 </button>
                 <textarea ref={input} rows={1} value={text} disabled={noCredits} maxLength={MAX_QUESTION}
-                  placeholder={noCredits ? (first.allowance === 0 ? "Your plan has no Notify Credits" : "No Notify Credits left this month") : mode === "quiz" ? "Name a topic to be quizzed on" : "Ask about Ghanaian law"}
+                  placeholder={noCredits ? (first.allowance === 0 ? "Your plan has no Notify Credits" : "No Notify Credits left this month") : mode === "quiz" ? "Name a topic to be quizzed on" : "Ask about a case, an Act or a topic…"}
                   aria-label="Message Notified AI"
                   onChange={(e) => { setText(e.target.value); setCaret(e.target.selectionStart); setPickerOff(false); setPickIndex(0); grow(); }}
                   onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
                   onKeyDown={onKey}
-                  className="max-h-[180px] min-h-9 min-w-0 flex-1 resize-none self-center border-0 bg-transparent px-1 py-1.5 text-[16px] leading-[1.35] text-ink outline-none placeholder:text-faint disabled:opacity-60" />
+                  className="max-h-[180px] min-h-11 min-w-0 flex-1 resize-none self-center border-0 bg-transparent px-1 py-2.5 text-[17px] leading-[1.35] text-ink outline-none placeholder:text-faint disabled:opacity-60" />
                 {hearing && !streaming && (
                   <button type="button" aria-label={listening ? "Stop dictating" : "Dictate"} aria-pressed={listening} disabled={noCredits} onClick={toggleVoice}
-                    className={`mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-0 transition-transform active:scale-90 disabled:opacity-40 ${listening ? "animate-pulse bg-red text-white" : "bg-transparent text-muted hover:bg-fill"}`}>
+                    className={`flex size-11 shrink-0 items-center justify-center rounded-full border-0 transition-transform active:scale-90 disabled:opacity-40 ${listening ? "animate-pulse bg-red text-white" : "bg-transparent text-muted hover:bg-fill"}`}>
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="6.5" y="2" width="5" height="9" rx="2.5" /><path d="M3.8 8.5a5.2 5.2 0 0 0 10.4 0M9 13.7V16" /></svg>
                   </button>
                 )}
                 {streaming ? (
-                  <button type="button" aria-label="Stop" onClick={() => abort.current?.abort()} className="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-0 bg-strong text-strong-fg transition-transform active:scale-90">
+                  <button type="button" aria-label="Stop" onClick={() => abort.current?.abort()} className="flex size-11 shrink-0 items-center justify-center rounded-full border-0 bg-strong text-strong-fg transition-transform active:scale-90">
                     <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden><rect width="12" height="12" rx="2.5" fill="currentColor" /></svg>
                   </button>
                 ) : (
-                  <button type="button" aria-label="Send" disabled={!text.trim() || noCredits || short} onClick={() => void send()} className="mb-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border-0 bg-blue text-white transition-[transform,opacity] active:scale-90 disabled:opacity-30">
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 14.5v-11M4.5 8 9 3.5 13.5 8" /></svg>
+                  <button type="button" disabled={!text.trim() || noCredits || short} onClick={() => void send()} className="flex h-11 shrink-0 cursor-pointer items-center rounded-full border-0 bg-blue px-5 text-[16px] font-semibold text-white transition-[transform,opacity] active:scale-95 disabled:opacity-30">
+                    Ask
                   </button>
                 )}
               </div>
             </div>
-            <p className="m-0 px-2 pt-2 text-center text-[11px] leading-snug text-faint">
+            <p className="m-0 px-2 pt-2 text-center text-[12px] leading-snug text-faint">
               {short ? <span className="font-medium text-red" role="alert">This question needs {cost} credits and you have {left}. Attach less, or change the mode.</span>
                 : <>This will use {cost} {cost === 1 ? "credit" : "credits"}{attachedChars > 8_000 ? " (long documents cost more)" : ""}. Notified AI can make mistakes: check important points against the law itself.</>}
               <span className="lg:hidden"> · <Credits allowance={first.allowance} left={left} inline /></span>
@@ -411,19 +417,19 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
 
 function Welcome({ onAsk }: { onAsk: (q: string) => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 py-8 text-center">
-      <div aria-hidden className="grid size-16 place-items-center rounded-[20px] bg-gradient-to-br from-[#5e5ce6] via-[#bf5af2] to-[#C4552B] text-white shadow-[0_8px_24px_rgba(94,92,230,0.35)]">
-        <svg width="30" height="30" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.8l1.6 4.6L14.2 8l-4.6 1.6L8 14.2 6.4 9.6 1.8 8l4.6-1.6z" /></svg>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <h2 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.03em]">Ask about Ghanaian law</h2>
-        <p className="m-0 max-w-[440px] text-[15px] leading-snug text-muted">
-          Type <b className="rounded bg-fill px-1.5 py-0.5 font-semibold text-ink">@</b> to bring in your <Link href="/files" className="text-link">files</Link>, <Link href="/case-law" className="text-link">case briefs</Link> or library topics. Answers cite what they use.
+    <div className="flex flex-col gap-6 pt-3">
+      <div className="flex flex-col gap-2.5">
+        <h1 className="m-0 text-[38px] leading-[1.02] md:text-[46px] lg:text-[56px]">What are we working on?</h1>
+        <p className="m-0 max-w-[560px] text-[17px] leading-normal text-muted">
+          Answers from Ghanaian law only, with the cases and Acts behind them. Type <b className="rounded bg-fill px-1.5 py-0.5 font-semibold text-ink">@</b> to bring in your <Link href="/files" className="text-link">files</Link>, <Link href="/case-law" className="text-link">case briefs</Link> or library topics.
         </p>
       </div>
-      <div className="grid w-full max-w-[520px] gap-2 sm:grid-cols-2">
-        {SUGGESTIONS.map((q) => (
-          <button key={q} type="button" onClick={() => onAsk(q)} className="rounded-[16px] border-0 bg-surface p-3.5 text-left text-[14px] leading-snug text-ink shadow-card transition-transform active:scale-[0.98]">{q}</button>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+        {SUGGESTIONS.map(([k, q]) => (
+          <button key={q} type="button" onClick={() => onAsk(q)} className="flex min-h-[110px] cursor-pointer flex-col gap-1.5 rounded-2xl border border-edge/[0.12] bg-surface p-[18px] text-left text-ink transition-shadow hover:shadow-card-hover">
+            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">{k}</span>
+            <span className="text-[17px] leading-[1.35]">{q}</span>
+          </button>
         ))}
       </div>
     </div>
@@ -457,7 +463,7 @@ function UserBubble({ m, canEdit, onResend }: { m: Msg; canEdit: boolean; onRese
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M10.8 2.7a1.6 1.6 0 0 1 2.3 2.3L6 12.2 2.8 13.2l1-3.2z" /></svg>
             </button>
           )}
-          <div className="whitespace-pre-wrap break-words rounded-[20px] rounded-br-[6px] bg-blue px-4 py-2.5 text-[16px] leading-[1.4] text-white">{m.content}</div>
+          <div className="whitespace-pre-wrap break-words rounded-[18px] rounded-br-[4px] bg-blue px-[18px] py-3.5 text-[17px] leading-[1.45] text-white">{m.content}</div>
         </div>
       )}
     </div>
@@ -471,13 +477,11 @@ function AnswerBubble({ m, live, chatId, last, onRegenerate, onFlashcards, onSav
   const [save, setSave] = useState<{ s: "idle" | "saving" | "saved" } | { s: "error"; text: string }>({ s: "idle" });
   const done = m.content && !live && !isTemp(m.id);
   return (
-    <div className="flex gap-3">
-      <span aria-hidden className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#5e5ce6] via-[#bf5af2] to-[#C4552B] text-white">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.8l1.6 4.6L14.2 8l-4.6 1.6L8 14.2 6.4 9.6 1.8 8l4.6-1.6z" /></svg>
-      </span>
-      <div className="min-w-0 flex-1">
+    <div className="flex flex-col gap-3 rounded-[18px] border border-edge/10 bg-surface p-5">
+      <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Notified AI</span>
+      <div className="min-w-0">
         {m.content ? (
-          <div className="text-[16px] leading-[1.55] [&>*:first-child]:mt-0">
+          <div className="text-[17px] leading-[1.6] [&>*:first-child]:mt-0">
             <Markdown source={withCitations(m.content, m.files)} from={3} />
             {live && <span aria-hidden className="ml-0.5 inline-block size-2 animate-pulse rounded-full bg-faint align-middle" />}
           </div>
@@ -488,10 +492,10 @@ function AnswerBubble({ m, live, chatId, last, onRegenerate, onFlashcards, onSav
         )}
         {m.content && m.files.length > 0 && (
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Sources</span>
+            <span className="sr-only">Sources</span>
             {m.files.map((f, i) => (
-              <Link key={`${f.kind}:${f.id}`} href={f.href} className="flex max-w-full items-center gap-1.5 rounded-full bg-fill py-1 pl-1.5 pr-2.5 text-xs font-medium" style={{ textDecoration: "none", color: "inherit" }}>
-                <span className="grid size-4 place-items-center rounded-full bg-blue/15 text-[10px] font-bold text-link">{i + 1}</span><span className="max-w-[220px] truncate">{f.name}</span>
+              <Link key={`${f.kind}:${f.id}`} href={f.href} className="flex max-w-full items-center gap-1.5 rounded-full bg-peach py-1.5 pl-2 pr-3 text-[14px] text-[var(--peach-fg)]" style={{ textDecoration: "none" }}>
+                <span className="text-[12px] font-bold">{i + 1}</span><span className="max-w-[220px] truncate">{f.name}</span>
               </Link>
             ))}
           </div>
