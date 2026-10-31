@@ -41,6 +41,8 @@ export type Me = {
   avatar: string | null;
   /** Whether people who type the account's email can find it to send a friend request. */
   findByEmail: boolean;
+  /** Do not disturb: no ringing for calls and no unread badge for messages. */
+  dnd: boolean;
 };
 
 /** Shown as "UG Legon" style tags in the sidebar. */

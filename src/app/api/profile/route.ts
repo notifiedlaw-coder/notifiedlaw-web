@@ -57,8 +57,8 @@ export async function PATCH(req: Request) {
   if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
   const rl = await limited(req, "WRITES", id);
   if (rl) return rl;
-  const b = (await readJson(req)) as { level?: unknown; findByEmail?: unknown } | null;
-  const set: { level?: string; findByEmail?: boolean } = {};
+  const b = (await readJson(req)) as { level?: unknown; findByEmail?: unknown; dnd?: unknown } | null;
+  const set: { level?: string; findByEmail?: boolean; dnd?: boolean } = {};
   if (b?.level !== undefined) {
     if (!isLevel(b.level)) return Response.json({ error: "Unknown level." }, { status: 400 });
     set.level = b.level;
@@ -66,6 +66,10 @@ export async function PATCH(req: Request) {
   if (b?.findByEmail !== undefined) {
     if (typeof b.findByEmail !== "boolean") return Response.json({ error: "findByEmail must be true or false." }, { status: 400 });
     set.findByEmail = b.findByEmail;
+  }
+  if (b?.dnd !== undefined) {
+    if (typeof b.dnd !== "boolean") return Response.json({ error: "dnd must be true or false." }, { status: 400 });
+    set.dnd = b.dnd;
   }
   if (!Object.keys(set).length) return Response.json({ error: "Nothing to change." }, { status: 400 });
   const res = await getDb().update(profile).set({ ...set, updatedAt: new Date() }).where(eq(profile.userId, id));

@@ -1,7 +1,7 @@
 import { userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
 import { myStreak, recordActivity } from "@/lib/activity";
-import { incomingCount } from "@/lib/friends";
+import { dndOn, incomingCount } from "@/lib/friends";
 import { unreadCount } from "@/lib/messages";
 import { groupUnreadCount } from "@/lib/groups";
 
@@ -11,6 +11,7 @@ export async function POST(req: Request) {
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
   const rl = await limited(req, "READS", userId);
   if (rl) return rl;
-  const [, incoming, unread, groupUnread] = await Promise.all([recordActivity(userId), incomingCount(userId), unreadCount(userId), groupUnreadCount(userId)]);
-  return Response.json({ incoming, unread: unread + groupUnread, ...(await myStreak(userId)) });
+  const [, incoming, unread, groupUnread, dnd] = await Promise.all([recordActivity(userId), incomingCount(userId), unreadCount(userId), groupUnreadCount(userId), dndOn(userId)]);
+  // Do not disturb: new messages add no badge. They still show as unread inside Community.
+  return Response.json({ incoming, unread: dnd ? 0 : unread + groupUnread, ...(await myStreak(userId)) });
 }

@@ -240,6 +240,7 @@ export async function meFor(userId: string): Promise<Me> {
       jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
     } as Me["profile"] : null,
     findByEmail: p?.findByEmail ?? true,
+    dnd: p?.dnd ?? false,
     subscription: { plan: planOf(s), creditsUsed: usedThisMonth(s), promoUntil: s?.promoUntil && planOf(s) !== planOf({ plan: s.plan }) ? s.promoUntil.getTime() : null },
     student: st ? {
       email: st.email, university: st.university, studentId: st.studentId ?? "",

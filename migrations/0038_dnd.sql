@@ -1,0 +1,1 @@
+ALTER TABLE `profile` ADD `dnd` integer DEFAULT false NOT NULL;

@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, desc, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { call, callParticipant, chatGroup, groupMember } from "@/db/schema";
 import { getDb } from "@/lib/auth";
-import { areFriends, blockedEitherWay, blockedWith, people } from "@/lib/friends";
+import { areFriends, blockedEitherWay, blockedWith, dndOn, people } from "@/lib/friends";
 import { MAX_CALL_MS, MAX_GROUP_MEMBERS, type CallInfo, type CallPeer } from "@/lib/friend-view";
 import { closeTracks, newSession, pullTracks, pushTracks, renegotiate, sfuConfigured } from "@/lib/sfu";
 
@@ -141,6 +141,8 @@ export async function startCall(userId: string, target: { friendId?: string; gro
 
 /** Calls ringing for the user: direct calls to them, and group calls just started in their groups, not yet joined. */
 export async function ringing(userId: string): Promise<CallInfo[]> {
+  // Do not disturb: nothing rings. Direct calls go unanswered; group calls can still be joined from the group.
+  if (await dndOn(userId)) return [];
   const db = getDb();
   const since = new Date(Date.now() - RING_MS);
   const groups = db.select({ id: groupMember.groupId }).from(groupMember).where(eq(groupMember.userId, userId));

@@ -25,8 +25,10 @@ type Ctx = {
   /** Whether people who type the account's email can send it a friend request. */
   findByEmail: boolean;
   setFindByEmail: (on: boolean) => void;
+  dnd: boolean;
+  setDnd: (on: boolean) => void;
 };
-const PlanCtx = createContext<Ctx>({ plan: "None", setPlan: () => {}, paid: false, pro: false, max: false, credits: 0, allowance: 0, spend: () => false, profile: null, setLevel: () => {}, setProfile: () => {}, promoUntil: null, student: null, avatar: null, findByEmail: true, setFindByEmail: () => {} });
+const PlanCtx = createContext<Ctx>({ plan: "None", setPlan: () => {}, paid: false, pro: false, max: false, credits: 0, allowance: 0, spend: () => false, profile: null, setLevel: () => {}, setProfile: () => {}, promoUntil: null, student: null, avatar: null, findByEmail: true, setFindByEmail: () => {}, dnd: false, setDnd: () => {} });
 
 const send = (url: string, method: string, body: unknown) =>
   void fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
@@ -34,13 +36,14 @@ const send = (url: string, method: string, body: unknown) =>
 // Plan, credits and profile live in D1 and are read on the server for each request (AppFrame), so the
 // first paint already shows the right plan. Guests (null) have no plan.
 export function PlanProvider({ me, children }: { me: Me | null; children: React.ReactNode }) {
-  const [state, setState] = useState<{ plan: Plan; used: number; profile: Profile | null; findByEmail: boolean }>(() => ({
+  const [state, setState] = useState<{ plan: Plan; used: number; profile: Profile | null; findByEmail: boolean; dnd: boolean }>(() => ({
     plan: me && isPlan(me.subscription.plan) ? me.subscription.plan : "None",
     used: me?.subscription.creditsUsed ?? 0,
     profile: me?.profile ?? null,
     findByEmail: me?.findByEmail ?? true,
+    dnd: me?.dnd ?? false,
   }));
-  const { plan, used, profile, findByEmail } = state;
+  const { plan, used, profile, findByEmail, dnd } = state;
   const student = me?.student ?? null;
   const promoUntil = me?.subscription.promoUntil ?? null;
   const avatar = me?.avatar ?? null;
@@ -68,11 +71,15 @@ export function PlanProvider({ me, children }: { me: Me | null; children: React.
     setState((s) => ({ ...s, findByEmail: on }));
     send("/api/profile", "PATCH", { findByEmail: on });
   }, []);
+  const setDnd = useCallback((on: boolean) => {
+    setState((s) => ({ ...s, dnd: on }));
+    send("/api/profile", "PATCH", { dnd: on });
+  }, []);
 
   // Memoised so the many consumers only re-render when the plan or balance actually changes.
   const value = useMemo(
-    () => ({ plan, setPlan, paid: plan !== "None", pro: plan === "Pro" || plan === "Pro Max", max: plan === "Pro Max", credits, allowance, spend, profile, setLevel, setProfile, promoUntil, student, avatar, findByEmail, setFindByEmail }),
-    [plan, setPlan, credits, allowance, spend, profile, setLevel, setProfile, promoUntil, student, avatar, findByEmail, setFindByEmail],
+    () => ({ plan, setPlan, paid: plan !== "None", pro: plan === "Pro" || plan === "Pro Max", max: plan === "Pro Max", credits, allowance, spend, profile, setLevel, setProfile, promoUntil, student, avatar, findByEmail, setFindByEmail, dnd, setDnd }),
+    [plan, setPlan, credits, allowance, spend, profile, setLevel, setProfile, promoUntil, student, avatar, findByEmail, setFindByEmail, dnd, setDnd],
   );
   return <PlanCtx.Provider value={value}>{children}</PlanCtx.Provider>;
 }

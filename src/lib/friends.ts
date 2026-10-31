@@ -153,3 +153,9 @@ export async function people(ids: string[]) {
     plan: planOf(r.plan ? { plan: r.plan, promoPlan: r.promoPlan, promoUntil: r.promoUntil } : undefined),
   }]));
 }
+
+/** Whether the account has Do not disturb on: its calls do not ring and its messages add no unread badge. */
+export async function dndOn(userId: string) {
+  const [p] = await getDb().select({ dnd: profile.dnd }).from(profile).where(eq(profile.userId, userId));
+  return !!p?.dnd;
+}

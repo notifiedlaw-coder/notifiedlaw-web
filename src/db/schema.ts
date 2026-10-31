@@ -67,6 +67,8 @@ export const profile = sqliteTable("profile", {
   goals: text("goals").notNull().default("[]"), // JSON array of goal labels
   // Whether someone who types this account's email can send it a friend request (Settings > Friends).
   findByEmail: integer("find_by_email", { mode: "boolean" }).notNull().default(true),
+  // Do not disturb: calls do not ring and messages add no unread badge while it is on.
+  dnd: integer("dnd", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });

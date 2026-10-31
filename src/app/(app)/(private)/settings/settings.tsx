@@ -32,7 +32,7 @@ const Switch = ({ on, onChange, label }: { on: boolean; onChange: (on: boolean) 
 const fmtDate = (ms: number) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Accra" }).format(new Date(ms));
 
 export function Settings() {
-  const { plan, setPlan, credits, allowance, profile, setLevel, student, findByEmail, setFindByEmail } = usePlan();
+  const { plan, setPlan, credits, allowance, profile, setLevel, student, findByEmail, setFindByEmail, dnd, setDnd } = usePlan();
   const { theme, setTheme } = useTheme();
   const user = useUser();
 
@@ -49,6 +49,14 @@ export function Settings() {
           <Row label="Student ID">{student.studentId || "Not set"}</Row>
           <Row label="Verified until">{student.eligible ? fmtDate(student.verifiedAt + STUDENT_VERIFY_DAYS * 86_400_000) : "Expired, sign in again with your university email"}</Row>
         </Group>
+      )}
+      {profile && (
+        <section className="flex flex-col gap-1.5">
+          <Group title="Status">
+            <Row label="Do not disturb"><Switch on={dnd} onChange={setDnd} label="Do not disturb" /></Row>
+          </Group>
+          <p className="m-0 px-1 text-[14px] text-muted">{dnd ? "On. Calls do not ring and new messages add no badge. Your messages are still delivered; open Community to read them." : "When this is on, calls do not ring and new messages add no badge."}</p>
+        </section>
       )}
       {profile && (
         <section className="flex flex-col gap-1.5">
