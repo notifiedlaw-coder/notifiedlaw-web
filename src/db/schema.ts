@@ -88,6 +88,14 @@ export const promoRedemption = sqliteTable("promo_redemption", {
   redeemedAt: integer("redeemed_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [primaryKey({ columns: [t.userId, t.code] })]);
 
+// The same redemptions by mailbox (SHA-256 of the normalised email), with no link to the account, so deleting an
+// account and signing up again with the same address cannot use a code twice.
+export const promoMailbox = sqliteTable("promo_mailbox", {
+  mailbox: text("mailbox").notNull(),
+  code: text("code").notNull(),
+  redeemedAt: integer("redeemed_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [primaryKey({ columns: [t.mailbox, t.code] })]);
+
 // Notes a reader pins to a passage of a library topic. `quote` is the highlighted text, `before` the few
 // characters ahead of it (to tell repeated phrases apart), `chapter` the 0-based chapter it was in.
 // Keyed on the topic's Notion page id, so a note stays with its topic when topics are reordered.
