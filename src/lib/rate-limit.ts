@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-type Bucket = "WRITES" | "READS" | "ADMIN" | "MEDIA" | "UNI_EMAIL" | "TIMETABLE" | "CALLS" | "MESSAGES" | "AVATARS";
+type Bucket = "WRITES" | "READS" | "ADMIN" | "MEDIA" | "UNI_EMAIL" | "TIMETABLE" | "CALLS" | "MESSAGES" | "AVATARS" | "TYPING";
 
 /** Buckets set faster than a person works: going over one keeps refusing that key for this long (ms). */
 const BLOCK_MS: Partial<Record<Bucket, number>> = { TIMETABLE: 5 * 60_000 };

@@ -12,8 +12,9 @@ import { MESSAGE_RULE, ONLINE_MS, seenLabel, type FriendLists, type Message } fr
 import { ChatView, HeaderButton, InfoIcon, PhoneIcon, type ChatMessage } from "./chat";
 import { StreakTag, useFriendsShell } from "./friends-shell";
 
-/** How often an open conversation checks for new messages while the page is visible. */
+/** How often an open conversation checks for new messages while the page is visible; faster while the friend types. */
 const POLL_MS = 4_000;
+const TYPING_POLL_MS = 2_000;
 
 /** A conversation with one friend: messages, polled while open, voice calls, report and block. */
 export function Conversation({ friendId, initial, initialSeen }: { friendId: string; initial: Message[]; initialSeen: number | null }) {
@@ -24,6 +25,7 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
   const friend = lists.friends.find((f) => f.id === friendId);
   const [messages, setMessages] = useState<(Message & { pending?: boolean })[]>(initial);
   const [seen, setSeen] = useState(initialSeen);
+  const [typing, setTyping] = useState(false);
   const [options, setOptions] = useState(false);
   const [reporting, setReporting] = useState<ReportTarget | null>(null);
   const [confirm, setConfirm] = useState<"block" | "remove" | null>(null);
@@ -37,8 +39,9 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
     try {
       const r = await fetch(`/api/messages/${encodeURIComponent(friendId)}${last ? `?after=${last}` : ""}`);
       if (!r.ok) return;
-      const d = (await r.json()) as { messages: Message[]; seen: number | null };
+      const d = (await r.json()) as { messages: Message[]; seen: number | null; typing: boolean };
       setSeen(d.seen);
+      setTyping(d.typing);
       if (!d.messages.length) return;
       setMessages((cur) => {
         const ids = new Set(cur.map((m) => m.id));
@@ -50,10 +53,14 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
   }, [friendId, messages, reload, refresh]);
 
   useEffect(() => {
-    const t = setInterval(poll, POLL_MS);
+    const t = setInterval(poll, typing ? TYPING_POLL_MS : POLL_MS);
     document.addEventListener("visibilitychange", poll);
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", poll); };
-  }, [poll]);
+  }, [poll, typing]);
+
+  const onTyping = useCallback((on: boolean) => {
+    void fetch("/api/typing", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ friendId, on }), keepalive: true }).catch(() => {});
+  }, [friendId]);
 
   async function send(body: string) {
     const temp = { id: `tmp-${Date.now()}`, fromMe: true, body, at: Date.now(), readAt: null, expiresAt: null, pending: true };
@@ -99,7 +106,7 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
           <span className="truncate text-[16px] font-semibold">{friend.name}</span>
           <StreakTag streak={friend.streak} today={friend.today} />
         </span>
-        <span className={`truncate text-[12px] ${online ? "font-medium text-green" : "text-muted"}`}>{seenLabel(friend.lastSeen, now)}</span>
+        <span className={`truncate text-[12px] ${typing || online ? "font-medium text-green" : "text-muted"}`}>{typing ? "typing…" : seenLabel(friend.lastSeen, now)}</span>
       </span>
       <HeaderButton label="Voice call" onClick={() => start({ friendId }, friend.name)}><PhoneIcon /></HeaderButton>
       <HeaderButton label="More" onClick={() => setOptions(true)}><InfoIcon /></HeaderButton>
@@ -109,6 +116,7 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
   return (
     <>
       <ChatView header={header} messages={messages as ChatMessage[]} rule={MESSAGE_RULE} now={now} empty={`Say hello to ${friend.name.split(" ")[0]}.`}
+        typers={typing ? [{ id: friend.id, name: friend.name, avatar: friend.avatar }] : []} onTyping={onTyping}
         status={(m) => {
           if (seen !== null && seen >= m.at) return "Seen";
           const exp = messages.find((x) => x.id === m.id)?.expiresAt;

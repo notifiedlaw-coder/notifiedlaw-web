@@ -7,12 +7,14 @@ import { useCalls } from "@/components/calls";
 import { useFriends } from "@/components/friends";
 import { ReportSheet, type ReportTarget } from "@/components/report";
 import { Sheet } from "@/components/sheet";
-import { GROUP_MESSAGE_RULE, MAX_GROUP_MEMBERS, MAX_GROUP_NAME, type GroupDetail, type GroupMessage } from "@/lib/friend-view";
-import { ChatView, HeaderButton, InfoIcon, PhoneIcon, type ChatMessage } from "./chat";
+import { GROUP_MESSAGE_RULE, MAX_GROUP_MEMBERS, MAX_GROUP_NAME, type GroupDetail, type GroupMessage, type Typer } from "@/lib/friend-view";
+import { ChatView, HeaderButton, InfoIcon, PhoneIcon, typingLabel, type ChatMessage } from "./chat";
 import { SheetRow } from "./conversation";
 import { Check, useFriendsShell } from "./friends-shell";
 
+/** How often an open group checks for new messages; faster while someone types. */
 const POLL_MS = 4_000;
+const TYPING_POLL_MS = 2_000;
 
 /** A group conversation: messages from everyone in it, group calls, and the group's details. */
 export function GroupConversation({ initialGroup, initial }: { initialGroup: GroupDetail; initial: GroupMessage[] }) {
@@ -23,6 +25,7 @@ export function GroupConversation({ initialGroup, initial }: { initialGroup: Gro
   const [group, setGroup] = useState(initialGroup);
   const [messages, setMessages] = useState<(GroupMessage & { pending?: boolean })[]>(initial);
   const [info, setInfo] = useState(false);
+  const [typers, setTypers] = useState<Typer[]>([]);
   const [reporting, setReporting] = useState<ReportTarget | null>(null);
   const live = groups.find((g) => g.id === group.id);
   const callOn = !!live?.call;
@@ -41,7 +44,8 @@ export function GroupConversation({ initialGroup, initial }: { initialGroup: Gro
       const r = await fetch(`/api/groups/${group.id}/messages${last ? `?after=${last}` : ""}`);
       if (r.status === 403) return router.push("/friends"); // removed from the group
       if (!r.ok) return;
-      const d = (await r.json()) as { messages: GroupMessage[] };
+      const d = (await r.json()) as { messages: GroupMessage[]; typing: Typer[] };
+      setTypers((cur) => (cur.map((t) => t.id).join() === d.typing.map((t) => t.id).join() ? cur : d.typing));
       if (!d.messages.length) return;
       setMessages((cur) => {
         const ids = new Set(cur.map((m) => m.id));
@@ -53,10 +57,14 @@ export function GroupConversation({ initialGroup, initial }: { initialGroup: Gro
   }, [group.id, messages, reload, refresh, router]);
 
   useEffect(() => {
-    const t = setInterval(poll, POLL_MS);
+    const t = setInterval(poll, typers.length ? TYPING_POLL_MS : POLL_MS);
     document.addEventListener("visibilitychange", poll);
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", poll); };
-  }, [poll]);
+  }, [poll, typers.length]);
+
+  const onTyping = useCallback((on: boolean) => {
+    void fetch("/api/typing", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ groupId: group.id, on }), keepalive: true }).catch(() => {});
+  }, [group.id]);
 
   async function send(body: string) {
     const temp = { id: `tmp-${Date.now()}`, fromId: me.id, fromMe: true, name: me.name, avatar: me.avatar, body, at: Date.now(), pending: true };
@@ -80,7 +88,7 @@ export function GroupConversation({ initialGroup, initial }: { initialGroup: Gro
         <Avatar id={group.id} name={group.name} src={group.avatar} size={38} group />
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-[16px] font-semibold">{group.name}</span>
-          <span className={`truncate text-[12px] ${callOn ? "font-medium text-green" : "text-muted"}`}>{callOn ? "Call in progress" : `${group.members.length} members`}</span>
+          <span className={`truncate text-[12px] ${callOn || typers.length ? "font-medium text-green" : "text-muted"}`}>{typers.length ? typingLabel(typers) : callOn ? "Call in progress" : `${group.members.length} members`}</span>
         </span>
       </button>
       {callOn
@@ -92,7 +100,7 @@ export function GroupConversation({ initialGroup, initial }: { initialGroup: Gro
 
   return (
     <>
-      <ChatView group header={header} messages={messages as ChatMessage[]} rule={GROUP_MESSAGE_RULE} now={now} empty="No messages yet. Say hello to the group."
+      <ChatView group header={header} typers={typers} onTyping={onTyping} messages={messages as ChatMessage[]} rule={GROUP_MESSAGE_RULE} now={now} empty="No messages yet. Say hello to the group."
         onSend={send} onReport={(m) => setReporting({ kind: "group_message", target: m.id, what: "message" })} />
       {info && <GroupInfo group={group} setGroup={setGroup} onClose={() => setInfo(false)} onReport={() => { setInfo(false); setReporting({ kind: "group", target: group.id, what: "group" }); }} />}
       {reporting && <ReportSheet item={reporting} onClose={() => setReporting(null)} />}

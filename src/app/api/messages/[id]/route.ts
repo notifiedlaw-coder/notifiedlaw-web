@@ -3,6 +3,7 @@ import { limited } from "@/lib/rate-limit";
 import { readJson } from "@/lib/http";
 import { areFriends } from "@/lib/friends";
 import { conversation, sendMessage } from "@/lib/messages";
+import { friendTyping } from "@/lib/typing";
 import { MAX_MESSAGE } from "@/lib/friend-view";
 import { PROFANITY_ERROR, hasProfanity } from "@/lib/profanity";
 
@@ -10,7 +11,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 /**
  * GET /api/messages/<friend id>?after=<ms>: the conversation, or only what came from `after` on. Opening it marks the
- * friend's messages read, which moves their delete date to 30 days from now.
+ * friend's messages read, which moves their delete date to 30 days from now. `typing` is whether the friend is typing.
  */
 export async function GET(req: Request, { params }: Ctx) {
   const userId = await userIdFrom(req);
@@ -20,7 +21,8 @@ export async function GET(req: Request, { params }: Ctx) {
   const friendId = (await params).id;
   if (!(await areFriends(userId, friendId))) return Response.json({ error: "You can only message friends." }, { status: 403 });
   const after = Number(new URL(req.url).searchParams.get("after"));
-  return Response.json(await conversation(userId, friendId, Number.isFinite(after) && after > 0 ? after : undefined));
+  const [c, typing] = await Promise.all([conversation(userId, friendId, Number.isFinite(after) && after > 0 ? after : undefined), friendTyping(userId, friendId)]);
+  return Response.json({ ...c, typing });
 }
 
 /** POST /api/messages/<friend id> { body }: sends a message to a friend. */

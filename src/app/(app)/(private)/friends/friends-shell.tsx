@@ -14,6 +14,8 @@ type Me = { id: string; name: string; avatar: string | null };
 type Blocked = { id: string; name: string; avatar: string | null };
 type Ctx = {
   me: Me; lists: FriendLists; threads: Thread[]; groups: GroupSummary[]; now: number;
+  /** Friends typing to the user, and groups where someone is typing, as of the last refresh. */
+  typing: { friends: string[]; groups: string[] };
   setLists: (l: FriendLists) => void;
   /** Refreshes conversations and groups now, after something changed them. */
   reload: () => void;
@@ -34,6 +36,7 @@ export function FriendsShell({ me, initialLists, initialThreads, initialGroups, 
   const { incoming, refresh } = useFriends();
   const [lists, setListsState] = useState(initialLists);
   const [threads, setThreads] = useState(initialThreads);
+  const [typing, setTyping] = useState<Ctx["typing"]>({ friends: [], groups: [] });
   const [groups, setGroups] = useState(initialGroups);
   const [blocked, setBlocked] = useState(initialBlocked);
   const [now, setNow] = useState(() => Date.now());
@@ -42,7 +45,7 @@ export function FriendsShell({ me, initialLists, initialThreads, initialGroups, 
   const reload = useCallback(() => {
     const get = <T,>(url: string) => fetch(url).then((r) => (r.ok ? (r.json() as Promise<T>) : null)).catch(() => null);
     void get<FriendLists>("/api/friends").then((d) => d && setListsState(d));
-    void get<{ threads: Thread[] }>("/api/messages").then((d) => d && setThreads(d.threads));
+    void get<{ threads: Thread[]; typing: Ctx["typing"] }>("/api/messages").then((d) => { if (d) { setThreads(d.threads); setTyping(d.typing); } });
     void get<{ groups: GroupSummary[] }>("/api/groups").then((d) => d && setGroups(d.groups));
   }, []);
   const setLists = useCallback((l: FriendLists) => { setListsState(l); refresh(); }, [refresh]);
@@ -64,7 +67,7 @@ export function FriendsShell({ me, initialLists, initialThreads, initialGroups, 
     friendsCall("GET", "/api/friends").then((r) => typeof r !== "string" && setListsState(r));
   }, [incoming, lists.incoming.length]);
 
-  const ctx = useMemo(() => ({ me, lists, threads, groups, now, setLists, reload, setBlocked }), [me, lists, threads, groups, now, setLists, reload]);
+  const ctx = useMemo(() => ({ me, lists, threads, groups, now, typing, setLists, reload, setBlocked }), [me, lists, threads, groups, now, typing, setLists, reload]);
   return (
     <ShellCtx.Provider value={ctx}>
       <div className="flex h-full min-h-0">
@@ -85,7 +88,7 @@ const rowLink = "flex items-center gap-3 px-4 py-2.5 active:bg-fill";
 
 function FriendsList({ selected, streak: initialStreak, blocked }: { selected: string | null; streak: Streak; blocked: Blocked[] }) {
   const router = useRouter();
-  const { me, lists, setLists, threads, groups, now, reload, setBlocked } = useFriendsShell();
+  const { me, lists, setLists, threads, groups, now, typing, reload, setBlocked } = useFriendsShell();
   const { mine } = useFriends();
   const streak = mine ?? initialStreak;
   const [error, setError] = useState("");
@@ -190,7 +193,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
                     </span>
                     <span className="flex items-center gap-2">
                       <span className={`min-w-0 flex-1 truncate text-[13px] ${g.unread ? "font-medium text-ink" : "text-muted"}`}>
-                        {g.call ? <span className="font-medium text-green">Call in progress</span> : g.last ? `${g.last.fromMe ? "You" : g.last.from}: ${g.last.body}` : `${g.members} ${g.members === 1 ? "member" : "members"}`}
+                        {g.call ? <span className="font-medium text-green">Call in progress</span> : typing.groups.includes(g.id) ? <span className="font-medium text-green">typing…</span> : g.last ? `${g.last.fromMe ? "You" : g.last.from}: ${g.last.body}` : `${g.members} ${g.members === 1 ? "member" : "members"}`}
                       </span>
                       {g.unread > 0 && <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-blue px-1.5 text-[12px] font-semibold text-white">{g.unread}</span>}
                     </span>
@@ -228,7 +231,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
                     </span>
                     <span className="flex items-center gap-2">
                       <span className={`min-w-0 flex-1 truncate text-[13px] ${t?.unread ? "font-medium text-ink" : on && !t ? "font-medium text-green" : "text-muted"}`}>
-                        {t ? `${t.last.fromMe ? "You: " : ""}${t.last.body}` : seenLabel(f.lastSeen, now)}
+                        {typing.friends.includes(f.id) ? <span className="font-medium text-green">typing…</span> : t ? `${t.last.fromMe ? "You: " : ""}${t.last.body}` : seenLabel(f.lastSeen, now)}
                       </span>
                       {!editing && (t?.unread
                         ? <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-blue px-1.5 text-[12px] font-semibold text-white">{t.unread}</span>

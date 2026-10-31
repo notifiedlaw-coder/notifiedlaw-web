@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gt, gte, inArray, isNull, ne, sql } from "drizzle-orm";
-import { call, chatGroup, friendship, groupMember, groupMessage, userBlock } from "@/db/schema";
+import { call, chatGroup, friendship, groupMember, groupMessage, typing, userBlock } from "@/db/schema";
 import { getDb } from "@/lib/auth";
 import { people } from "@/lib/friends";
 import { MAX_GROUP_MEMBERS, MAX_GROUP_NAME, MAX_OWNED_GROUPS, UNREAD_TTL_MS, avatarUrl, type GroupDetail, type GroupMessage, type GroupSummary } from "@/lib/friend-view";
@@ -160,6 +160,7 @@ export async function postGroupMessage(userId: string, groupId: string, body: st
   await getDb().batch([
     getDb().insert(groupMessage).values(row),
     getDb().update(groupMember).set({ lastReadAt: new Date(now) }).where(and(eq(groupMember.groupId, groupId), eq(groupMember.userId, userId))),
+    getDb().delete(typing).where(and(eq(typing.userId, userId), eq(typing.chat, `g:${groupId}`))), // ends the typing bubble
   ]);
   return row;
 }

@@ -36,6 +36,7 @@ export async function purgeExpired(db: D1Database, now = Date.now()) {
     ["message", "expires_at <= ?1", now],
     ["group_message", "expires_at <= ?1", now],
     ["call", "started_at <= ?1", now - CALL_RECORDS_MS],
+    ["typing", "until_at <= ?1", now],
   ];
   for (const [table, where, at] of jobs) {
     counts[table] = 0;

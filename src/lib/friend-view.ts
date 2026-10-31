@@ -63,6 +63,11 @@ export const MAX_OWNED_GROUPS = 5;
 export const MAX_GROUP_NAME = 40;
 /** Calls end on their own this long after they start. */
 export const MAX_CALL_MS = 3 * 3_600_000;
+/** A typing ping shows the bubble this long; the composer pings again at most this often while keys are pressed. */
+export const TYPING_MS = 6_000;
+export const TYPING_PING_MS = 3_000;
+/** Someone typing in a group, for the bubble and the header. */
+export type Typer = { id: string; name: string; avatar: string | null };
 export const MAX_MESSAGE = 2000;
 
 /** A message as the signed-in user sees it. `expiresAt`: 90 days after sending, or 30 days after reading if sooner. */

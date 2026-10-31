@@ -1,9 +1,9 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icons";
-import { MAX_MESSAGE, dayOf } from "@/lib/friend-view";
+import { MAX_MESSAGE, TYPING_PING_MS, dayOf, type Typer } from "@/lib/friend-view";
 
 export type ChatMessage = { id: string; fromMe: boolean; body: string; at: number; fromId?: string; name?: string; avatar?: string | null; pending?: boolean };
 
@@ -18,13 +18,16 @@ const clock = (at: number) => new Date(at).toLocaleTimeString("en-GB", { hour: "
 /**
  * A conversation's messages as iOS bubbles, and the composer. Groups show who wrote each run of messages. Holding or
  * right-clicking someone else's message offers Report. `onSend` returns an error message, or null once sent.
+ * `typers` shows the typing bubble; `onTyping` tells the others while the user types (see TYPING_PING_MS).
  */
-export function ChatView({ header, messages, rule, empty, status, group, now, onSend, onReport }: {
+export function ChatView({ header, messages, rule, empty, status, group, now, typers = [], onSend, onReport, onTyping }: {
   header: React.ReactNode; messages: ChatMessage[]; rule: string; empty: string; now: number; group?: boolean;
   /** Shown under your newest sent message, e.g. "Seen". */
   status?: (m: ChatMessage) => string | null;
   onSend: (body: string) => Promise<string | null>;
   onReport: (m: ChatMessage) => void;
+  typers?: Typer[];
+  onTyping?: (on: boolean) => void;
 }) {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -33,12 +36,26 @@ export function ChatView({ header, messages, rule, empty, status, group, now, on
   const box = useRef<HTMLTextAreaElement>(null);
   const atBottom = useRef(true);
   const press = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // When the last typing ping went out (0: not typing), as WhatsApp does it: a ping only on a keystroke, at most every
+  // few seconds, so a pause lets the bubble lapse on its own; clearing the box or leaving it stops it at once.
+  const pinged = useRef(0);
+  const typingRef = useRef(onTyping);
+  useEffect(() => { typingRef.current = onTyping; }, [onTyping]);
+  const stopTyping = () => { if (pinged.current) { pinged.current = 0; typingRef.current?.(false); } };
+  useEffect(() => () => { if (pinged.current) typingRef.current?.(false); }, []);
 
-  // Stay at the newest message unless the reader has scrolled up to older ones.
+  function edit(value: string) {
+    setText(value);
+    if (!value.trim()) return stopTyping();
+    if (Date.now() - pinged.current >= TYPING_PING_MS) { pinged.current = Date.now(); onTyping?.(true); }
+  }
+
+  // Stay at the newest message (and the typing bubble) unless the reader has scrolled up to older ones.
+  const typingShown = typers.length > 0;
   useLayoutEffect(() => {
     const el = scroller.current;
     if (el && atBottom.current) el.scrollTop = el.scrollHeight;
-  }, [messages]);
+  }, [messages, typingShown]);
 
   // Grow the box with its text, up to about five lines.
   useLayoutEffect(() => {
@@ -53,6 +70,7 @@ export function ChatView({ header, messages, rule, empty, status, group, now, on
     if (!body) return;
     setError("");
     atBottom.current = true;
+    pinged.current = 0; // the server ends the bubble when the message lands
     setText("");
     const err = await onSend(body);
     if (err) { setText(body); setError(err); }
@@ -103,13 +121,14 @@ export function ChatView({ header, messages, rule, empty, status, group, now, on
             );
           })}
         </ol>
+        {typingShown && <TypingBubble typers={typers} group={group} />}
       </div>
 
       <form onSubmit={(e) => { e.preventDefault(); void send(); }} className="flex shrink-0 flex-col gap-1 border-t-[0.5px] border-edge/15 bg-surface/80 px-3 py-2 backdrop-blur-xl md:px-6">
         {error && <p role="alert" className="m-0 px-1 text-[13px] text-red">{error}</p>}
         <div className="flex items-end gap-2">
           <label htmlFor="message" className="sr-only">Message</label>
-          <textarea id="message" ref={box} rows={1} value={text} maxLength={MAX_MESSAGE} onChange={(e) => setText(e.target.value)}
+          <textarea id="message" ref={box} rows={1} value={text} maxLength={MAX_MESSAGE} onChange={(e) => edit(e.target.value)} onBlur={stopTyping}
             onKeyDown={(e) => {
               // Enter sends on a keyboard; on touch screens the return key adds a line, as in Messages.
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && matchMedia("(hover: hover)").matches) { e.preventDefault(); void send(); }
@@ -120,6 +139,26 @@ export function ChatView({ header, messages, rule, empty, status, group, now, on
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/** "Ama is typing…", "Ama and Kofi are typing…", "3 people are typing…": for headers and the chat list. */
+export function typingLabel(typers: Typer[]) {
+  const first = (t: Typer) => t.name.split(" ")[0];
+  if (typers.length === 1) return `${first(typers[0])} is typing…`;
+  if (typers.length === 2) return `${first(typers[0])} and ${first(typers[1])} are typing…`;
+  return `${typers.length} people are typing…`;
+}
+
+/** Three dots bouncing in a received bubble, as in Messages; in a group, beside the picture of whoever is typing. */
+function TypingBubble({ typers, group }: { typers: Typer[]; group?: boolean }) {
+  return (
+    <div role="status" aria-label={group ? typingLabel(typers) : "Typing"} className="mt-1 flex items-end gap-2 animate-[nl-pop_0.2s_ease-out] origin-bottom-left">
+      {group && <Avatar id={typers[0].id} name={typers[0].name} src={typers[0].avatar} size={28} />}
+      <span className="flex h-[38px] items-center gap-[5px] rounded-[18px] rounded-bl-[6px] bg-surface px-4 shadow-card">
+        {[0, 1, 2].map((i) => <span key={i} className="size-[7px] rounded-full bg-muted animate-[nl-typing_1.2s_ease-in-out_infinite]" style={{ animationDelay: `${i * 0.15}s` }} />)}
+      </span>
     </div>
   );
 }

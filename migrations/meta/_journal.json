@@ -225,6 +225,13 @@
       "when": 1793405151331,
       "tag": "0031_groups_calls",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1793407919061,
+      "tag": "0032_typing",
+      "breakpoints": true
     }
   ]
 }

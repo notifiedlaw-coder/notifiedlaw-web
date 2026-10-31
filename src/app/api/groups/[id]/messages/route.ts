@@ -3,12 +3,13 @@ import { limited } from "@/lib/rate-limit";
 import { readJson } from "@/lib/http";
 import { groupMessages, membership, postGroupMessage } from "@/lib/groups";
 import { people } from "@/lib/friends";
+import { groupTyping } from "@/lib/typing";
 import { MAX_MESSAGE } from "@/lib/friend-view";
 import { PROFANITY_ERROR, hasProfanity } from "@/lib/profanity";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-/** GET /api/groups/<id>/messages?after=<ms>: the group's messages (or those from `after` on); marks the group read. */
+/** GET /api/groups/<id>/messages?after=<ms>: the group's messages (or those from `after` on), and who is typing; marks the group read. */
 export async function GET(req: Request, { params }: Ctx) {
   const userId = await userIdFrom(req);
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
@@ -17,7 +18,8 @@ export async function GET(req: Request, { params }: Ctx) {
   const id = (await params).id;
   if (!(await membership(userId, id))) return Response.json({ error: "You are not in this group." }, { status: 403 });
   const after = Number(new URL(req.url).searchParams.get("after"));
-  return Response.json({ messages: await groupMessages(userId, id, Number.isFinite(after) && after > 0 ? after : undefined) });
+  const [messages, typing] = await Promise.all([groupMessages(userId, id, Number.isFinite(after) && after > 0 ? after : undefined), groupTyping(userId, id)]);
+  return Response.json({ messages, typing });
 }
 
 /** POST /api/groups/<id>/messages { body }: posts to the group. */

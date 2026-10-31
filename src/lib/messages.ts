@@ -1,5 +1,5 @@
 import { and, desc, eq, gt, gte, isNotNull, isNull, or, sql } from "drizzle-orm";
-import { message } from "@/db/schema";
+import { message, typing } from "@/db/schema";
 import { getDb } from "@/lib/auth";
 import { MESSAGE_TTL_MS, UNREAD_TTL_MS, type Message, type Thread } from "@/lib/friend-view";
 
@@ -41,7 +41,9 @@ export async function conversation(userId: string, friendId: string, after?: num
 export async function sendMessage(userId: string, friendId: string, body: string): Promise<Message> {
   const now = Date.now();
   const row = { id: crypto.randomUUID(), fromId: userId, toId: friendId, body, createdAt: new Date(now), readAt: null, expiresAt: new Date(now + UNREAD_TTL_MS) };
-  await getDb().insert(message).values(row);
+  const db = getDb();
+  // Sending ends the typing bubble straight away.
+  await db.batch([db.insert(message).values(row), db.delete(typing).where(and(eq(typing.userId, userId), eq(typing.chat, `u:${friendId}`)))]);
   return view(userId)(row);
 }
 

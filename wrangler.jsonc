@@ -55,7 +55,9 @@
     // Messages sent (direct and group), per user: a fast typist, not a script.
     { "name": "RL_MESSAGES", "namespace_id": "1009", "simple": { "limit": 30, "period": 60 } },
     // Profile and group picture uploads, per user.
-    { "name": "RL_AVATARS", "namespace_id": "1010", "simple": { "limit": 5, "period": 60 } }
+    { "name": "RL_AVATARS", "namespace_id": "1010", "simple": { "limit": 5, "period": 60 } },
+    // Typing pings, per user: one every 3 s while typing, plus stops, with room for several chats.
+    { "name": "RL_TYPING", "namespace_id": "1011", "simple": { "limit": 60, "period": 60 } }
   ],
   "vars": {
     "GOOGLE_CLIENT_ID": "776945171684-51d8p7incfdsv3vfaendvmg10vo75br2.apps.googleusercontent.com",

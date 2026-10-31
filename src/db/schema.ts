@@ -214,6 +214,15 @@ export const userBlock = sqliteTable("user_block", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 }, (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] }), index("user_block_blocked").on(t.blockedId)]);
 
+// Who is typing where, for the typing bubble. `chat` is "u:<recipient id>" for a direct chat or "g:<group id>". A row
+// lives a few seconds past the last keystroke (`untilAt`), is cleared when the message is sent, and the cron sweeps
+// the rest. Readers get it with the polls they already make, so typing costs the sender one write every few seconds.
+export const typing = sqliteTable("typing", {
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  chat: text("chat").notNull(),
+  untilAt: integer("until_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [primaryKey({ columns: [t.userId, t.chat] }), index("typing_chat").on(t.chat, t.untilAt)]);
+
 // Reports of abuse, for review in D1. `target` is a user, group, message or group message id; `snapshot` keeps the
 // reported text, since messages expire.
 export const abuseReport = sqliteTable("abuse_report", {
