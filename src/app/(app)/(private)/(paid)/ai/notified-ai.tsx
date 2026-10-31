@@ -41,6 +41,8 @@ type Recognition = { lang: string; interimResults: boolean; continuous: boolean;
 const recognitionCtor = () => (typeof window === "undefined" ? undefined : (window as unknown as Record<string, (new () => Recognition) | undefined>).SpeechRecognition ?? (window as unknown as Record<string, (new () => Recognition) | undefined>).webkitSpeechRecognition);
 const canListen = () => !!recognitionCtor();
 const noSubscribe = () => () => {};
+const PHONE = "(max-width: 767px)";
+const onPhoneChange = (cb: () => void) => { const m = window.matchMedia(PHONE); m.addEventListener("change", cb); return () => m.removeEventListener("change", cb); };
 
 const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 /** "[1]" in an answer as a superscript link to the first source, "[2]" to the second, and so on; unknown numbers stay as written. */
@@ -74,6 +76,7 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
   const abort = useRef<AbortController | null>(null);
   const voice = useRef<Recognition | null>(null);
   const hearing = useSyncExternalStore(noSubscribe, canListen, () => false);
+  const phone = useSyncExternalStore(onPhoneChange, () => window.matchMedia(PHONE).matches, () => false);
 
   const mention = pickerOff ? null : mentionAt(text, caret);
   const options = useMemo(() => {
@@ -323,7 +326,7 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
 
         <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
-          <div className="mx-auto flex min-h-full w-full max-w-[780px] flex-col gap-6 px-[18px] pb-6 pt-5 md:px-8 lg:pt-8">
+          <div className="mx-auto flex min-h-full w-full max-w-[780px] flex-col gap-5 px-4 pb-4 pt-4 md:gap-6 md:px-8 md:pb-6 md:pt-5 lg:pt-8">
             {!ready && <Notice>Notified AI is being set up. You can write your questions now; answers start once it is switched on.</Notice>}
             {empty && <Welcome onAsk={(q) => setDraft(q)} />}
             {loading && <div className="flex flex-col gap-3 pt-2" role="status" aria-label="Loading chat">{[70, 100, 55].map((w, i) => <div key={i} className="h-12 animate-pulse rounded-[18px] bg-fill" style={{ width: `${w}%`, animationDelay: `${i * 120}ms` }} />)}</div>}
@@ -344,19 +347,19 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
         <div className="shrink-0 px-3 pb-2.5 pt-1 md:px-6 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="relative mx-auto w-full max-w-[720px]">
             {mention && <MentionList options={options} index={pickIndex} full={attached.length >= MAX_REFS} none={!mentions.length} onPick={pick} onHover={setPickIndex} />}
-            <div className="nl-kb-hide -mx-1 mb-2.5 flex items-center gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div role="radiogroup" aria-label="Study mode" className="flex shrink-0 gap-2">
+            <div className="nl-kb-hide -mx-1 mb-2 flex items-center gap-1.5 overflow-x-auto md:mb-2.5 md:gap-2 px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div role="radiogroup" aria-label="Study mode" className="flex shrink-0 gap-1.5 md:gap-2">
                 {MODE_ORDER.filter((k, i) => moreModes || i < FIRST_MODES || k === mode).map((k) => (
                   <button key={k} type="button" role="radio" aria-checked={mode === k} title={MODES[k].hint} onClick={() => setMode(k)}
-                    className={`h-11 shrink-0 cursor-pointer rounded-full border px-[18px] text-[15px] font-semibold transition-colors ${mode === k ? "border-blue bg-blue text-white" : "border-edge/15 bg-surface text-ink hover:bg-hover"}`}>
+                    className={`h-9 shrink-0 cursor-pointer rounded-full border px-3.5 text-[14px] font-semibold transition-colors md:h-11 md:px-[18px] md:text-[15px] ${mode === k ? "border-blue bg-blue text-white" : "border-edge/15 bg-surface text-ink hover:bg-hover"}`}>
                     {MODES[k].label}
                   </button>
                 ))}
               </div>
-              <button type="button" aria-expanded={moreModes} onClick={() => setMoreModes((v) => !v)} className="h-11 shrink-0 cursor-pointer border-0 bg-transparent px-2 text-[15px] font-semibold text-link">{moreModes ? "Fewer" : "More modes"}</button>
+              <button type="button" aria-expanded={moreModes} onClick={() => setMoreModes((v) => !v)} className="h-9 shrink-0 cursor-pointer border-0 bg-transparent px-2 text-[14px] font-semibold text-link md:h-11 md:text-[15px]">{moreModes ? "Fewer" : phone ? "More" : "More modes"}</button>
               <span className="hidden shrink-0 text-[14px] text-faint md:inline">{MODES[mode].hint}</span>
             </div>
-            <div className="flex flex-col gap-2 rounded-[22px] border border-edge/15 bg-surface p-2.5 pl-3.5 shadow-[0_8px_24px_rgba(22,26,38,0.06)]">
+            <div className="flex flex-col gap-2 rounded-[22px] border border-edge/15 bg-surface p-1.5 md:p-2.5 md:pl-3.5 shadow-[0_8px_24px_rgba(22,26,38,0.06)]">
               {attached.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 px-1 pt-1">
                   {attached.map((f) => (
@@ -380,37 +383,39 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
               <div className="flex items-end gap-1.5">
                 <button type="button" aria-label="Attach a file, case or topic" title="Attach (@)" disabled={noCredits}
                   onClick={() => { const el = input.current; const at = el?.selectionStart ?? text.length; const pre = text.slice(0, at); const sep = pre && !/\s$/.test(pre) ? " " : ""; setText(pre + sep + "@" + text.slice(at)); setPickerOff(false); requestAnimationFrame(() => { el?.focus(); const c = at + sep.length + 1; el?.setSelectionRange(c, c); setCaret(c); }); }}
-                  className="flex size-11 shrink-0 items-center justify-center rounded-full border-0 bg-fill text-ink transition-transform active:scale-90 disabled:opacity-40">
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full border-0 bg-fill text-ink transition-transform active:scale-90 disabled:opacity-40 md:size-11">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden><path d="M9 3.5v11M3.5 9h11" /></svg>
                 </button>
                 <textarea ref={input} rows={1} value={text} disabled={noCredits} maxLength={MAX_QUESTION}
-                  placeholder={noCredits ? (first.allowance === 0 ? "Your plan has no Notify Credits" : "No Notify Credits left this month") : mode === "quiz" ? "Name a topic to be quizzed on" : "Ask about a case, an Act or a topic…"}
+                  placeholder={noCredits ? (first.allowance === 0 ? "Your plan has no Notify Credits" : "No Notify Credits left this month") : mode === "quiz" ? (phone ? "Topic to be quizzed on" : "Name a topic to be quizzed on") : phone ? "Ask Notified AI" : "Ask about a case, an Act or a topic…"}
                   aria-label="Message Notified AI"
                   onChange={(e) => { setText(e.target.value); setCaret(e.target.selectionStart); setPickerOff(false); setPickIndex(0); grow(); }}
                   onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
                   onKeyDown={onKey}
-                  className="max-h-[180px] min-h-11 min-w-0 flex-1 resize-none self-center border-0 bg-transparent px-1 py-2.5 text-[17px] leading-[1.35] text-ink outline-none! placeholder:text-faint disabled:opacity-60" />
+                  className="max-h-[180px] min-h-10 min-w-0 flex-1 resize-none self-center border-0 bg-transparent px-1 py-2 text-[17px] md:min-h-11 md:py-2.5 leading-[1.35] text-ink outline-none! placeholder:text-faint disabled:opacity-60" />
                 {hearing && !streaming && (
                   <button type="button" aria-label={listening ? "Stop dictating" : "Dictate"} aria-pressed={listening} disabled={noCredits} onClick={toggleVoice}
-                    className={`flex size-11 shrink-0 items-center justify-center rounded-full border-0 transition-transform active:scale-90 disabled:opacity-40 ${listening ? "animate-pulse bg-red text-white" : "bg-transparent text-muted hover:bg-fill"}`}>
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-full border-0 transition-transform active:scale-90 disabled:opacity-40 md:size-11 ${listening ? "animate-pulse bg-red text-white" : "bg-transparent text-muted hover:bg-fill"}`}>
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="6.5" y="2" width="5" height="9" rx="2.5" /><path d="M3.8 8.5a5.2 5.2 0 0 0 10.4 0M9 13.7V16" /></svg>
                   </button>
                 )}
                 {streaming ? (
-                  <button type="button" aria-label="Stop" onClick={() => abort.current?.abort()} className="flex size-11 shrink-0 items-center justify-center rounded-full border-0 bg-strong text-strong-fg transition-transform active:scale-90">
+                  <button type="button" aria-label="Stop" onClick={() => abort.current?.abort()} className="flex size-10 md:size-11 shrink-0 items-center justify-center rounded-full border-0 bg-strong text-strong-fg transition-transform active:scale-90">
                     <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden><rect width="12" height="12" rx="2.5" fill="currentColor" /></svg>
                   </button>
                 ) : (
-                  <button type="button" disabled={!text.trim() || noCredits || short} onClick={() => void send()} className="flex h-11 shrink-0 cursor-pointer items-center rounded-full border-0 bg-blue px-5 text-[16px] font-semibold text-white transition-[transform,opacity] active:scale-95 disabled:opacity-30">
-                    Ask
+                  <button type="button" aria-label="Ask" disabled={!text.trim() || noCredits || short} onClick={() => void send()} className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-blue text-[16px] font-semibold text-white transition-[transform,opacity] active:scale-95 disabled:opacity-30 md:h-11 md:w-auto md:px-5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="md:hidden"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" /></svg>
+                    <span className="max-md:hidden">Ask</span>
                   </button>
                 )}
               </div>
             </div>
-            <p className="m-0 px-2 pt-2 text-center text-[12px] leading-snug text-faint">
-              {short ? <span className="font-medium text-red" role="alert">This question needs {cost} credits and you have {left}. Attach less, or change the mode.</span>
+            <p className="m-0 px-2 pt-1.5 text-center text-[12px] leading-snug text-faint md:pt-2">
+              {short ? <span className="font-medium text-red" role="alert">{phone ? `Needs ${cost} credits, you have ${left}.` : `This question needs ${cost} credits and you have ${left}. Attach less, or change the mode.`}</span>
+                : phone ? <>{cost} {cost === 1 ? "credit" : "credits"}</>
                 : <>This will use {cost} {cost === 1 ? "credit" : "credits"}{attachedChars > 8_000 ? " (long documents cost more)" : ""}. Notified AI can make mistakes: check important points against the law itself.</>}
-              <span className="lg:hidden"> · <Credits allowance={first.allowance} left={left} inline /></span>
+              <span className="lg:hidden"> · <Credits allowance={first.allowance} left={left} inline short={phone} /></span>
             </p>
           </div>
         </div>
@@ -425,18 +430,19 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
 
 function Welcome({ onAsk }: { onAsk: (q: string) => void }) {
   return (
-    <div className="flex flex-col gap-6 pt-3">
-      <div className="flex flex-col gap-2.5">
-        <h1 className="m-0 text-[38px] leading-[1.02] md:text-[46px] lg:text-[56px]">What are we working on?</h1>
-        <p className="m-0 max-w-[560px] text-[17px] leading-normal text-muted">
+    <div className="flex flex-col gap-5 max-md:my-auto max-md:pb-2 md:gap-6 md:pt-3">
+      <div className="flex flex-col gap-2 md:gap-2.5">
+        <h1 className="m-0 text-[30px] leading-[1.05] md:text-[46px] md:leading-[1.02] lg:text-[56px]">What are we working on?</h1>
+        <p className="m-0 text-[15px] leading-snug text-muted md:hidden">Ghanaian law, with its sources. Type <b className="rounded bg-fill px-1.5 font-semibold text-ink">@</b> to add your files. Check important points against the law itself.</p>
+        <p className="m-0 max-w-[560px] text-[17px] leading-normal text-muted max-md:hidden">
           Answers from Ghanaian law only, with the cases and Acts behind them. Type <b className="rounded bg-fill px-1.5 py-0.5 font-semibold text-ink">@</b> to bring in your <Link href="/files" className="text-link">files</Link>, <Link href="/case-law" className="text-link">case briefs</Link> or library topics.
         </p>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
+      <div className="flex flex-col gap-2 md:grid md:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] md:gap-3">
         {SUGGESTIONS.map(([k, q]) => (
-          <button key={q} type="button" onClick={() => onAsk(q)} className="flex min-h-[110px] cursor-pointer flex-col gap-1.5 rounded-2xl border border-edge/[0.12] bg-surface p-[18px] text-left text-ink transition-shadow hover:shadow-card-hover">
-            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">{k}</span>
-            <span className="text-[17px] leading-[1.35]">{q}</span>
+          <button key={q} type="button" onClick={() => onAsk(q)} className="flex cursor-pointer flex-col gap-1.5 rounded-[14px] border border-edge/[0.12] bg-surface px-4 py-3 text-left text-ink transition-shadow active:bg-fill md:min-h-[110px] md:rounded-2xl md:p-[18px] md:hover:shadow-card-hover">
+            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint max-md:hidden">{k}</span>
+            <span className="text-[15px] leading-[1.35] md:text-[17px]">{q}</span>
           </button>
         ))}
       </div>
@@ -471,7 +477,7 @@ function UserBubble({ m, canEdit, onResend }: { m: Msg; canEdit: boolean; onRese
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M10.8 2.7a1.6 1.6 0 0 1 2.3 2.3L6 12.2 2.8 13.2l1-3.2z" /></svg>
             </button>
           )}
-          <div className="whitespace-pre-wrap break-words rounded-[18px] rounded-br-[4px] bg-blue px-[18px] py-3.5 text-[17px] leading-[1.45] text-white">{m.content}</div>
+          <div className="whitespace-pre-wrap break-words rounded-[18px] rounded-br-[4px] bg-blue px-3.5 py-2.5 text-[16px] leading-[1.4] text-white md:px-[18px] md:py-3.5 md:text-[17px] md:leading-[1.45]">{m.content}</div>
         </div>
       )}
     </div>
@@ -485,11 +491,11 @@ function AnswerBubble({ m, live, chatId, last, onRegenerate, onFlashcards, onSav
   const [save, setSave] = useState<{ s: "idle" | "saving" | "saved" } | { s: "error"; text: string }>({ s: "idle" });
   const done = m.content && !live && !isTemp(m.id);
   return (
-    <div className="flex flex-col gap-3 rounded-[18px] border border-edge/10 bg-surface p-5">
-      <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Notified AI</span>
+    <div className="flex flex-col gap-3 md:rounded-[18px] md:border md:border-edge/10 md:bg-surface md:p-5">
+      <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint max-md:hidden">Notified AI</span>
       <div className="min-w-0">
         {m.content ? (
-          <div className="text-[17px] leading-[1.6] [&>*:first-child]:mt-0">
+          <div className="text-[16px] leading-[1.55] max-md:[&_li]:text-left max-md:[&_li]:hyphens-manual max-md:[&_p]:text-left max-md:[&_p]:hyphens-manual md:text-[17px] md:leading-[1.6] [&>*:first-child]:mt-0">
             <Markdown source={withCitations(m.content, m.files)} from={3} />
             {live && <span aria-hidden className="ml-0.5 inline-block size-2 animate-pulse rounded-full bg-faint align-middle" />}
           </div>
@@ -512,7 +518,7 @@ function AnswerBubble({ m, live, chatId, last, onRegenerate, onFlashcards, onSav
           <div className="mt-1.5 flex flex-wrap items-center gap-0.5 text-xs font-medium text-muted">
             <Action onClick={() => { void navigator.clipboard?.writeText(m.content).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }); }} icon={<path d="M5.5 5.5h8v8h-8zM10.5 5.5v-1A1.8 1.8 0 0 0 8.7 2.7H4.5a1.8 1.8 0 0 0-1.8 1.8v4.2a1.8 1.8 0 0 0 1.8 1.8h1" />}>{copied ? "Copied" : "Copy"}</Action>
             {chatId && (save.s === "saved"
-              ? <Link href="/files" className="flex h-7 items-center gap-1.5 rounded-full px-2 text-green" style={{ textDecoration: "none" }}>Saved · View</Link>
+              ? <Link href="/files" className="flex h-9 items-center gap-1.5 rounded-full px-2 text-green md:h-7" style={{ textDecoration: "none" }}>Saved · View</Link>
               : <Action disabled={save.s === "saving"} onClick={async () => { setSave({ s: "saving" }); const err = await onSave(); setSave(err ? { s: "error", text: err } : { s: "saved" }); }} icon={<path d="M4 2.5h6l2.5 2.5v8.5H4zM6 2.5v3h4v-3M6 13.5V9h4v4.5" />}>{save.s === "saving" ? "Saving…" : "Save to My Files"}</Action>)}
             {last && <Action onClick={onRegenerate} icon={<path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v2.8h-2.8" />}>Regenerate</Action>}
             {last && <Action onClick={onFlashcards} icon={<path d="M3.5 4.5h8A1.5 1.5 0 0 1 13 6v6.5a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 2 12.5V6a1.5 1.5 0 0 1 1.5-1.5zM5 2.5h7.5A1.5 1.5 0 0 1 14 4v6" />}>Flashcards</Action>}
@@ -525,9 +531,9 @@ function AnswerBubble({ m, live, chatId, last, onRegenerate, onFlashcards, onSav
 }
 
 const Action = ({ onClick, icon, children, disabled }: { onClick: () => void; icon: React.ReactNode; children: React.ReactNode; disabled?: boolean }) => (
-  <button type="button" onClick={onClick} disabled={disabled} className="flex h-7 items-center gap-1.5 rounded-full border-0 bg-transparent px-2 text-xs font-medium text-muted hover:bg-fill disabled:opacity-50">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{icon}</svg>
-    {children}
+  <button type="button" onClick={onClick} disabled={disabled} className="flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-full border-0 bg-transparent px-2 text-xs md:h-7 md:min-w-0 font-medium text-muted hover:bg-fill disabled:opacity-50">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="max-md:size-[17px]">{icon}</svg>
+    <span className="max-md:sr-only">{children}</span>
   </button>
 );
 
@@ -564,9 +570,9 @@ function RefGlyph({ kind, name, large }: { kind: RefKind; name: string; large?: 
   return <span aria-hidden className={`grid shrink-0 place-items-center rounded-[7px] font-bold text-white ${bg} ${large ? "size-9 text-[9px]" : "size-5 text-[7px]"}`}>{label}</span>;
 }
 
-function Credits({ allowance, left, inline }: { allowance: number; left: number; inline?: boolean }) {
+function Credits({ allowance, left, inline, short }: { allowance: number; left: number; inline?: boolean; short?: boolean }) {
   if (allowance === 0) return <Link href="/plans" className={`text-xs font-medium text-link ${inline ? "" : "rounded-full bg-fill px-3 py-1.5"}`} style={{ textDecoration: "none" }}>Get Notify Credits</Link>;
-  return <span className={inline ? "" : "rounded-full bg-fill px-3 py-1.5 text-xs font-medium text-muted"}>{left} of {allowance} credits left</span>;
+  return <span className={inline ? "" : "rounded-full bg-fill px-3 py-1.5 text-xs font-medium text-muted"}>{short ? `${left} left` : `${left} of ${allowance} credits left`}</span>;
 }
 
 const IconButton = ({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) => (

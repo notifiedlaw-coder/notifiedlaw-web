@@ -230,14 +230,6 @@ select,
   }
 }
 
-/* Phones: a page slides up into place when you open it, as a pushed screen does. */
-@keyframes nl-enter {
-  from { opacity: 0; transform: translateY(8px); }
-}
-@media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
-  .nl-enter { animation: nl-enter 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
-}
-
 /* In the base layer, so a colour utility on a link wins over the default link colour. */
 @layer base {
   a {

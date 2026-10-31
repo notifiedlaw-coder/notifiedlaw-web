@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Crest } from "@/components/avatar";
 import { usePathname } from "next/navigation";
 import { PLAN_NAMES } from "@/lib/data";
@@ -313,13 +313,15 @@ export function AppShell({ me, children }: { me: Me | null; children: React.Reac
   const sec = sectionFor(path);
   const keyboard = useKeyboardBox();
   const first = useRef(true);
-  useEffect(() => {
+  // Phones: the new page settles into place, as a pushed screen does. Before paint, so it never shows unanimated first;
+  // opacity and transform only, so it stays on the compositor.
+  useLayoutEffect(() => {
     if (first.current) { first.current = false; return; }
-    const main = document.getElementById("main");
-    if (!main) return;
-    main.classList.remove("nl-enter");
-    void main.offsetWidth; // restart the animation
-    main.classList.add("nl-enter");
+    if (!matchMedia("(max-width: 767px) and (prefers-reduced-motion: no-preference)").matches) return;
+    document.getElementById("main")?.animate(
+      [{ opacity: 0.4, transform: "translate3d(0, 10px, 0)" }, { opacity: 1, transform: "none" }],
+      { duration: 260, easing: "cubic-bezier(0.32, 0.72, 0, 1)" },
+    );
   }, [path]);
   return (
     <PlanProvider me={me}>
