@@ -44,3 +44,7 @@ next-env.d.ts
 .open-next
 .wrangler
 .dev.vars
+
+# Local tool config and working documents, which can hold tokens or private notes
+.mcp.json
+*.docx

@@ -61,4 +61,19 @@ export default {
 export class Scanner extends Container {
   defaultPort = 8080;
   sleepAfter = "30m";
+  /** Shared with the container as SCAN_TOKEN and sent on every scan, so only this object can use the scanner. */
+  private token = "";
+
+  override async fetch(req: Request) {
+    // Read (or made) before super.fetch starts the container, so the container always starts with it.
+    if (!this.token) {
+      let token = await this.ctx.storage.get<string>("token");
+      if (!token) await this.ctx.storage.put("token", (token = crypto.randomUUID() + crypto.randomUUID()));
+      this.token = token;
+      this.envVars = { SCAN_TOKEN: token };
+    }
+    const signed = new Request(req);
+    signed.headers.set("x-scan-token", this.token);
+    return super.fetch(signed);
+  }
 }

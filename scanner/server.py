@@ -1,10 +1,15 @@
 """HTTP front end for clamd. POST /scan with the file as the body; the reply is JSON:
 {"result": "clean"} | {"result": "infected", "signature": "..."} | {"result": "error", "detail": "..."}.
-Only the Worker reaches this server: a Cloudflare Container has no public address."""
+Only the Worker reaches this server: a Cloudflare Container has no public address. Scans also need the
+x-scan-token header to match SCAN_TOKEN, which the Scanner Durable Object sets, so nothing else inside the network
+can use it either."""
 
+import hmac
 import json
+import os
 import socket
 import struct
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -13,6 +18,10 @@ MAX_BODY = 30 * 1024 * 1024
 CHUNK = 1024 * 1024
 # clamd loads its signatures for up to a minute after a cold start; scans wait for it rather than fail.
 READY_WAIT = 180
+TOKEN = os.environ.get("SCAN_TOKEN", "")
+# One instance serves every upload; a few scans at once, and the rest wait briefly or are told to retry.
+SLOTS = threading.BoundedSemaphore(4)
+SLOT_WAIT = 60
 
 
 def connect():
@@ -65,14 +74,20 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path != "/scan":
             return self.reply(404, {"result": "error", "detail": "not found"})
+        if not TOKEN or not hmac.compare_digest(self.headers.get("x-scan-token", ""), TOKEN):
+            return self.reply(403, {"result": "error", "detail": "forbidden"})
         n = int(self.headers.get("content-length") or 0)
         if n <= 0 or n > MAX_BODY:
             return self.reply(413, {"result": "error", "detail": "bad size"})
-        data = self.rfile.read(n)
+        if not SLOTS.acquire(timeout=SLOT_WAIT):
+            return self.reply(503, {"result": "error", "detail": "busy"})
         try:
+            data = self.rfile.read(n)
             self.reply(200, scan(data))
         except OSError as e:
             self.reply(503, {"result": "error", "detail": f"clamd unavailable: {e}"})
+        finally:
+            SLOTS.release()
 
     def log_message(self, *args):
         pass  # file names and contents never reach the logs

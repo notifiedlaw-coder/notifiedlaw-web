@@ -1,5 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+/** A cold start loads signatures for up to a minute; past this the upload is refused rather than held open. */
+const SCAN_TIMEOUT_MS = 120_000;
+
 export type ScanResult = { ok: true } | { ok: false; infected: boolean; error: string };
 
 /**
@@ -12,7 +15,7 @@ export async function scanFile(bytes: Uint8Array<ArrayBuffer>): Promise<ScanResu
   const unavailable = { ok: false as const, infected: false, error: "Virus scanning is unavailable right now, so the file was not uploaded. Try again in a minute." };
   if (!ns) return unavailable;
   try {
-    const res = await ns.get(ns.idFromName("clamav")).fetch("http://scanner/scan", { method: "POST", body: bytes });
+    const res = await ns.get(ns.idFromName("clamav")).fetch("http://scanner/scan", { method: "POST", body: bytes, signal: AbortSignal.timeout(SCAN_TIMEOUT_MS) });
     const r = (await res.json()) as { result?: string; signature?: string };
     if (r.result === "clean") return { ok: true };
     if (r.result === "infected") {
