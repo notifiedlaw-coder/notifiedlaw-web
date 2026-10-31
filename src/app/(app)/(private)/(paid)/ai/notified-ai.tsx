@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Icon } from "@/components/icons";
 import { Markdown } from "@/components/markdown";
 import type { ChatSummary, StoredMessage } from "@/lib/ai/chats";
 import { MAX_QUESTION, messageCost } from "@/lib/ai/cost";
@@ -411,7 +412,7 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
                 )}
               </div>
             </div>
-            <p className="m-0 px-2 pt-1.5 text-center text-[12px] leading-snug text-faint md:pt-2">
+            <p className={`m-0 px-2 pt-1.5 text-center text-[12px] leading-snug text-faint md:pt-2 ${empty && !short ? "max-md:hidden" : ""}`}>
               {short ? <span className="font-medium text-red" role="alert">{phone ? `Needs ${cost} credits, you have ${left}.` : `This question needs ${cost} credits and you have ${left}. Attach less, or change the mode.`}</span>
                 : phone ? <>{cost} {cost === 1 ? "credit" : "credits"}</>
                 : <>This will use {cost} {cost === 1 ? "credit" : "credits"}{attachedChars > 8_000 ? " (long documents cost more)" : ""}. Notified AI can make mistakes: check important points against the law itself.</>}
@@ -430,23 +431,26 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
 
 function Welcome({ onAsk }: { onAsk: (q: string) => void }) {
   return (
-    <div className="flex flex-col gap-5 max-md:my-auto max-md:pb-2 md:gap-6 md:pt-3">
-      <div className="flex flex-col gap-2 md:gap-2.5">
-        <h1 className="m-0 text-[30px] leading-[1.05] md:text-[46px] md:leading-[1.02] lg:text-[56px]">What are we working on?</h1>
-        <p className="m-0 text-[15px] leading-snug text-muted md:hidden">Ghanaian law, with its sources. Type <b className="rounded bg-fill px-1.5 font-semibold text-ink">@</b> to add your files. Check important points against the law itself.</p>
-        <p className="m-0 max-w-[560px] text-[17px] leading-normal text-muted max-md:hidden">
+    <>
+    {/* Phones: an empty chat, just the AI mark in the middle; the modes and the composer do the rest. */}
+    <div aria-hidden className="m-auto grid size-[72px] place-items-center rounded-full bg-blue/[0.08] text-blue md:hidden"><Icon name="sparkle" size={34} /></div>
+    <div className="flex flex-col gap-6 pt-3 max-md:hidden">
+      <div className="flex flex-col gap-2.5">
+        <h1 className="m-0 text-[46px] leading-[1.02] lg:text-[56px]">What are we working on?</h1>
+        <p className="m-0 max-w-[560px] text-[17px] leading-normal text-muted">
           Answers from Ghanaian law only, with the cases and Acts behind them. Type <b className="rounded bg-fill px-1.5 py-0.5 font-semibold text-ink">@</b> to bring in your <Link href="/files" className="text-link">files</Link>, <Link href="/case-law" className="text-link">case briefs</Link> or library topics.
         </p>
       </div>
-      <div className="flex flex-col gap-2 md:grid md:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] md:gap-3">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
         {SUGGESTIONS.map(([k, q]) => (
-          <button key={q} type="button" onClick={() => onAsk(q)} className="flex cursor-pointer flex-col gap-1.5 rounded-[14px] border border-edge/[0.12] bg-surface px-4 py-3 text-left text-ink transition-shadow active:bg-fill md:min-h-[110px] md:rounded-2xl md:p-[18px] md:hover:shadow-card-hover">
-            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint max-md:hidden">{k}</span>
-            <span className="text-[15px] leading-[1.35] md:text-[17px]">{q}</span>
+          <button key={q} type="button" onClick={() => onAsk(q)} className="flex min-h-[110px] cursor-pointer flex-col gap-1.5 rounded-2xl border border-edge/[0.12] bg-surface p-[18px] text-left text-ink transition-shadow hover:shadow-card-hover">
+            <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">{k}</span>
+            <span className="text-[17px] leading-[1.35]">{q}</span>
           </button>
         ))}
       </div>
     </div>
+    </>
   );
 }
 
