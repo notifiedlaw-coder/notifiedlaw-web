@@ -38,13 +38,20 @@ export function BookmarkButton({ on, onClick, title, size = 18 }: { on: boolean;
   );
 }
 
-/** The bookmark on a case brief's own page. `saved` is null for a guest. */
+/** The bookmark on a case brief's own page, as a "Save" pill. `saved` is null for a guest. */
 export function CaseBookmark({ caseId, title, saved }: { caseId: string; title: string; saved: boolean | null }) {
   const marks = useBookmarks(saved === null ? null : saved ? [caseId] : []);
+  const on = !!marks.marked?.has(caseId);
   return (
     <>
-      <BookmarkButton on={!!marks.marked?.has(caseId)} onClick={() => marks.toggle(caseId)} title={title} size={22} />
-      {marks.error && <span role="alert" className="text-xs text-red">{marks.error}</span>}
+      <button type="button" onClick={() => marks.toggle(caseId)} aria-pressed={on} aria-label={on ? `Remove bookmark: ${title}` : `Save ${title}`}
+        className={`flex h-11 items-center gap-2 rounded-full border px-5 text-[16px] font-semibold ${on ? "border-transparent bg-tint text-link" : "border-edge/15 bg-surface text-ink hover:bg-hover"}`}>
+        <svg width={16} height={16} viewBox="0 0 16 16" fill={on ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" aria-hidden>
+          <path d="M4 2.5h8a.5.5 0 0 1 .5.5v10.5L8 10.5 3.5 13.5V3a.5.5 0 0 1 .5-.5z" />
+        </svg>
+        {on ? "Saved" : "Save"}
+      </button>
+      {marks.error && <span role="alert" className="text-[13px] text-red">{marks.error}</span>}
     </>
   );
 }
