@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Avatar } from "@/components/avatar";
@@ -16,13 +15,20 @@ import { StreakTag, useFriendsShell } from "./friends-shell";
 const POLL_MS = 4_000;
 const TYPING_POLL_MS = 2_000;
 
-/** A conversation with one friend: messages, polled while open, voice calls, report and block. */
-export function Conversation({ friendId, initial, initialSeen }: { friendId: string; initial: Message[]; initialSeen: number | null }) {
+type Other = { id: string; name: string; avatar: string | null };
+
+/**
+ * A conversation with one friend: messages, polled while open, voice calls, report and block. After the friendship
+ * ends it stays readable (no replies, calls, typing or read receipts), so either person can still report from it.
+ */
+export function Conversation({ friendId, initial, initialSeen, other }: { friendId: string; initial: Message[]; initialSeen: number | null; other: Other }) {
   const router = useRouter();
   const { lists, setLists, reload, now, setBlocked } = useFriendsShell();
   const { refresh } = useFriends();
   const { start } = useCalls();
   const friend = lists.friends.find((f) => f.id === friendId);
+  const who = friend ?? other;
+  const first = who.name.split(" ")[0];
   const [messages, setMessages] = useState<(Message & { pending?: boolean })[]>(initial);
   const [seen, setSeen] = useState(initialSeen);
   const [typing, setTyping] = useState(false);
@@ -39,9 +45,10 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
     try {
       const r = await fetch(`/api/messages/${encodeURIComponent(friendId)}${last ? `?after=${last}` : ""}`);
       if (!r.ok) return;
-      const d = (await r.json()) as { messages: Message[]; seen: number | null; typing: boolean };
+      const d = (await r.json()) as { messages: Message[]; seen: number | null; typing: boolean; canReply?: boolean };
       setSeen(d.seen);
       setTyping(d.typing);
+      if (d.canReply === false) setTyping(false);
       if (!d.messages.length) return;
       setMessages((cur) => {
         const ids = new Set(cur.map((m) => m.id));
@@ -88,56 +95,48 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
     router.push("/friends");
   }
 
-  if (!friend) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 px-8 text-center">
-        <p className="m-0 text-[17px] font-semibold">You are no longer friends</p>
-        <Link href="/friends" className="text-[15px] text-link">Back to Friends</Link>
-      </div>
-    );
-  }
-
-  const online = friend.lastSeen !== null && now - friend.lastSeen < ONLINE_MS;
+  const online = !!friend && friend.lastSeen !== null && now - friend.lastSeen < ONLINE_MS;
   const header = (
     <header className="flex shrink-0 items-center gap-3 border-b-[0.5px] border-edge/15 bg-surface/80 px-4 py-2.5 backdrop-blur-xl">
-      <Avatar id={friend.id} name={friend.name} src={friend.avatar} size={38} online={online} />
+      <Avatar id={who.id} name={who.name} src={who.avatar} size={38} online={online} />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-center gap-2">
-          <span className="truncate text-[16px] font-semibold">{friend.name}</span>
-          <StreakTag streak={friend.streak} today={friend.today} />
+          <span className="truncate text-[16px] font-semibold">{who.name}</span>
+          {friend && <StreakTag streak={friend.streak} today={friend.today} />}
         </span>
-        <span className={`truncate text-[12px] ${typing || online ? "font-medium text-green" : "text-muted"}`}>{typing ? "typing…" : seenLabel(friend.lastSeen, now)}</span>
+        <span className={`truncate text-[12px] ${typing || online ? "font-medium text-green" : "text-muted"}`}>{!friend ? "Not friends" : typing ? "typing…" : seenLabel(friend.lastSeen, now)}</span>
       </span>
-      <HeaderButton label="Voice call" onClick={() => start({ friendId }, friend.name)}><PhoneIcon /></HeaderButton>
+      {friend && <HeaderButton label="Voice call" onClick={() => start({ friendId }, friend.name)}><PhoneIcon /></HeaderButton>}
       <HeaderButton label="More" onClick={() => setOptions(true)}><InfoIcon /></HeaderButton>
     </header>
   );
 
   return (
     <>
-      <ChatView header={header} messages={messages as ChatMessage[]} rule={MESSAGE_RULE} now={now} empty={`Say hello to ${friend.name.split(" ")[0]}.`}
-        typers={typing ? [{ id: friend.id, name: friend.name, avatar: friend.avatar }] : []} onTyping={onTyping}
+      <ChatView header={header} messages={messages as ChatMessage[]} rule={MESSAGE_RULE} now={now} empty={friend ? `Say hello to ${first}.` : "No messages left in this conversation."}
+        typers={friend && typing ? [{ id: friend.id, name: friend.name, avatar: friend.avatar }] : []} onTyping={friend ? onTyping : undefined}
+        closed="You can't reply to this conversation. Messages stay until they expire, and you can still report them."
         status={(m) => {
           if (seen !== null && seen >= m.at) return "Seen";
           const exp = messages.find((x) => x.id === m.id)?.expiresAt;
           return `Delivered${exp ? ` · deleted ${new Date(exp).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })} if unread` : ""}`;
         }}
-        onSend={send} onReport={(m) => setReporting({ kind: "message", target: m.id, what: "message" })} />
+        onSend={friend ? send : undefined} onReport={(m) => setReporting({ kind: "message", target: m.id, what: "message" })} />
 
       {options && (
-        <Sheet label={friend.name} onClose={() => { setOptions(false); setConfirm(null); }}>
+        <Sheet label={who.name} onClose={() => { setOptions(false); setConfirm(null); }}>
           <div className="flex flex-col items-center gap-2 px-4 pb-2 pt-4 text-center">
-            <Avatar id={friend.id} name={friend.name} src={friend.avatar} size={72} />
-            <h2 className="m-0 text-[20px] font-semibold">{friend.name}</h2>
-            {friend.school && <p className="m-0 text-[14px] text-muted">{friend.school}</p>}
+            <Avatar id={who.id} name={who.name} src={who.avatar} size={72} />
+            <h2 className="m-0 text-[20px] font-semibold">{who.name}</h2>
+            {friend?.school && <p className="m-0 text-[14px] text-muted">{friend.school}</p>}
           </div>
           <div className="flex flex-col gap-3 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3">
             <div className="flex flex-col overflow-hidden rounded-[16px] bg-surface shadow-card">
-              <SheetRow onClick={() => { setOptions(false); setReporting({ kind: "user", target: friend.id, what: "person" }); }}>Report {friend.name.split(" ")[0]}</SheetRow>
-              <SheetRow danger onClick={() => (confirm === "remove" ? void blockOrRemove("remove") : setConfirm("remove"))}>{confirm === "remove" ? "Tap again to remove friend and delete messages" : "Remove friend"}</SheetRow>
-              <SheetRow danger onClick={() => (confirm === "block" ? void blockOrRemove("block") : setConfirm("block"))}>{confirm === "block" ? `Tap again to block ${friend.name.split(" ")[0]}` : "Block"}</SheetRow>
+              <SheetRow onClick={() => { setOptions(false); setReporting({ kind: "user", target: who.id, what: "person" }); }}>Report {first}</SheetRow>
+              {friend && <SheetRow danger onClick={() => (confirm === "remove" ? void blockOrRemove("remove") : setConfirm("remove"))}>{confirm === "remove" ? "Tap again to remove friend" : "Remove friend"}</SheetRow>}
+              <SheetRow danger onClick={() => (confirm === "block" ? void blockOrRemove("block") : setConfirm("block"))}>{confirm === "block" ? `Tap again to block ${first}` : "Block"}</SheetRow>
             </div>
-            <p className="m-0 px-1 text-[12px] text-muted">Blocking also removes them as a friend and deletes your messages. They are not told.</p>
+            <p className="m-0 px-1 text-[12px] text-muted">Blocking also removes them as a friend. Your messages stay, read-only, so you can still report them. They are not told.</p>
           </div>
         </Sheet>
       )}

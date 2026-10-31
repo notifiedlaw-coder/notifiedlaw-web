@@ -1,7 +1,6 @@
 import { and, eq, inArray, or, sql } from "drizzle-orm";
-import { activity, friendship, message, profile, student, user, userAvatar, userBlock } from "@/db/schema";
+import { activity, friendship, profile, student, user, userAvatar, userBlock } from "@/db/schema";
 import { getDb } from "@/lib/auth";
-import { pairOf } from "@/lib/messages";
 import { avatarUrl, dayOf, liveStreak, type Friend, type FriendLists } from "@/lib/friend-view";
 
 /** Friends, requests received and requests sent, together, per account. Keeps lists and sheets short. */
@@ -104,10 +103,12 @@ export async function respond(userId: string, fromId: string) {
   return rows.length > 0;
 }
 
-/** Declines a request, cancels one sent, or ends a friendship: whichever the user has with `otherId`. Ending a friendship deletes the conversation too. */
+/**
+ * Declines a request, cancels one sent, or ends a friendship: whichever the user has with `otherId`. The conversation
+ * stays, read-only, until its messages expire, so neither side can erase what the other was sent before reporting it.
+ */
 export async function unfriend(userId: string, otherId: string) {
-  const db = getDb();
-  await db.batch([db.delete(friendship).where(between(userId, otherId)), db.delete(message).where(pairOf(userId, otherId))]);
+  await getDb().delete(friendship).where(between(userId, otherId));
 }
 
 /**

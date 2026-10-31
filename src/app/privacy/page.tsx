@@ -11,7 +11,7 @@ export default function Page() {
   return (
     <LegalPage
       title="Privacy Policy"
-      updated="28 October 2026"
+      updated="31 October 2026"
       intro="This policy explains what personal information NotifiedLaw collects, how we use it and the choices you have. We handle your data in line with Ghana's Data Protection Act, 2012 (Act 843)."
       sections={[
         { h: "Information we collect", p: [[
@@ -36,7 +36,7 @@ export default function Page() {
         ] },
         { h: "Notified AI", p: ["Questions you send to Notified AI may be processed by an AI provider to produce an answer. Please do not enter sensitive personal information in chats."] },
         { h: "Cookies and storage", p: ["We use cookies and browser storage to keep you signed in and remember settings such as your theme. We do not use them to track you across other websites."] },
-        { h: "How long we keep it", p: ["We keep your information while your account is active and for a reasonable period afterwards where needed for legal, accounting or security reasons. You can ask us to delete your account and data.", "Messages between friends are kept for a short time only. A message is deleted 30 days after the person it was sent to opens it, and every message, including group messages, is deleted 90 days after it was sent. Profile and group pictures are kept until you replace or remove them, or the group is deleted. We keep call records (who called whom and when) for 30 days, never the sound or video, which is not recorded. Removing a friend deletes your messages with them straight away."] },
+        { h: "How long we keep it", p: ["We keep your information while your account is active and for a reasonable period afterwards where needed for legal, accounting or security reasons. You can ask us to delete your account and data.", "Messages between friends are kept for a short time only. A message is deleted 30 days after the person it was sent to opens it, and every message, including group messages, is deleted 90 days after it was sent. Profile and group pictures are kept until you replace or remove them, or the group is deleted. We keep call records (who called whom and when) for 30 days, never the sound or video, which is not recorded. Removing a friend or blocking someone does not delete your past messages with them: they stay, read-only, until they expire as above, so either of you can still report them. When a message is reported, we keep a copy with the report for review."] },
         { h: "Your rights", p: ["Under Ghana's data protection law you can ask to see, correct or delete your personal information, object to certain uses, and withdraw consent. To do so, email us. You may also complain to the Data Protection Commission of Ghana."] },
         { h: "Security", p: ["We use encryption in transit and access controls to protect your data. No system is perfectly secure, so please use a strong, unique password."] },
         { h: "Children", p: ["NotifiedLaw is for students aged 16 and over. If you believe a child has given us information, contact us and we will delete it."] },

@@ -12,7 +12,7 @@ export const REPORT_REASONS = ["Harassment or bullying", "Hate speech", "Sexual 
 const DAILY_REPORTS = 20;
 
 /**
- * Blocks an account: ends any friendship (and with it the conversation), takes the blocked account out of the
+ * Blocks an account: ends any friendship (the conversation stays, read-only, to report from), takes the blocked account out of the
  * blocker's groups and the blocker out of the blocked account's groups. From then on neither can find the other by
  * email, message, call or add the other to a group. The block and the end of the friendship are one batch, so a
  * request accepted in between cannot leave them friends; calls between them, or with either in the other's group, end.
@@ -23,7 +23,6 @@ export async function block(userId: string, otherId: string) {
   await db.batch([
     db.insert(userBlock).values({ blockerId: userId, blockedId: otherId, createdAt: new Date() }).onConflictDoNothing(),
     db.delete(friendship).where(between),
-    db.delete(message).where(pairOf(userId, otherId)),
   ]);
   const [mine, theirs] = await Promise.all([
     db.select({ id: chatGroup.id }).from(chatGroup).where(eq(chatGroup.ownerId, userId)),
@@ -40,18 +39,19 @@ export async function block(userId: string, otherId: string) {
 }
 
 /**
- * Whether the user could have come across the other account: a friendship or request either way, or a group they are
- * both in. Blocking needs it, so an id cannot be blocked blind and then read back with a name and picture.
+ * Whether the user could have come across the other account: a friendship or request either way, a group they are
+ * both in, or a conversation still on file. Blocking needs it, so an id cannot be blocked blind and then read back with a name and picture.
  */
 export async function related(userId: string, otherId: string) {
   const db = getDb();
   const mine = db.select({ id: groupMember.groupId }).from(groupMember).where(eq(groupMember.userId, userId));
-  const [[f], [g]] = await Promise.all([
+  const [[f], [g], [m]] = await Promise.all([
     db.select({ x: friendship.fromId }).from(friendship)
       .where(or(and(eq(friendship.fromId, userId), eq(friendship.toId, otherId)), and(eq(friendship.fromId, otherId), eq(friendship.toId, userId)))).limit(1),
     db.select({ x: groupMember.userId }).from(groupMember).where(and(eq(groupMember.userId, otherId), inArray(groupMember.groupId, mine))).limit(1),
+    db.select({ x: message.id }).from(message).where(pairOf(userId, otherId)).limit(1),
   ]);
-  return !!(f || g);
+  return !!(f || g || m);
 }
 
 export async function unblock(userId: string, otherId: string) {

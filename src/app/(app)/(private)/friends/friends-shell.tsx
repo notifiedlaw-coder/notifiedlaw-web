@@ -139,6 +139,11 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
   const byId = useMemo(() => new Map(threads.map((t) => [t.friendId, t])), [threads]);
   const friends = useMemo(() => [...lists.friends].sort((a, b) =>
     (byId.get(b.id)?.last.at ?? 0) - (byId.get(a.id)?.last.at ?? 0) || (b.lastSeen ?? 0) - (a.lastSeen ?? 0)), [lists.friends, byId]);
+  // Conversations that outlived the friendship: read-only until they expire, still there to report from.
+  const past = useMemo(() => {
+    const ids = new Set(lists.friends.map((f) => f.id));
+    return threads.filter((t) => !ids.has(t.friendId)).sort((a, b) => b.last.at - a.last.at);
+  }, [threads, lists.friends]);
   const online = friends.filter((f) => f.lastSeen !== null && now - f.lastSeen < ONLINE_MS).length;
   const owned = groups.filter((g) => g.admin).length;
 
@@ -268,8 +273,34 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
             <AddFriendIcon />Add your first friend
           </button>
         )}
-        {editing && <p className="m-0 px-1 text-[12px] text-muted">Removing a friend deletes your messages with them.</p>}
+        {editing && <p className="m-0 px-1 text-[12px] text-muted">Your messages stay after removing a friend, read-only, until they expire.</p>}
       </section>
+
+      {past.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className={`${label} px-1`}>Past chats</h2>
+          <ul className={group}>
+            {past.map((t) => (
+              <li key={t.friendId} className="border-t border-edge/[0.06] first:border-0">
+                <Link href={`/friends/${t.friendId}`} aria-current={selected === `f:${t.friendId}` ? "page" : undefined}
+                  className={`${rowLink} ${selected === `f:${t.friendId}` ? "bg-blue/[0.08]" : "hover:bg-edge/[0.03]"}`} style={{ textDecoration: "none", color: "inherit" }}>
+                  <Avatar id={t.friendId} name={t.name} src={t.avatar} size={44} />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="flex items-baseline gap-2">
+                      <span className={`min-w-0 flex-1 truncate text-[15px] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.name}</span>
+                      <span className={`shrink-0 text-[12px] tabular-nums ${t.unread ? "font-semibold text-blue" : "text-muted"}`}>{shortTime(t.last.at, now)}</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className={`min-w-0 flex-1 truncate text-[13px] ${t.unread ? "font-medium text-ink" : "text-muted"}`}>{`${t.last.fromMe ? "You: " : ""}${t.last.body}`}</span>
+                      {t.unread > 0 && <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-blue px-1.5 text-[12px] font-semibold text-white">{t.unread}</span>}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {lists.outgoing.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -383,11 +414,11 @@ function NewGroupSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
 function AboutSheet({ owned, onClose }: { owned: number; onClose: () => void }) {
   const items: [string, string][] = [
     ["Adding friends", "Send a request to the email they use for Notified Law. Once they accept, you can chat, call and compare streaks. You can have up to 100 friends."],
-    ["Messages", `${MESSAGE_RULE} Removing a friend deletes your messages with them.`],
+    ["Messages", `${MESSAGE_RULE} If you remove a friend or block someone, your past messages stay read-only until they expire, so either of you can still report them.`],
     ["Groups", `Groups hold up to ${MAX_GROUP_MEMBERS} people. Whoever makes a group is its only admin and can add or remove people, rename it and change its picture. You can run up to ${MAX_OWNED_GROUPS} groups${owned ? ` (you run ${owned})` : ""}. ${GROUP_MESSAGE_RULE}`],
     ["Calls", "Call a friend, or anyone in a group can start a group call. Calls are voice only and end after 3 hours. Minimise a call to keep it going while you use the app."],
     ["Streaks", "Open the app on consecutive days to build a streak. A grey flame means today does not count yet."],
-    ["Blocking and reports", "Blocking someone removes them as a friend, deletes your messages, takes you out of each other's groups and stops them finding, messaging or calling you. They are not told. Hold a message to report it."],
+    ["Blocking and reports", "Blocking someone removes them as a friend, takes you out of each other's groups and stops them finding, messaging or calling you. They are not told. Hold a message to report it."],
   ];
   return (
     <Sheet label="About Friends" onClose={onClose}>

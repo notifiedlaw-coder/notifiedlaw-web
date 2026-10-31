@@ -17,14 +17,16 @@ const clock = (at: number) => new Date(at).toLocaleTimeString("en-GB", { hour: "
 
 /**
  * A conversation's messages as iOS bubbles, and the composer. Groups show who wrote each run of messages. Holding or
- * right-clicking someone else's message offers Report. `onSend` returns an error message, or null once sent.
+ * right-clicking someone else's message offers Report. `onSend` returns an error message, or null once sent; without
+ * it the conversation is read-only and `closed` explains why in place of the composer.
  * `typers` shows the typing bubble; `onTyping` tells the others while the user types (see TYPING_PING_MS).
  */
-export function ChatView({ header, messages, rule, empty, status, group, now, typers = [], onSend, onReport, onTyping }: {
+export function ChatView({ header, messages, rule, empty, status, group, now, typers = [], onSend, onReport, onTyping, closed }: {
   header: React.ReactNode; messages: ChatMessage[]; rule: string; empty: string; now: number; group?: boolean;
   /** Shown under your newest sent message, e.g. "Seen". */
   status?: (m: ChatMessage) => string | null;
-  onSend: (body: string) => Promise<string | null>;
+  onSend?: (body: string) => Promise<string | null>;
+  closed?: string;
   onReport: (m: ChatMessage) => void;
   typers?: Typer[];
   onTyping?: (on: boolean) => void;
@@ -67,7 +69,7 @@ export function ChatView({ header, messages, rule, empty, status, group, now, ty
 
   async function send() {
     const body = text.trim();
-    if (!body) return;
+    if (!body || !onSend) return;
     setError("");
     atBottom.current = true;
     pinged.current = 0; // the server ends the bubble when the message lands
@@ -126,6 +128,9 @@ export function ChatView({ header, messages, rule, empty, status, group, now, ty
       {/* Pinned just above the composer, on the left, so it is seen wherever the conversation is scrolled. */}
       {typingShown && <div className="shrink-0 px-3 pb-1.5 md:px-6"><TypingBubble typers={typers} group={group} /></div>}
 
+      {!onSend ? (
+        <p className="m-0 shrink-0 border-t-[0.5px] border-edge/15 bg-surface/80 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center text-[13px] text-muted backdrop-blur-xl">{closed}</p>
+      ) : (
       <form onSubmit={(e) => { e.preventDefault(); void send(); }} className="flex shrink-0 flex-col gap-1 border-t-[0.5px] border-edge/15 bg-surface/80 px-3 py-2 backdrop-blur-xl md:px-6">
         {error && <p role="alert" className="m-0 px-1 text-[13px] text-red">{error}</p>}
         <div className="flex items-end gap-2">
@@ -141,6 +146,7 @@ export function ChatView({ header, messages, rule, empty, status, group, now, ty
           </button>
         </div>
       </form>
+      )}
     </div>
   );
 }

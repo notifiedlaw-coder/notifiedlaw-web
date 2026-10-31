@@ -2,7 +2,7 @@ import { userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
 import { fromApp, readJson } from "@/lib/http";
 import { areFriends } from "@/lib/friends";
-import { conversation, sendMessage } from "@/lib/messages";
+import { conversation, hasHistory, sendMessage } from "@/lib/messages";
 import { friendTyping } from "@/lib/typing";
 import { MAX_MESSAGE } from "@/lib/friend-view";
 import { PROFANITY_ERROR, hasProfanity } from "@/lib/profanity";
@@ -12,6 +12,8 @@ type Ctx = { params: Promise<{ id: string }> };
 /**
  * GET /api/messages/<friend id>?after=<ms>: the conversation, or only what came from `after` on. Opening it marks the
  * friend's messages read, which moves their delete date to 30 days from now. `typing` is whether the friend is typing.
+ * After the friendship ends (unfriended or blocked) the conversation can still be read and reported until it
+ * expires, as on Messenger, but shows no typing or read receipts and takes no replies (`canReply` false).
  */
 export async function GET(req: Request, { params }: Ctx) {
   const userId = await userIdFrom(req);
@@ -19,10 +21,12 @@ export async function GET(req: Request, { params }: Ctx) {
   const rl = await limited(req, "READS", userId);
   if (rl) return rl;
   const friendId = (await params).id;
-  if (!(await areFriends(userId, friendId))) return Response.json({ error: "You can only message friends." }, { status: 403 });
+  const friends = await areFriends(userId, friendId);
+  if (!friends && !(await hasHistory(userId, friendId))) return Response.json({ error: "You can only message friends." }, { status: 403 });
   const after = Number(new URL(req.url).searchParams.get("after"));
-  const [c, typing] = await Promise.all([conversation(userId, friendId, Number.isFinite(after) && after > 0 ? after : undefined, fromApp(req)), friendTyping(userId, friendId)]);
-  return Response.json({ ...c, typing });
+  const c = await conversation(userId, friendId, Number.isFinite(after) && after > 0 ? after : undefined, fromApp(req));
+  if (!friends) return Response.json({ messages: c.messages, seen: null, typing: false, canReply: false });
+  return Response.json({ ...c, typing: await friendTyping(userId, friendId), canReply: true });
 }
 
 /** POST /api/messages/<friend id> { body }: sends a message to a friend. */

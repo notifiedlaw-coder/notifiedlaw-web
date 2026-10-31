@@ -1,6 +1,7 @@
 import { and, desc, eq, gt, gte, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { message, typing } from "@/db/schema";
 import { getDb } from "@/lib/auth";
+import { people } from "@/lib/friends";
 import { MESSAGE_TTL_MS, UNREAD_TTL_MS, type Message, type Thread } from "@/lib/friend-view";
 
 /** The most messages a conversation loads at once, newest kept. */
@@ -38,6 +39,12 @@ export async function conversation(userId: string, friendId: string, after?: num
   return { messages: rows.reverse().map(view(userId)), seen: seen?.at ?? null };
 }
 
+/** Whether the two have a conversation still on file, which either may read (not reply to) after the friendship ends. */
+export async function hasHistory(a: string, b: string) {
+  const [row] = await getDb().select({ id: message.id }).from(message).where(and(pairOf(a, b), live(Date.now()))).limit(1);
+  return !!row;
+}
+
 /** Sends a message; the caller has checked the two are friends. It is deleted 90 days on, sooner once read. */
 export async function sendMessage(userId: string, friendId: string, body: string): Promise<Message> {
   const now = Date.now();
@@ -61,11 +68,16 @@ export async function threads(userId: string): Promise<Thread[]> {
   const byFriend = new Map<string, Thread>();
   for (const r of recent) {
     const friendId = r.fromId === userId ? r.toId : r.fromId;
-    if (!byFriend.has(friendId)) byFriend.set(friendId, { friendId, last: { body: r.body, fromMe: r.fromId === userId, at: r.createdAt.getTime() }, unread: 0 });
+    if (!byFriend.has(friendId)) byFriend.set(friendId, { friendId, name: "", avatar: null, last: { body: r.body, fromMe: r.fromId === userId, at: r.createdAt.getTime() }, unread: 0 });
   }
   for (const u of unread) {
     const t = byFriend.get(u.from);
     if (t) t.unread = u.n;
+  }
+  const names = await people([...byFriend.keys()]);
+  for (const t of byFriend.values()) {
+    t.name = names.get(t.friendId)?.name ?? "Notified Law user";
+    t.avatar = names.get(t.friendId)?.avatar ?? null;
   }
   return [...byFriend.values()];
 }

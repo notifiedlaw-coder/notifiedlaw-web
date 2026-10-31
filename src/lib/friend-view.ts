@@ -73,7 +73,8 @@ export const MAX_MESSAGE = 2000;
 /** A message as the signed-in user sees it. `expiresAt`: 90 days after sending, or 30 days after reading if sooner. */
 export type Message = { id: string; fromMe: boolean; body: string; at: number; readAt: number | null; expiresAt: number | null };
 /** A conversation's newest message and how many the user has not read, for the friends list. */
-export type Thread = { friendId: string; last: { body: string; fromMe: boolean; at: number }; unread: number };
+/** A conversation in the list. `name` and `avatar` are for one that outlived the friendship (shown under Past chats). */
+export type Thread = { friendId: string; name: string; avatar: string | null; last: { body: string; fromMe: boolean; at: number }; unread: number };
 
 /** A message time for lists: "14:05" today, "Yesterday", the weekday within a week, else "3 Oct". */
 export function shortTime(at: number, now = Date.now()) {
