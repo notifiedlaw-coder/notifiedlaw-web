@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { CallInfo, CallPeer } from "@/lib/friend-view";
 import { Avatar } from "./avatar";
 import { BARS, better, measure, playTone, useSpeaking, type Net, type Quality } from "./call-media";
@@ -189,11 +189,21 @@ type Corner = "tl" | "tr" | "bl" | "br";
 const CORNER_KEY = "nl-call-corner";
 // Clear of the phone toolbar and tab bar; the side gutter matches the page's.
 const CORNERS: Record<Corner, string> = {
-  tl: "left-3 top-[calc(env(safe-area-inset-top)+3.75rem)] md:left-5 md:top-5",
-  tr: "right-3 top-[calc(env(safe-area-inset-top)+3.75rem)] md:right-5 md:top-5",
-  bl: "left-3 bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] md:left-5 md:bottom-5",
-  br: "right-3 bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] md:right-5 md:bottom-5",
+  tl: "left-[max(0.75rem,env(safe-area-inset-left))] top-[calc(env(safe-area-inset-top)+3.75rem)] md:left-5 md:top-5",
+  tr: "right-[max(0.75rem,env(safe-area-inset-right))] top-[calc(env(safe-area-inset-top)+3.75rem)] md:right-5 md:top-5",
+  bl: "left-[max(0.75rem,env(safe-area-inset-left))] bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] md:left-5 md:bottom-5",
+  br: "right-[max(0.75rem,env(safe-area-inset-right))] bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] md:right-5 md:bottom-5",
 };
+/** Phones on their side, and other short screens, get a tighter call screen. */
+const SHORT = "(max-height: 560px)";
+function useMedia(query: string) {
+  return useSyncExternalStore(
+    (on) => { const m = matchMedia(query); m.addEventListener("change", on); return () => m.removeEventListener("change", on); },
+    () => matchMedia(query).matches,
+    () => false,
+  );
+}
+
 const QUALITY_TEXT: Record<Quality, string> = { good: "Good connection", fair: "Fair connection", poor: "Poor connection", lost: "No connection" };
 
 /**
@@ -398,6 +408,19 @@ function CallScreen({ active, mini, setMini, onClose }: { active: Active; mini: 
     return () => document.removeEventListener("keydown", key);
   }, [mini, setMini]);
 
+  const short = useMedia(SHORT);
+
+  // Keep the screen on during the call: a phone that locks pauses the page, and the call drops. Released on hang-up.
+  const over = status === "ended";
+  useEffect(() => {
+    if (over || !("wakeLock" in navigator)) return;
+    let lock: WakeLockSentinel | null = null;
+    const take = () => { if (document.visibilityState === "visible") navigator.wakeLock.request("screen").then((l) => { lock = l; }).catch(() => {}); };
+    take();
+    document.addEventListener("visibilitychange", take);
+    return () => { document.removeEventListener("visibilitychange", take); void lock?.release().catch(() => {}); };
+  }, [over]);
+
   const meters = useMemo<[string, MediaStreamTrack][]>(() => [...Object.entries(audio), ...(mine ? [["me", mine] as [string, MediaStreamTrack]] : [])], [audio, mine]);
   const speaking = useSpeaking(meters);
 
@@ -432,8 +455,8 @@ function CallScreen({ active, mini, setMini, onClose }: { active: Active; mini: 
               : <Avatar id={active.call.groupId ?? active.call.callerId} name={active.title} size={40} group={!!active.call.groupId} />}
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-[15px] font-semibold">{active.title}</span>
-            <span className={`flex items-center gap-1.5 text-[12px] tabular-nums ${warn ? "text-[#ffb340]" : "text-white/70"}`}>
+            <span className="hidden truncate text-[15px] font-semibold sm:block">{active.title}</span>
+            <span className={`flex items-center gap-1.5 text-[14px] font-semibold tabular-nums sm:text-[12px] sm:font-normal ${warn ? "text-[#ffb340]" : "text-white sm:text-white/70"}`}>
               {quality && <Signal quality={quality} size={11} />}
               <span className="truncate">{warn && status === "live" ? QUALITY_TEXT[quality!] : sub}</span>
             </span>
@@ -458,8 +481,8 @@ function CallScreen({ active, mini, setMini, onClose }: { active: Active; mini: 
         )}
       </header>
 
-      <div className="flex shrink-0 flex-col items-center gap-1 px-4 pb-2 pt-3 text-center">
-        <span className="max-w-full truncate text-[24px] font-semibold tracking-[-0.01em]">{active.title}</span>
+      <div className="flex shrink-0 flex-col items-center gap-1 px-4 pb-2 pt-3 text-center [@media(max-height:560px)]:pt-0">
+        <span className="max-w-full truncate text-[24px] font-semibold tracking-[-0.01em] [@media(max-height:560px)]:text-[19px]">{active.title}</span>
         <span className="text-[15px] tabular-nums text-white/70">{sub}</span>
         {warn && status !== "ended" && (
           <span role="status" className="mt-2 flex items-center gap-2 rounded-full bg-[#ff9500]/15 px-3.5 py-1.5 text-[13px] font-medium text-[#ffb340]">
@@ -471,17 +494,17 @@ function CallScreen({ active, mini, setMini, onClose }: { active: Active; mini: 
         {error && <span role="alert" className="mt-1 text-[13px] text-[#ff6961]">{error}</span>}
       </div>
 
-      <div className={`grid min-h-0 flex-1 content-center justify-items-center gap-x-3 gap-y-7 overflow-y-auto px-4 pb-3 ${peers.length <= 1 ? "grid-cols-1" : peers.length <= 4 ? "grid-cols-2" : "grid-cols-[repeat(auto-fill,minmax(96px,1fr))]"}`}>
-        {peers.map((p) => <Tile key={p.userId} peer={p} connected={!!audio[p.userId]} speaking={speaking.has(p.userId)} big={peers.length === 1} />)}
+      <div className={`grid min-h-0 flex-1 content-center justify-items-center gap-x-3 gap-y-7 overflow-y-auto px-[max(1rem,env(safe-area-inset-left))] pb-3 [@media(max-height:560px)]:gap-y-3 ${peers.length <= 1 ? "grid-cols-1" : peers.length <= 4 ? "grid-cols-2" : "grid-cols-[repeat(auto-fill,minmax(96px,1fr))]"}`}>
+        {peers.map((p) => <Tile key={p.userId} peer={p} connected={!!audio[p.userId]} speaking={speaking.has(p.userId)} size={peers.length === 1 ? (short ? 80 : 128) : short ? 56 : 76} />)}
         {!peers.length && (
-          <span className={status === "ended" ? "" : "animate-pulse"}><Avatar id={active.call.groupId ?? active.call.callerId} name={active.title} size={128} group={!!active.call.groupId} /></span>
+          <span className={status === "ended" ? "" : "animate-pulse"}><Avatar id={active.call.groupId ?? active.call.callerId} name={active.title} size={short ? 80 : 128} group={!!active.call.groupId} /></span>
         )}
       </div>
 
       <p aria-live="polite" className={`m-0 shrink-0 text-center text-[13px] ${muted ? "text-[#ffb340]" : "text-white/50"}`}>
         {muted ? "You are muted" : speaking.has("me") ? "You are speaking" : " "}
       </p>
-      <footer className="flex shrink-0 items-start justify-center gap-7 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
+      <footer className="flex shrink-0 items-start justify-center gap-7 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 [@media(max-height:560px)]:pb-[max(0.75rem,env(safe-area-inset-bottom))] [@media(max-height:560px)]:pt-2">
         <Control label={muted ? "Unmute" : "Mute"} on={muted} onClick={toggleMute}><MicIcon off={muted} /></Control>
         <Control label="End" danger onClick={() => hangUp()}><HangUp /></Control>
         <Control label="Minimise" on={false} onClick={() => setMini(true)}>
@@ -505,7 +528,7 @@ function MiniPlayer({ label, onExpand, actions, children }: { label: string; onE
 
   return (
     <div ref={box} role="region" aria-label={label}
-      className={`fixed z-[75] w-[min(330px,calc(100vw-1.5rem))] touch-none select-none ${CORNERS[corner]} ${offset ? "" : "transition-transform duration-200"}`}
+      className={`fixed z-[75] w-max max-w-[calc(100vw-1.5rem)] sm:w-[330px] touch-none select-none ${CORNERS[corner]} ${offset ? "" : "transition-transform duration-200"}`}
       style={{ transform: offset ? `translate(${offset.x}px, ${offset.y}px) scale(1.03)` : undefined, animation: "tt-sheet 0.35s cubic-bezier(0.32, 0.72, 0, 1)" }}
       onPointerDown={(e) => { if (e.button === 0) drag.current = { x: e.clientX, y: e.clientY, moved: false }; }}
       onPointerMove={(e) => {
@@ -558,11 +581,11 @@ function PeerAudio({ track }: { track?: MediaStreamTrack }) {
 }
 
 /** One person: their picture, ringed in green while they speak, and their name. */
-function Tile({ peer, connected, speaking, big }: { peer: CallPeer; connected: boolean; speaking: boolean; big: boolean }) {
+function Tile({ peer, connected, speaking, size }: { peer: CallPeer; connected: boolean; speaking: boolean; size: number }) {
   return (
     <div className="flex min-w-0 max-w-full flex-col items-center gap-2.5">
       <span className={`rounded-full transition-shadow duration-150 ${speaking ? "shadow-[0_0_0_4px_#34c759,0_0_24px_6px_rgba(52,199,89,0.35)]" : "shadow-[0_0_0_4px_transparent]"}`}>
-        <Avatar id={peer.userId} name={peer.name} src={peer.avatar} size={big ? 128 : 76} />
+        <Avatar id={peer.userId} name={peer.name} src={peer.avatar} size={size} />
       </span>
       <span className="max-w-full truncate text-[15px] font-medium">{peer.name}</span>
       {!connected && <span className="-mt-1.5 text-[12px] text-white/50">Connecting…</span>}
@@ -574,7 +597,7 @@ function Control({ label, on, danger, onClick, children }: { label: string; on?:
   return (
     <span className="flex w-16 flex-col items-center gap-1.5">
       <button type="button" onClick={onClick} aria-label={label} aria-pressed={danger ? undefined : on} title={label}
-        className={`grid size-16 place-items-center rounded-full border-0 active:opacity-70 ${danger ? "bg-[#ff3b30] text-white" : on ? "bg-white text-black" : "bg-white/15 text-white"}`}>{children}</button>
+        className={`grid size-16 place-items-center rounded-full border-0 active:opacity-70 [@media(max-height:560px)]:size-12 ${danger ? "bg-[#ff3b30] text-white" : on ? "bg-white text-black" : "bg-white/15 text-white"}`}>{children}</button>
       <span aria-hidden className="text-[12px] text-white/70">{label}</span>
     </span>
   );
@@ -583,7 +606,7 @@ function Control({ label, on, danger, onClick, children }: { label: string; on?:
 function MiniButton({ label, on, danger, onClick, children }: { label: string; on?: boolean; danger?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} aria-label={label} aria-pressed={danger ? undefined : on} title={label}
-      className={`grid size-10 shrink-0 place-items-center rounded-full border-0 active:opacity-70 ${danger ? "bg-[#ff3b30] text-white" : on ? "bg-white text-black" : "bg-white/15 text-white"}`}>{children}</button>
+      className={`grid size-11 shrink-0 place-items-center sm:size-10 rounded-full border-0 active:opacity-70 ${danger ? "bg-[#ff3b30] text-white" : on ? "bg-white text-black" : "bg-white/15 text-white"}`}>{children}</button>
   );
 }
 
