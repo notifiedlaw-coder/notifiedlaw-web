@@ -1,4 +1,4 @@
-import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // The four tables Better Auth needs. App data (plans, progress, streaks) gets its own tables below.
 export const user = sqliteTable("user", {
@@ -241,7 +241,7 @@ export const typing = sqliteTable("typing", {
 export const abuseReport = sqliteTable("abuse_report", {
   id: text("id").primaryKey(),
   reporterId: text("reporter_id").notNull().references(() => user.id, { onDelete: "cascade" }),
-  kind: text("kind").notNull(), // user | group | message | group_message
+  kind: text("kind").notNull(), // user | group | message | group_message | student_id (filed by the profile API on a clash)
   target: text("target").notNull(),
   reason: text("reason").notNull(),
   snapshot: text("snapshot"),
@@ -315,7 +315,9 @@ export const student = sqliteTable("student", {
   university: text("university").notNull(),
   studentId: text("student_id"),
   verifiedAt: integer("verified_at", { mode: "timestamp_ms" }).notNull(),
-}, (t) => [uniqueIndex("student_university_student_id").on(t.university, t.studentId)]);
+  // Not unique: an ID can only be typed, not proved, so a clash goes to review (abuse_report kind student_id)
+  // instead of letting whoever typed it first lock the real student out.
+}, (t) => [index("student_university_student_id").on(t.university, t.studentId)]);
 
 // Sign-in links sent to each university address, for the resend wait and the daily cap. Keyed on the
 // recipient, not an account, because the account does not exist until the first link is used.

@@ -51,7 +51,7 @@ export const FAQ = [
   },
   {
     q: "How do students get the Student plan?",
-    a: "Choose Student when you sign up and enter your university email. We email you a link to confirm it, then you add your name and student ID and choose your plan. Each university email and student ID can be used for one account, and student status is checked again each year.",
+    a: "Choose Student when you sign up and enter your university email. We email you a link to confirm it, then you add your name and student ID and choose your plan. Each university email can be used for one account. If a student ID is already in use on another account, you can still finish signing up and we review both accounts. Student status is checked again each year.",
   },
   {
     q: "How does exam marking work?",
