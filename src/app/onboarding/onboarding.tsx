@@ -42,14 +42,14 @@ export function Onboarding({ defaults, student }: { defaults: { first: string; m
   const errors = profileErrors(f);
   const blur = (k: string) => () => setTouched((t) => ({ ...t, [k]: true }));
   const shown = (k: keyof typeof errors) => (touched[k] ? errors[k] : undefined);
-  const err = (k: keyof typeof errors) => (shown(k) ? <span className="font-normal text-red" role="alert">{shown(k)}</span> : null);
+  const err = (k: keyof typeof errors) => (shown(k) ? <span className="font-normal text-plum" role="alert">{shown(k)}</span> : null);
   const bad = (k: keyof typeof errors) => !!shown(k);
   const today = new Date().toISOString().slice(0, 10);
   const idError = student && !normalizeStudentId(studentId) ? "Enter your student ID: 4 to 20 letters, digits, / or -." : undefined;
   const levelError = student && !isLevel(f.level) ? "Choose your level." : undefined;
   const valid = key === "about" ? !ABOUT_KEYS.some((k) => errors[k]) : key === "status" ? !errors.status
     : key === "studies" ? !idError && !levelError : !Object.keys(errors).length;
-  const pill = (on: boolean) => ({ background: on ? "var(--tint)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #23305C" : "0 0 0 0.5px var(--hairline)" });
+  const pill = (on: boolean) => ({ background: on ? "var(--tint)" : "var(--surface)", boxShadow: on ? "0 0 0 2px var(--primary)" : "0 0 0 1px color-mix(in srgb, var(--ink) 15%, transparent)" });
   const text = (k: "firstName" | "middleName" | "lastName" | "phone" | "dob") => ({ value: f[k], onBlur: blur(k), "aria-invalid": bad(k), onChange: (e: React.ChangeEvent<HTMLInputElement>) => patch({ [k]: e.target.value }) });
   const cell = (k: StepKey) => `col-start-1 row-start-1 ${key === k ? "" : "invisible"}`;
   const last = step === steps.length - 1;
@@ -70,13 +70,13 @@ export function Onboarding({ defaults, student }: { defaults: { first: string; m
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-canvas px-3 py-3 sm:px-5 sm:py-10">
-      <div className="flex w-full max-w-[560px] flex-col gap-4 rounded-3xl bg-surface p-5 sm:gap-6 sm:p-8 shadow-card">
-        <div className="flex gap-1.5">{steps.map((_, i) => <div key={i} className="h-1 flex-1 rounded-sm" style={{ background: i <= step ? "#23305C" : "var(--track)" }} />)}</div>
-        <div className="min-h-[4.5rem] sm:min-h-[5.5rem]">
-          <div className="text-xs font-semibold text-muted">Step {step + 1} of {steps.length}</div>
-          <h1 className="mt-0.5 text-2xl font-bold sm:mt-1 sm:text-[28px] tracking-[-0.02em]">{key === "more" && f.status ? FOLLOW_UP[f.status] : STEP_TEXT[key][0]}</h1>
-          <p className="mt-1 text-sm text-muted">{STEP_TEXT[key][1]}</p>
+    <div className="flex min-h-dvh items-start justify-center bg-canvas px-[18px] py-6 sm:items-center sm:px-5 sm:py-10">
+      <div className="nl-scale flex w-full max-w-[600px] flex-col gap-5 sm:gap-7">
+        <div className="flex gap-1.5">{steps.map((_, i) => <div key={i} className="h-1.5 flex-1 rounded-full" style={{ background: i <= step ? "var(--primary)" : "color-mix(in srgb, var(--ink) 12%, transparent)" }} />)}</div>
+        <div className="min-h-[6rem] sm:min-h-[7.5rem]">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Step {step + 1} of {steps.length}</div>
+          <h1 className="m-0 mt-2 text-balance text-[36px] leading-[1.04] sm:text-[44px]">{key === "more" && f.status ? FOLLOW_UP[f.status] : STEP_TEXT[key][0]}</h1>
+          <p className="m-0 mt-2 text-[16px] text-muted">{STEP_TEXT[key][1]}</p>
         </div>
         {/* Every step shares one grid cell, so the card keeps the height of the tallest step. */}
         <div className="grid">
@@ -89,7 +89,7 @@ export function Onboarding({ defaults, student }: { defaults: { first: string; m
             <label className={labelCls}><span>Middle name(s) <span className="font-normal text-muted">(optional)</span></span><input {...text("middleName")} maxLength={120} autoComplete="additional-name" className={fieldCls} />{err("middleName")}</label>
             <label className={labelCls}>Date of birth<input type="date" {...text("dob")} min={MIN_DOB} max={today} required autoComplete="bday" className={fieldCls} />{err("dob")}</label>
             <div className={labelCls} onBlur={blur("gender")}>Gender
-              <div className="flex flex-wrap gap-2">{GENDERS.map((g) => <button key={g} type="button" aria-pressed={f.gender === g} onClick={() => patch({ gender: g })} className="rounded-full px-4 py-2 text-sm font-medium text-ink" style={pill(f.gender === g)}>{g}</button>)}</div>
+              <div className="flex flex-wrap gap-2">{GENDERS.map((g) => <button key={g} type="button" aria-pressed={f.gender === g} onClick={() => patch({ gender: g })} className="h-11 rounded-full px-5 text-[15px] font-medium text-ink" style={pill(f.gender === g)}>{g}</button>)}</div>
               {err("gender")}
             </div>
             <label className={labelCls}><span>Phone number <span className="font-normal text-muted">(optional, for MoMo payments)</span></span><input type="tel" inputMode="tel" {...text("phone")} maxLength={30} placeholder="024 000 0000" autoComplete="tel" className={fieldCls} />{err("phone")}</label>
@@ -99,12 +99,12 @@ export function Onboarding({ defaults, student }: { defaults: { first: string; m
           <div className={cell("studies")}>
             <div className="flex flex-col gap-3.5">
               <div className={labelCls}>University
-                <div className="flex h-11 items-center justify-between gap-3 rounded-[10px] bg-fill px-3.5 text-[15px] font-normal">
-                  <span className="truncate">{student.university}</span><span className="shrink-0 text-xs font-semibold text-[#248A3D]">Verified · {student.email}</span>
+                <div className="flex h-12 items-center justify-between gap-3 rounded-[14px] bg-fill px-4 text-[16px] font-normal">
+                  <span className="truncate">{student.university}</span><span className="shrink-0 text-[13px] font-semibold text-green">Verified · {student.email}</span>
                 </div>
               </div>
               <label className={labelCls}>Student ID<input value={studentId} onChange={(e) => setStudentId(e.target.value)} onBlur={blur("studentId")} aria-invalid={!!(touched.studentId && idError)} maxLength={24} autoComplete="off" placeholder="e.g. 10987654" className={fieldCls} />
-                {touched.studentId && idError && <span className="font-normal text-red" role="alert">{idError}</span>}
+                {touched.studentId && idError && <span className="font-normal text-plum" role="alert">{idError}</span>}
               </label>
               <label className={labelCls}>Level
                 <select value={f.level} onChange={(e) => patch({ level: e.target.value as ProfileInput["level"] })} className={fieldCls}>
@@ -120,14 +120,14 @@ export function Onboarding({ defaults, student }: { defaults: { first: string; m
             <div className={cell("more")}><StatusQuestions value={f} onChange={patch} errors={errors} /></div>
           </>
         )}
-        <div className={cell("goals")}><div className="flex flex-wrap gap-2">{GOALS.map((g) => <button key={g} type="button" aria-pressed={f.goals.includes(g)} onClick={() => patch({ goals: f.goals.includes(g) ? f.goals.filter((x) => x !== g) : [...f.goals, g] })} className="rounded-full px-4 py-2 text-sm font-medium" style={pill(f.goals.includes(g))}>{g}</button>)}</div></div>
+        <div className={cell("goals")}><div className="flex flex-wrap gap-2">{GOALS.map((g) => <button key={g} type="button" aria-pressed={f.goals.includes(g)} onClick={() => patch({ goals: f.goals.includes(g) ? f.goals.filter((x) => x !== g) : [...f.goals, g] })} className="h-12 rounded-full px-5 text-[16px] font-medium" style={pill(f.goals.includes(g))}>{g}</button>)}</div></div>
         </div>
-        {error && <p className="m-0 text-sm text-red">{error}</p>}
+        {error && <p className="m-0 text-[15px] text-plum">{error}</p>}
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} className="h-10 rounded-[10px] px-4 text-sm text-muted" style={{ visibility: step ? "visible" : "hidden" }}>Back</button>
+          <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} className="h-[52px] rounded-full px-5 text-[16px] font-semibold text-link" style={{ visibility: step ? "visible" : "hidden" }}>‹ Back</button>
           <div className="flex items-center gap-2">
-            {key === "more" && <button type="button" onClick={() => { patch({ university: "", level: "", jobTitle: "", employer: "", sector: "", intent: "" }); setStep(step + 1); }} className="h-10 rounded-[10px] px-4 text-sm text-muted">Skip</button>}
-            <button type="button" disabled={!valid || saving} onClick={() => { if (key === "status") setTouched((t) => ({ ...t, status: true })); if (last) void finish(); else setStep(step + 1); }} className="h-10 rounded-[10px] bg-blue px-6 text-sm font-semibold text-white disabled:opacity-40">{last ? (saving ? "Saving…" : "Start studying") : "Continue"}</button>
+            {key === "more" && <button type="button" onClick={() => { patch({ university: "", level: "", jobTitle: "", employer: "", sector: "", intent: "" }); setStep(step + 1); }} className="h-[52px] rounded-full px-5 text-[16px] text-muted">Skip</button>}
+            <button type="button" disabled={!valid || saving} onClick={() => { if (key === "status") setTouched((t) => ({ ...t, status: true })); if (last) void finish(); else setStep(step + 1); }} className="h-[52px] rounded-full bg-blue px-8 text-[17px] font-semibold text-white hover:bg-blue-press disabled:opacity-40">{last ? (saving ? "Saving…" : "Start studying") : "Continue"}</button>
           </div>
         </div>
       </div>
