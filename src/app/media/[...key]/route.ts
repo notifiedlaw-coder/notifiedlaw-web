@@ -27,6 +27,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
     // Images are versioned by key, so they can sit in caches for a year.
     "cache-control": type.startsWith("image/") ? "public, max-age=31536000, immutable" : "public, max-age=86400",
     etag: obj.httpEtag,
+    "x-content-type-options": "nosniff",
   });
   let status = 200;
   if (hasRange && obj.range) {

@@ -11,6 +11,7 @@ export const ERROR_CODES = {
   N004: "Chosen file does not fit in the storage left (checked in the browser)",
 
   S500: "Unhandled Worker error (custom-worker.ts); the cause is in the Worker log",
+  S403: "Change to /api/ sent from another site (custom-worker.ts crossSiteWrite)",
 
   A001: "Not signed in",
 
