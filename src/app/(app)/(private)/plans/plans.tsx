@@ -9,8 +9,8 @@ import { PLAN_PRICES, cedis } from "@/lib/content";
 import { CREDIT_NAME, PAID_PLANS, PLAN_CREDITS, PLAN_NAMES, type PaidPlan } from "@/lib/data";
 
 const TIERS: { plan: PaidPlan; blurb: string; feats: [boolean, string][]; badge?: string }[] = [
-  { plan: "Student", blurb: "The full library, Levels 100 to 400.", feats: [[true, "Every topic, Levels 100 to 400"], [true, "Starter flashcard decks"], [true, "500 MB for My Files"], [false, "Pre-Bar and Bar Course"]] },
-  { plan: "Pro", blurb: "The full library, with AI to help it stick.", feats: [[true, "Everything in Student"], [true, "AI Summaries for every note"], [true, "Unlimited AI flashcards"], [true, "5 GB for My Files"], [false, "Pre-Bar and Bar Course"], [false, "AI podcasts"]] },
+  { plan: "Student", blurb: "The full library, Levels 100 to 400.", feats: [[true, "Every topic, Levels 100 to 400"], [true, "Starter flashcard decks"], [true, "500 MB for My Files"], [true, "Friends, plus group chats and calls for study sessions"], [false, "Weekly quiz leaderboard"], [false, "Pre-Bar and Bar Course"]] },
+  { plan: "Pro", blurb: "The full library, with AI to help it stick.", feats: [[true, "Everything in Student"], [true, "AI Summaries for every note"], [true, "Unlimited AI flashcards"], [true, "Weekly quiz leaderboard"], [true, "5 GB for My Files"], [false, "Pre-Bar and Bar Course"], [false, "AI podcasts"]] },
   { plan: "Pro Max", badge: "Most complete", blurb: "Everything, plus AI that listens, talks and tutors.", feats: [[true, "Everything in Senior Judicial (Pro)"], [true, "Pre-Bar and Bar Course"], [true, "AI podcast of any note"], [true, "Personal AI tutor"], [true, "Exam mode with IRAC feedback"], [true, "10 GB for My Files"]] },
 ];
 

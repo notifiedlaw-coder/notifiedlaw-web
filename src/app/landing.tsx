@@ -16,7 +16,7 @@ const PILLARS = [
 ];
 
 const TIERS = [
-  { name: "Student", price: cedis(PLAN_PRICES.Student), blurb: "The full library, Levels 100 to 400.", items: ["Every topic, Levels 100 to 400", `${PLAN_CREDITS.Student} ${CREDIT_NAME} a month`, "Flashcards and timetable", "500 MB of file storage"] },
+  { name: "Student", price: cedis(PLAN_PRICES.Student), blurb: "The full library, Levels 100 to 400.", items: ["Every topic, Levels 100 to 400", `${PLAN_CREDITS.Student} ${CREDIT_NAME} a month`, "Flashcards and timetable", "Friends, group chats and study calls", "500 MB of file storage"] },
   { name: "Senior Judicial", price: cedis(PLAN_PRICES.Pro), blurb: "The full library, with Notified AI to help it stick.", items: ["Everything in Student", `${PLAN_CREDITS.Pro} ${CREDIT_NAME} a month`, "Weekly quiz leaderboard", "5 GB of file storage"], rec: true },
   { name: "Supreme Justice", price: cedis(PLAN_PRICES["Pro Max"]), blurb: "Everything, including Pre-Bar and the Bar Course.", items: ["Everything in Senior Judicial", `${PLAN_CREDITS["Pro Max"]} ${CREDIT_NAME} a month`, "Pre-Bar and Bar Course notes", "Exam prep questions", "10 GB of file storage"] },
 ];
