@@ -39,6 +39,8 @@ export type Me = {
   student: StudentState | null;
   /** The profile picture's URL, or null. */
   avatar: string | null;
+  /** Whether people who type the account's email can find it to send a friend request. */
+  findByEmail: boolean;
 };
 
 /** Shown as "UG Legon" style tags in the sidebar. */

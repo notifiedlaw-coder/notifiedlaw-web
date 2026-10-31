@@ -1,0 +1,1 @@
+ALTER TABLE `profile` ADD `find_by_email` integer DEFAULT true NOT NULL;

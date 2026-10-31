@@ -45,14 +45,23 @@ export async function PUT(req: Request) {
   return Response.json({ ok: true, profile: p });
 }
 
-/** Changes the level after onboarding (Settings). */
+/** Changes the level, or whether the account can be found by email, after onboarding (Settings). */
 export async function PATCH(req: Request) {
   const id = await userIdFrom(req);
   if (!id) return Response.json({ error: "unauthenticated" }, { status: 401 });
   const rl = await limited(req, "WRITES", id);
   if (rl) return rl;
-  const level = ((await readJson(req)) as { level?: unknown } | null)?.level;
-  if (!isLevel(level)) return Response.json({ error: "Unknown level." }, { status: 400 });
-  const res = await getDb().update(profile).set({ level, updatedAt: new Date() }).where(eq(profile.userId, id));
+  const b = (await readJson(req)) as { level?: unknown; findByEmail?: unknown } | null;
+  const set: { level?: string; findByEmail?: boolean } = {};
+  if (b?.level !== undefined) {
+    if (!isLevel(b.level)) return Response.json({ error: "Unknown level." }, { status: 400 });
+    set.level = b.level;
+  }
+  if (b?.findByEmail !== undefined) {
+    if (typeof b.findByEmail !== "boolean") return Response.json({ error: "findByEmail must be true or false." }, { status: 400 });
+    set.findByEmail = b.findByEmail;
+  }
+  if (!Object.keys(set).length) return Response.json({ error: "Nothing to change." }, { status: 400 });
+  const res = await getDb().update(profile).set({ ...set, updatedAt: new Date() }).where(eq(profile.userId, id));
   return res.meta.changes ? Response.json({ ok: true }) : Response.json({ error: "Finish onboarding first." }, { status: 409 });
 }

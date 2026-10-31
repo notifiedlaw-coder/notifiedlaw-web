@@ -77,12 +77,15 @@ const count = async (userId: string) => {
  */
 export async function sendRequest(userId: string, email: string): Promise<string | null> {
   const db = getDb();
-  const [to] = await db.select({ id: user.id }).from(user).where(eq(sql`lower(${user.email})`, email.toLowerCase()));
+  const [to] = await db.select({ id: user.id, findable: profile.findByEmail }).from(user).leftJoin(profile, eq(profile.userId, user.id))
+    .where(eq(sql`lower(${user.email})`, email.toLowerCase()));
   if (!to) return "No Notified Law account uses that email.";
   if (to.id === userId) return "That is your own email.";
   // A block either way looks like no account, so the blocked person learns nothing.
   if (await blockedEitherWay(userId, to.id)) return "No Notified Law account uses that email.";
   const [row] = await db.select().from(friendship).where(between(userId, to.id));
+  // Someone who turned off "Find me by email" looks like no account, unless there is already a request between you.
+  if (!row && to.findable === false) return "No Notified Law account uses that email.";
   if (row?.status === "accepted") return "You are already friends.";
   if (row?.fromId === userId) return "You have already sent them a request.";
   if (row) {

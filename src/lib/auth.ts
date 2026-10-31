@@ -239,6 +239,7 @@ export async function meFor(userId: string): Promise<Me> {
       ...p, goals: JSON.parse(p.goals) as string[], middleName: p.middleName ?? "", phone: p.phone ?? "", university: p.university ?? "", level: p.level ?? "",
       jobTitle: p.jobTitle ?? "", employer: p.employer ?? "", sector: p.sector ?? "", intent: p.intent ?? "",
     } as Me["profile"] : null,
+    findByEmail: p?.findByEmail ?? true,
     subscription: { plan: planOf(s), creditsUsed: usedThisMonth(s), promoUntil: s?.promoUntil && planOf(s) !== planOf({ plan: s.plan }) ? s.promoUntil.getTime() : null },
     student: st ? {
       email: st.email, university: st.university, studentId: st.studentId ?? "",

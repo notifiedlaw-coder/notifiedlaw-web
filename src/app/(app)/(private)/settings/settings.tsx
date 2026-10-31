@@ -21,10 +21,18 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
   <div className="flex min-h-11 items-center justify-between gap-4 border-t border-edge/[0.06] px-4 py-2 text-sm first:border-0"><span className="font-medium">{label}</span><span>{children}</span></div>
 );
 
+/** An iOS-style switch. */
+const Switch = ({ on, onChange, label }: { on: boolean; onChange: (on: boolean) => void; label: string }) => (
+  <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
+    className={`relative h-[31px] w-[51px] shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors duration-200 ${on ? "bg-green" : "bg-edge/20"}`}>
+    <span className={`absolute left-[2px] top-[2px] size-[27px] rounded-full bg-white shadow-[0_3px_8px_rgba(0,0,0,0.15),0_1px_1px_rgba(0,0,0,0.16)] transition-transform duration-200 ${on ? "translate-x-[20px]" : ""}`} />
+  </button>
+);
+
 const fmtDate = (ms: number) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Accra" }).format(new Date(ms));
 
 export function Settings() {
-  const { plan, setPlan, credits, allowance, profile, setLevel, student } = usePlan();
+  const { plan, setPlan, credits, allowance, profile, setLevel, student, findByEmail, setFindByEmail } = usePlan();
   const { theme, setTheme } = useTheme();
   const user = useUser();
 
@@ -41,6 +49,14 @@ export function Settings() {
           <Row label="Student ID">{student.studentId || "Not set"}</Row>
           <Row label="Verified until">{student.eligible ? fmtDate(student.verifiedAt + STUDENT_VERIFY_DAYS * 86_400_000) : "Expired, sign in again with your university email"}</Row>
         </Group>
+      )}
+      {profile && (
+        <section className="flex flex-col gap-1.5">
+          <Group title="Friends">
+            <Row label="Find me by email"><Switch on={findByEmail} onChange={setFindByEmail} label="Find me by email" /></Row>
+          </Group>
+          <p className="m-0 px-4 text-[13px] text-muted">When this is off, someone who types your email is told no account uses it. People you already have a request with can still reach you.</p>
+        </section>
       )}
       <Group title="Subscription">
         <Row label="Current plan">{PLAN_NAMES[plan]}</Row>

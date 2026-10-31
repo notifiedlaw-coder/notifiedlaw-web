@@ -65,6 +65,8 @@ export const profile = sqliteTable("profile", {
   sector: text("sector"),
   intent: text("intent"),
   goals: text("goals").notNull().default("[]"), // JSON array of goal labels
+  // Whether someone who types this account's email can send it a friend request (Settings > Friends).
+  findByEmail: integer("find_by_email", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
