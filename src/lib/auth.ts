@@ -14,7 +14,7 @@ import { avatarUrl } from "@/lib/friend-view";
 import { sendEmail, studentLinkMessage } from "@/lib/email";
 import { limitedBy } from "@/lib/rate-limit";
 import { TURNSTILE_HEADER, verifyTurnstile } from "@/lib/turnstile";
-import { DAILY_SENDS, LINK_MINUTES, RESEND_SECONDS, checkStudentEmail, studentEligible, universityOf } from "@/lib/student";
+import { DAILY_SENDS, LINK_MINUTES, RESEND_SECONDS, checkStudentEmail, studentEligible } from "@/lib/student";
 import type { Me } from "@/lib/profile";
 
 /** Built per request: the D1 binding and secrets only exist inside a Worker request. */
@@ -137,13 +137,19 @@ export async function signedOutElsewhere() {
   return !!row;
 }
 
-/** Marks the user a student, or refreshes their proof, when their verified email is on a university domain. */
+/**
+ * Marks the user a student, or refreshes their proof, when their verified email is on a university domain. The
+ * address must already be in normalised form, the same rule the emailed link applies, so a Google account at
+ * name+1@ cannot claim a second student record for one mailbox.
+ */
 async function recordStudent(db: Db, userId: string) {
   const [u] = await db.select({ email: schema.user.email, verified: schema.user.emailVerified }).from(schema.user).where(eq(schema.user.id, userId));
-  const university = u?.verified ? universityOf(u.email) : null;
-  if (!university) return;
+  if (!u?.verified) return;
+  const checked = checkStudentEmail(u.email);
+  if ("error" in checked || checked.email !== u.email.trim().toLowerCase()) return;
+  const { email, university } = checked;
   const now = new Date();
-  await db.insert(schema.student).values({ userId, email: u.email.toLowerCase(), university, verifiedAt: now })
+  await db.insert(schema.student).values({ userId, email, university, verifiedAt: now })
     .onConflictDoUpdate({ target: schema.student.userId, set: { verifiedAt: now } });
 }
 
