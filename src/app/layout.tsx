@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Source_Serif_4 } from "next/font/google";
+import { Instrument_Serif, Source_Serif_4 } from "next/font/google";
 import { CopyGuard } from "@/components/copy-guard";
 import { JsonLd } from "@/components/json-ld";
 import { SITE, abs } from "@/lib/site";
 import "./globals.css";
 
 const sourceSerif = Source_Serif_4({ subsets: ["latin"], variable: "--font-source-serif", display: "swap" });
+// Display face for headings and the wordmark.
+const instrument = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-instrument", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -73,8 +75,8 @@ export const viewport: Viewport = {
   // Lets the top and tab bars run under the notch and home indicator; they pad themselves with env(safe-area-inset-*).
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f5f7" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0b0d" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f5f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#12151f" },
   ],
 };
 
@@ -84,7 +86,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en-GH" className={sourceSerif.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="en-GH" className={`${sourceSerif.variable} ${instrument.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         {/* Apply the saved theme before paint to avoid a flash. */}
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("nl-theme");if(t!=="dark"&&t!=="system")t="light";document.documentElement.dataset.theme=t}catch(e){}` }} />

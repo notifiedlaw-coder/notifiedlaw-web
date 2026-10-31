@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Chevron, Chip, Eyebrow, cardCls } from "@/components/ui";
 import type { MockEpisode, RefKind } from "./mock";
 
-const KIND_COLOR: Record<RefKind, string> = { Case: "#007AFF", Act: "#34C759", Article: "#FF9F0A", Topic: "#AF52DE" };
+const KIND_COLOR: Record<RefKind, string> = { Case: "#23305C", Act: "#34C759", Article: "#C4552B", Topic: "#AF52DE" };
 const SPEEDS = [1, 1.25, 1.5, 2];
 const link = { textDecoration: "none", color: "inherit" } as const;
 

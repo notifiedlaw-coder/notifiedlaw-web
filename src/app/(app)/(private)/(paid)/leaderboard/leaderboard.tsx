@@ -199,7 +199,7 @@ function QuizSheet({ onClose, onFinish }: { onClose: () => void; onFinish: (poin
 
         {done ? (
           <div className="flex flex-col items-center gap-3 overflow-y-auto px-6 pb-8 pt-6 text-center">
-            <span aria-hidden className="grid size-20 place-items-center rounded-full bg-gradient-to-br from-[#FFB800] to-[#FF9500] text-[34px] font-bold text-white shadow-[0_8px_24px_rgba(255,149,0,0.4)]">{right}</span>
+            <span aria-hidden className="grid size-20 place-items-center rounded-full bg-gradient-to-br from-[#FFB800] to-[#C4552B] text-[34px] font-bold text-white shadow-[0_8px_24px_rgba(255,149,0,0.4)]">{right}</span>
             <h3 className="m-0 text-[24px] font-bold tracking-[-0.02em]">{right === QUIZ.length ? "Perfect score" : right >= 3 ? "Well done" : "Good effort"}</h3>
             <p className="m-0 text-[15px] leading-snug text-muted">{right} of {QUIZ.length} right. <b className="font-semibold text-ink">+{points} points</b> added to your week.</p>
             <button type="button" onClick={onClose} className="mt-3 h-[50px] w-full rounded-[14px] border-0 bg-blue text-[17px] font-semibold text-white">See the leaderboard</button>

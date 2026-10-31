@@ -49,7 +49,7 @@ export function Onboarding({ defaults, student }: { defaults: { first: string; m
   const levelError = student && !isLevel(f.level) ? "Choose your level." : undefined;
   const valid = key === "about" ? !ABOUT_KEYS.some((k) => errors[k]) : key === "status" ? !errors.status
     : key === "studies" ? !idError && !levelError : !Object.keys(errors).length;
-  const pill = (on: boolean) => ({ background: on ? "rgba(0,122,255,0.08)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #007AFF" : "0 0 0 0.5px var(--hairline)" });
+  const pill = (on: boolean) => ({ background: on ? "var(--tint)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #23305C" : "0 0 0 0.5px var(--hairline)" });
   const text = (k: "firstName" | "middleName" | "lastName" | "phone" | "dob") => ({ value: f[k], onBlur: blur(k), "aria-invalid": bad(k), onChange: (e: React.ChangeEvent<HTMLInputElement>) => patch({ [k]: e.target.value }) });
   const cell = (k: StepKey) => `col-start-1 row-start-1 ${key === k ? "" : "invisible"}`;
   const last = step === steps.length - 1;
@@ -72,7 +72,7 @@ export function Onboarding({ defaults, student }: { defaults: { first: string; m
   return (
     <div className="flex min-h-dvh items-center justify-center bg-canvas px-3 py-3 sm:px-5 sm:py-10">
       <div className="flex w-full max-w-[560px] flex-col gap-4 rounded-3xl bg-surface p-5 sm:gap-6 sm:p-8 shadow-card">
-        <div className="flex gap-1.5">{steps.map((_, i) => <div key={i} className="h-1 flex-1 rounded-sm" style={{ background: i <= step ? "#007AFF" : "var(--track)" }} />)}</div>
+        <div className="flex gap-1.5">{steps.map((_, i) => <div key={i} className="h-1 flex-1 rounded-sm" style={{ background: i <= step ? "#23305C" : "var(--track)" }} />)}</div>
         <div className="min-h-[4.5rem] sm:min-h-[5.5rem]">
           <div className="text-xs font-semibold text-muted">Step {step + 1} of {steps.length}</div>
           <h1 className="mt-0.5 text-2xl font-bold sm:mt-1 sm:text-[28px] tracking-[-0.02em]">{key === "more" && f.status ? FOLLOW_UP[f.status] : STEP_TEXT[key][0]}</h1>

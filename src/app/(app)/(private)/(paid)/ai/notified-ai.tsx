@@ -412,7 +412,7 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
 function Welcome({ onAsk }: { onAsk: (q: string) => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 py-8 text-center">
-      <div aria-hidden className="grid size-16 place-items-center rounded-[20px] bg-gradient-to-br from-[#5e5ce6] via-[#bf5af2] to-[#ff9f0a] text-white shadow-[0_8px_24px_rgba(94,92,230,0.35)]">
+      <div aria-hidden className="grid size-16 place-items-center rounded-[20px] bg-gradient-to-br from-[#5e5ce6] via-[#bf5af2] to-[#C4552B] text-white shadow-[0_8px_24px_rgba(94,92,230,0.35)]">
         <svg width="30" height="30" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.8l1.6 4.6L14.2 8l-4.6 1.6L8 14.2 6.4 9.6 1.8 8l4.6-1.6z" /></svg>
       </div>
       <div className="flex flex-col gap-1.5">
@@ -472,7 +472,7 @@ function AnswerBubble({ m, live, chatId, last, onRegenerate, onFlashcards, onSav
   const done = m.content && !live && !isTemp(m.id);
   return (
     <div className="flex gap-3">
-      <span aria-hidden className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#5e5ce6] via-[#bf5af2] to-[#ff9f0a] text-white">
+      <span aria-hidden className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#5e5ce6] via-[#bf5af2] to-[#C4552B] text-white">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.8l1.6 4.6L14.2 8l-4.6 1.6L8 14.2 6.4 9.6 1.8 8l4.6-1.6z" /></svg>
       </span>
       <div className="min-w-0 flex-1">
@@ -548,7 +548,7 @@ const Notice = ({ children }: { children: React.ReactNode }) => <p role="status"
 
 /** A small badge for what was attached: red PDF, blue Word, orange case, green topic. */
 function RefGlyph({ kind, name, large }: { kind: RefKind; name: string; large?: boolean }) {
-  const [label, bg] = kind === "case" ? ["LAW", "bg-[#ff9f0a]"] : kind === "topic" ? ["LIB", "bg-[#34c759]"] : /\.pdf$/i.test(name) ? ["PDF", "bg-[#ff3b30]"] : ["DOC", "bg-[#0a84ff]"];
+  const [label, bg] = kind === "case" ? ["LAW", "bg-[#C4552B]"] : kind === "topic" ? ["LIB", "bg-[#34c759]"] : /\.pdf$/i.test(name) ? ["PDF", "bg-[#ff3b30]"] : ["DOC", "bg-[#0a84ff]"];
   return <span aria-hidden className={`grid shrink-0 place-items-center rounded-[7px] font-bold text-white ${bg} ${large ? "size-9 text-[9px]" : "size-5 text-[7px]"}`}>{label}</span>;
 }
 

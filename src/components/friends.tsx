@@ -1,10 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { HEARTBEAT_MS, type FriendLists } from "@/lib/friend-view";
-import { Icon } from "./icons";
 
 type Streak = { streak: number; best: number };
 type Ctx = {
@@ -63,21 +60,4 @@ export function FriendsProvider({ enabled, children }: { enabled: boolean; child
 
   const value = useMemo(() => ({ incoming, unread, mine, refresh: beat }), [incoming, unread, mine, beat]);
   return <FriendsCtx.Provider value={value}>{children}</FriendsCtx.Provider>;
-}
-
-/** The friends button beside the profile name: opens Friends, badged with requests and unread messages. */
-export function FriendsButton({ size = 32, onNavigate }: { size?: number; onNavigate?: (href: string) => void }) {
-  const { incoming, unread } = useFriends();
-  const on = usePathname().startsWith("/friends");
-  const n = incoming + unread;
-  const what = [incoming && `${incoming} ${incoming === 1 ? "request" : "requests"}`, unread && `${unread} unread`].filter(Boolean).join(", ");
-  return (
-    <Link href="/friends" title="Friends" aria-label={what ? `Friends, ${what}` : "Friends"} aria-current={on ? "page" : undefined}
-      onClick={onNavigate ? (e) => { if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); onNavigate("/friends"); } : undefined}
-      className={`relative grid shrink-0 place-items-center rounded-full active:opacity-60 ${on ? "bg-blue text-white" : "bg-edge/[0.06] text-ink hover:bg-edge/[0.1]"}`}
-      style={{ width: size, height: size, textDecoration: "none", color: on ? "#fff" : undefined }}>
-      <Icon name="friends" size={Math.round(size * 0.53)} />
-      {n > 0 && <span aria-hidden className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-red px-1 text-[11px] font-semibold leading-none text-white">{n > 9 ? "9+" : n}</span>}
-    </Link>
-  );
 }

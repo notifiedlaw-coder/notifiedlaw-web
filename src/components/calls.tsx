@@ -485,12 +485,12 @@ function CallScreen({ active, mini, setMini, onClose }: { active: Active; mini: 
         <span className="max-w-full truncate text-[24px] font-semibold tracking-[-0.01em] [@media(max-height:560px)]:text-[19px]">{active.title}</span>
         <span className="text-[15px] tabular-nums text-white/70">{sub}</span>
         {warn && status !== "ended" && (
-          <span role="status" className="mt-2 flex items-center gap-2 rounded-full bg-[#ff9500]/15 px-3.5 py-1.5 text-[13px] font-medium text-[#ffb340]">
+          <span role="status" className="mt-2 flex items-center gap-2 rounded-full bg-[#C4552B]/15 px-3.5 py-1.5 text-[13px] font-medium text-[#ffb340]">
             <Signal quality={quality!} size={12} />
             {status === "reconnecting" ? "Connection dropped. Reconnecting…" : quality === "lost" ? "No connection. Trying to reconnect…" : "Poor connection. Others may hear you break up."}
           </span>
         )}
-        {status === "live" && left < 10 * 60_000 && <span className="mt-2 rounded-full bg-[#ff9500]/20 px-3 py-0.5 text-[12px] font-medium text-[#ffb340]">Call ends in {hms(left)} (3-hour limit)</span>}
+        {status === "live" && left < 10 * 60_000 && <span className="mt-2 rounded-full bg-[#C4552B]/20 px-3 py-0.5 text-[12px] font-medium text-[#ffb340]">Call ends in {hms(left)} (3-hour limit)</span>}
         {error && <span role="alert" className="mt-1 text-[13px] text-[#ff6961]">{error}</span>}
       </div>
 

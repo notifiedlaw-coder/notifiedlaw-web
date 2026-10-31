@@ -312,7 +312,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
 
 const SANS = { fontFamily: "var(--font-serif)" };
 // Orange mixed toward the ink colour, so the label reads in both light and dark themes.
-const Soon = () => <span className="shrink-0 rounded-full bg-[#FF9500]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em]" style={{ color: "color-mix(in srgb, #FF9500 62%, var(--ink))" }}>Coming soon</span>;
+const Soon = () => <span className="shrink-0 rounded-full bg-[#C4552B]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.04em]" style={{ color: "color-mix(in srgb, #C4552B 62%, var(--ink))" }}>Coming soon</span>;
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "summary", label: "AI Summary", icon: "sparkle" },
@@ -367,11 +367,11 @@ function Dock({ count, hidden, onOpen }: { count: number; hidden: boolean; onOpe
     <div role="toolbar" aria-label="AI Summary and Notes" aria-hidden={hidden} inert={hidden} style={SANS}
       className={`absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-20 flex -translate-x-1/2 items-center rounded-full bg-surface/75 p-1 text-ink shadow-[0_8px_30px_rgba(0,0,0,0.12),0_0_0_0.5px_var(--hairline)] backdrop-blur-xl backdrop-saturate-150 motion-safe:transition-[translate,opacity] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.2,0.9,0.3,1)] ${hidden ? "pointer-events-none translate-y-[calc(100%+24px)] opacity-0" : ""}`}>
       <button type="button" onClick={() => onOpen("summary")} className={half}>
-        <span className="text-[#FF9F0A]"><Icon name="sparkle" size={16} /></span>Summary
+        <span className="text-[#C4552B]"><Icon name="sparkle" size={16} /></span>Summary
       </button>
       <span className="h-5 w-px bg-edge/15" aria-hidden />
       <button type="button" onClick={() => onOpen("notes")} aria-label={`Notes${count ? `, ${count}` : ""}`} className={half}>
-        <span className="text-[#FF9F0A]"><Icon name="note" size={16} /></span>Notes
+        <span className="text-[#C4552B]"><Icon name="note" size={16} /></span>Notes
         {count > 0 && <span className="rounded-full bg-fill px-1.5 text-[12px] tabular-nums text-muted">{count}</span>}
       </button>
     </div>
@@ -587,7 +587,7 @@ function Summary() {
   return (
     <section className="flex flex-col gap-3" style={SANS} aria-label="AI Summary, coming soon">
       <div className="flex items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#5AC8FA] to-[#007AFF] text-white" aria-hidden><Icon name="sparkle" size={16} /></span>
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#5AC8FA] to-[#23305C] text-white" aria-hidden><Icon name="sparkle" size={16} /></span>
         <span className="flex-1 text-[15px] font-semibold">AI Summary</span>
         <Soon />
       </div>

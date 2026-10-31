@@ -6,16 +6,16 @@ export type Treatment =
   | "checking" | "unchecked";
 
 export const BADGES: Record<Treatment, { label: string; bg: string; fg: string }> = {
-  good: { label: "Good law", bg: "rgba(52,199,89,0.14)", fg: "#248A3D" },
-  inforce: { label: "In force", bg: "rgba(52,199,89,0.14)", fg: "#248A3D" },
-  amended: { label: "Amended", bg: "rgba(255,149,0,0.14)", fg: "#C93400" },
-  repealed: { label: "Repealed", bg: "rgba(255,59,48,0.12)", fg: "#D70015" },
-  followed: { label: "Followed", bg: "rgba(52,199,89,0.14)", fg: "#248A3D" },
-  applied: { label: "Applied", bg: "rgba(52,199,89,0.14)", fg: "#248A3D" },
-  considered: { label: "Considered", bg: "rgba(0,122,255,0.1)", fg: "#0062CC" },
-  distinguished: { label: "Distinguished", bg: "rgba(255,149,0,0.14)", fg: "#C93400" },
-  checking: { label: "Open to check", bg: "rgba(0,122,255,0.1)", fg: "#0062CC" },
-  unchecked: { label: "Not checked", bg: "rgba(118,118,128,0.12)", fg: "rgba(60,60,67,0.8)" },
+  good: { label: "Good law", bg: "var(--tint)", fg: "var(--link)" },
+  inforce: { label: "In force", bg: "var(--tint)", fg: "var(--link)" },
+  amended: { label: "Amended", bg: "var(--peach)", fg: "var(--peach-fg)" },
+  repealed: { label: "Repealed", bg: "var(--plum-bg)", fg: "var(--plum-fg)" },
+  followed: { label: "Followed", bg: "var(--tint)", fg: "var(--link)" },
+  applied: { label: "Applied", bg: "var(--tint)", fg: "var(--link)" },
+  considered: { label: "Considered", bg: "var(--peach)", fg: "var(--peach-fg)" },
+  distinguished: { label: "Distinguished", bg: "var(--peach)", fg: "var(--peach-fg)" },
+  checking: { label: "Open to check", bg: "var(--fill)", fg: "var(--muted)" },
+  unchecked: { label: "Not checked", bg: "var(--fill)", fg: "var(--muted)" },
 };
 
 // Ghanaian institutions that offer the law programme. Names already stored on profiles are kept as they were.

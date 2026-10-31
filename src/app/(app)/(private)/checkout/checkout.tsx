@@ -50,7 +50,7 @@ export function Checkout() {
   if (stage !== "form")
     return (
       <div className="mx-auto flex max-w-[480px] flex-col items-center gap-3 px-5 py-20 text-center">
-        <div className="flex size-16 items-center justify-center rounded-full text-3xl text-white" style={{ background: stage === "done" ? "#34C759" : "#FF9500" }}>{stage === "done" ? "✓" : "…"}</div>
+        <div className="flex size-16 items-center justify-center rounded-full text-3xl text-white" style={{ background: stage === "done" ? "#34C759" : "#C4552B" }}>{stage === "done" ? "✓" : "…"}</div>
         <h1 className="text-2xl font-bold" aria-live="polite">{stage === "done" ? `You’re on ${PLAN_NAMES[target]}` : "Approve the prompt on your phone"}</h1>
         <p className="text-sm text-muted">{stage === "done" ? "Everything is unlocked. Happy studying." : `We sent a ${NETWORKS[net].label} request to +233 ${phone}.`}</p>
         {stage === "done" && <Btn href="/dashboard">Go to Home</Btn>}
@@ -68,7 +68,7 @@ export function Checkout() {
           <div className="text-xs font-semibold text-muted">Mobile Money network</div>
           <div className="grid gap-2 sm:grid-cols-3">
             {NETWORKS.map((n, i) => (
-              <button key={n.label} type="button" aria-pressed={i === net} onClick={() => setNet(i)} className="flex items-center gap-2.5 rounded-xl bg-surface px-3 py-2.5 text-left text-[13px] font-medium" style={{ boxShadow: i === net ? "0 0 0 2px #007AFF" : "0 0 0 0.5px var(--hairline)" }}>
+              <button key={n.label} type="button" aria-pressed={i === net} onClick={() => setNet(i)} className="flex items-center gap-2.5 rounded-xl bg-surface px-3 py-2.5 text-left text-[13px] font-medium" style={{ boxShadow: i === net ? "0 0 0 2px #23305C" : "0 0 0 0.5px var(--hairline)" }}>
                 <span className="flex size-7 items-center justify-center rounded-md text-[10px] font-bold" style={{ background: n.bg, color: n.fg }}>{n.mark}</span>{n.label}
               </button>
             ))}

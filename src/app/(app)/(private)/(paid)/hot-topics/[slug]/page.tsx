@@ -20,7 +20,7 @@ export default async function Episode({ params }: { params: Promise<{ slug: stri
   return (
     <Page max={720}>
       <div>
-        <Eyebrow color="#ff9f0a">Episode {e.n}{e.area ? ` · ${e.area}` : ""}</Eyebrow>
+        <Eyebrow color="#C4552B">Episode {e.n}{e.area ? ` · ${e.area}` : ""}</Eyebrow>
         <h1 className="text-balance mt-1.5 text-[30px] font-bold leading-tight tracking-[-0.02em] md:text-4xl">{e.title}</h1>
         {when && <p className="mt-2 text-sm text-muted">{when}</p>}
       </div>

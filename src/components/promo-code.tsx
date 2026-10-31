@@ -66,7 +66,7 @@ function Unlocked({ plan, until }: { plan: PaidPlan; until: number }) {
       <Confetti />
       <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/35 p-4 animate-[nl-fade_200ms_ease-out]" role="dialog" aria-modal="true" aria-labelledby="promo-won-title">
         <div className="flex w-full max-w-[380px] flex-col items-center gap-3 rounded-[22px] bg-surface p-6 text-center text-ink shadow-[0_24px_60px_rgba(0,0,0,0.3)] animate-[nl-pop_320ms_cubic-bezier(0.2,1.4,0.4,1)]">
-          <div className="flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-[#FF9500] to-[#FF2D55] text-[30px] shadow-[0_8px_20px_rgba(255,45,85,0.35)]" aria-hidden>🎉</div>
+          <div className="flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-[#C4552B] to-[#FF2D55] text-[30px] shadow-[0_8px_20px_rgba(255,45,85,0.35)]" aria-hidden>🎉</div>
           <h2 id="promo-won-title" className="m-0 text-[22px] font-bold tracking-[-0.02em]">You&rsquo;re on {PLAN_NAMES[plan].split(" (")[0]}!</h2>
           <p className="m-0 text-[14px] text-muted">Your code unlocked {PLAN_NAMES[plan]} free until <b className="text-ink">{day(until)}</b>.</p>
           <ul className="m-0 flex w-full list-none flex-col gap-1.5 rounded-[14px] bg-fill p-3 text-left text-[13px]">
@@ -81,7 +81,7 @@ function Unlocked({ plan, until }: { plan: PaidPlan; until: number }) {
   );
 }
 
-const COLORS = ["#007AFF", "#34C759", "#FF9500", "#FF2D55", "#AF52DE", "#FFCC00", "#5AC8FA"];
+const COLORS = ["#23305C", "#34C759", "#C4552B", "#FF2D55", "#AF52DE", "#FFCC00", "#5AC8FA"];
 
 /** Confetti bursting from both lower corners and drifting down, drawn on one canvas. Off for reduced motion. */
 function Confetti() {

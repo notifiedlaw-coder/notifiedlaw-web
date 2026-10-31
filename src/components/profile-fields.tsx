@@ -5,7 +5,7 @@ import { INTENTS, SECTORS, STATUSES, isLevel, type ProfileErrors, type ProfileIn
 import { LEVEL_LABEL } from "@/lib/data";
 
 // Inputs sit inside their label, so they set their own colour and weight rather than inherit the label's.
-export const fieldCls = "h-11 rounded-[10px] bg-surface px-3.5 text-[15px] font-normal text-ink shadow-[0_0_0_1px_var(--hairline)] outline-none focus:shadow-[0_0_0_2px_#007AFF]";
+export const fieldCls = "h-11 rounded-[10px] bg-surface px-3.5 text-[15px] font-normal text-ink shadow-[0_0_0_1px_var(--hairline)] outline-none focus:shadow-[0_0_0_2px_#23305C]";
 export const labelCls = "flex flex-col gap-1.5 text-[13px] font-semibold text-ink";
 const optional = <span className="font-normal text-muted"> (optional)</span>;
 
@@ -18,7 +18,7 @@ export function StatusPicker({ value, onChange, errors }: Props) {
       {STATUSES.map((s) => {
         const on = value.status === s.id;
         return (
-          <button key={s.id} type="button" role="radio" aria-checked={on} onClick={() => onChange({ status: s.id })} className="rounded-xl px-4 py-3.5 text-left" style={{ background: on ? "rgba(0,122,255,0.08)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #007AFF" : "0 0 0 0.5px var(--hairline)" }}>
+          <button key={s.id} type="button" role="radio" aria-checked={on} onClick={() => onChange({ status: s.id })} className="rounded-xl px-4 py-3.5 text-left" style={{ background: on ? "var(--tint)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #23305C" : "0 0 0 0.5px var(--hairline)" }}>
             <div className="text-[15px] font-semibold">{s.label}</div>
             <div className="text-xs text-muted">{s.hint}</div>
           </button>

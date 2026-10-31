@@ -1,110 +1,124 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { Chevron, Empty } from "@/components/ui";
+import { Empty } from "@/components/ui";
 import { getDb, getSession } from "@/lib/auth";
 import { getArticles, getCourses } from "@/lib/cms";
+import { completedTopics } from "@/lib/progress";
 import { dailyQuote } from "@/lib/quotes";
 import { profile } from "@/db/schema";
-import { bySemester, LEVEL_LABEL, type Level } from "@/lib/data";
+import { LEVEL_LABEL, type Course, type Level } from "@/lib/data";
 
-export const metadata = { title: "Home" };
+export const metadata = { title: "Today" };
 
 const link = { textDecoration: "none", color: "inherit" } as const;
+const eyebrow = "text-[12px] font-semibold uppercase tracking-[0.08em]";
 
-export default async function Home() {
+/** Where a course picks up: its first published topic not yet studied, and how far through it is. */
+function resume(c: Course, done: Set<string>) {
+  const ready = c.topics.filter((t) => t.ready);
+  const read = ready.filter((t) => done.has(t.id)).length;
+  const at = c.topics.findIndex((t) => t.ready && !done.has(t.id));
+  return at < 0 ? null : { course: c, topic: c.topics[at], n: at + 1, total: c.topics.length, read, ready: ready.length };
+}
+
+export default async function Today() {
   const session = await getSession();
   const [p] = session ? await getDb().select().from(profile).where(eq(profile.userId, session.user.id)) : [];
   // New sign-ins have no profile yet; send them through onboarding first.
   if (session && !p) redirect("/onboarding");
   const first = p?.firstName || session?.user.name.trim().split(/\s+/)[0] || "there";
   const level = (p?.level ?? "200") as Level;
-  const [courses, quote, latest] = await Promise.all([
+  const [courses, done, quote, latest] = await Promise.all([
     getCourses().then((c) => c[level]),
+    session ? completedTopics(session.user.id).then((ids) => new Set(ids)) : Promise.resolve(new Set<string>()),
     dailyQuote(),
     getArticles().then((a) => [...a].sort((x, y) => (y.date?.getTime() ?? 0) - (x.date?.getTime() ?? 0))[0]).catch(() => undefined),
   ]);
   const date = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Accra" }).format(new Date());
 
+  // Hick's law: one thing to do next, then at most three more. Courses already under way come first.
+  const open = courses.map((c) => resume(c, done)).filter((r) => r !== null).sort((a, b) => Number(b.read > 0) - Number(a.read > 0));
+  const [next, ...rest] = open;
+  const upNext = rest.slice(0, 3);
+  const line = next
+    ? next.read > 0
+      ? `You have read ${next.read} of ${next.ready} topics in ${next.course.title}. One session today keeps you moving.`
+      : `Your first topic in ${next.course.title} is ready.`
+    : `You are up to date with every ${LEVEL_LABEL[level]} topic published so far.`;
+
   return (
-    <div className="mx-auto flex max-w-[1080px] flex-col gap-9 px-5 pb-[max(3rem,env(safe-area-inset-bottom))] pt-5 sm:px-6 md:gap-10 md:px-10 md:pt-9">
-      <header>
-        <div className="text-[13px] font-semibold uppercase tracking-[0.04em] text-muted">{date}</div>
-        <h1 className="mt-1 text-[34px] font-bold leading-tight tracking-[-0.03em] md:text-5xl">Akwaaba, {first}</h1>
-        {quote && (
-          <figure className="m-0 mt-4 max-w-[640px] border-l-[3px] border-amber pl-4">
-            <blockquote className="m-0 text-[17px] leading-snug text-ink">“{quote.text}”</blockquote>
-            <figcaption className="mt-1.5 text-[13px] text-muted">{quote.author}{quote.source ? `, ${quote.source}` : ""}</figcaption>
-          </figure>
-        )}
+    <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-8 px-[18px] pb-8 pt-5 md:px-8 md:pb-10 md:pt-7 lg:px-14 lg:pb-14 lg:pt-10">
+      <header className="flex flex-col gap-2">
+        <div className={`${eyebrow} text-faint`}>{date}</div>
+        <h1 className="m-0 text-[38px] leading-[1.02] md:text-[46px] lg:text-[56px]">Akwaaba, {first}.</h1>
+        <p className="m-0 max-w-[600px] text-pretty text-[18px] leading-normal text-muted">{line}</p>
       </header>
 
-      {latest && (
-        <section className="flex flex-col gap-3.5">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-[22px] font-bold tracking-[-0.02em]">Latest in articles</h2>
-            <Link href="/articles" className="text-[13px]">See all</Link>
-          </div>
-          <Link href={`/articles/${latest.slug}`} className="group flex flex-col overflow-hidden rounded-[20px] bg-surface shadow-card transition-transform duration-300 active:scale-[0.97] sm:flex-row sm:rounded-[22px] sm:active:scale-[0.98]" style={link}>
-            <span className="relative block aspect-[3/2] overflow-hidden sm:aspect-auto sm:w-[44%] sm:min-h-[200px] sm:shrink-0">
-              {latest.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={latest.image} alt="" width={1280} height={720} decoding="async" className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-              ) : (
-                <span aria-hidden className="absolute inset-0 grid place-items-center bg-gradient-to-br from-[#ff9f0a]/25 via-[#af52de]/15 to-[#007aff]/25 text-5xl font-bold text-muted/50">{latest.title[0]}</span>
-              )}
-            </span>
-            <span className="flex flex-1 flex-col justify-center gap-1.5 px-4 pb-4 pt-3.5 sm:gap-2 sm:p-5">
-              <span className="text-[12px] font-semibold uppercase tracking-[0.04em] text-[#ff9f0a]">New{latest.industry ? ` · ${latest.industry}` : ""}</span>
-              <span className="text-balance text-[22px] font-bold leading-[1.18] tracking-[-0.022em]">{latest.title}</span>
-              {latest.summary && <span className="line-clamp-3 text-[15px] leading-[1.35] text-muted sm:line-clamp-2">{latest.summary}</span>}
-              <span className="flex items-center justify-between pt-2 text-[13px] text-faint sm:pt-1 sm:text-xs">
-                <span>{[latest.date && new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Accra" }).format(latest.date), `${latest.mins} min read`].filter(Boolean).join(" · ")}</span>
-                <span className="font-semibold text-link">Read <span aria-hidden>→</span></span>
+      {courses.length === 0 ? (
+        <Empty title={`No courses for ${LEVEL_LABEL[level]} yet`}>Courses appear here once they are published.</Empty>
+      ) : (
+        <div className={`grid items-stretch gap-5 ${upNext.length ? "sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : ""}`}>
+          {next ? (
+            <Link href={`/library/${next.course.slug}/${next.n}`} className="flex min-h-[240px] flex-col gap-3 rounded-[22px] bg-[#23305C] p-7 text-[#F6F5F2]! hover:bg-[#1F2B54]" style={{ textDecoration: "none" }}>
+              <span className={`${eyebrow} text-[#C5CDE6]`}>{next.read > 0 ? "Continue reading" : "Start reading"}</span>
+              <span className="text-balance font-display text-[34px] leading-[1.05] md:text-[36px]">{next.topic.title}</span>
+              <span className="text-[16px] text-[#C5CDE6]">{next.course.title} · Topic {next.n} of {next.total}</span>
+              <span className="flex-1" />
+              <span className="h-1.5 overflow-hidden rounded-full bg-[#F6F5F2]/20" role="progressbar" aria-label={`${next.read} of ${next.ready} topics read`} aria-valuemin={0} aria-valuemax={next.ready} aria-valuenow={next.read}>
+                <span className="block h-full bg-[#E0683A]" style={{ width: `${next.ready ? Math.round((next.read / next.ready) * 100) : 0}%` }} />
               </span>
-            </span>
-          </Link>
-        </section>
+              <span className="flex h-[46px] items-center self-start rounded-full bg-[#F6F5F2] px-5 text-[16px] font-semibold text-[#23305C]">
+                {next.read > 0 ? "Resume" : "Start"} · {next.topic.mins} min <span aria-hidden className="ml-1">→</span>
+              </span>
+            </Link>
+          ) : (
+            <Link href="/library" className="flex min-h-[240px] flex-col justify-center gap-3 rounded-[22px] bg-[#23305C] p-7 text-[#F6F5F2]!" style={{ textDecoration: "none" }}>
+              <span className={`${eyebrow} text-[#C5CDE6]`}>All caught up</span>
+              <span className="font-display text-[34px] leading-[1.05]">Review what you have read</span>
+              <span className="text-[16px] text-[#C5CDE6]">Open the Library →</span>
+            </Link>
+          )}
+          {upNext.length > 0 && <div className="flex flex-col rounded-[22px] border border-edge/10 bg-surface p-2">
+            <div className={`${eyebrow} px-3.5 pb-1.5 pt-3.5 text-faint`}>Up next</div>
+            {upNext.map((u) => (
+              <Link key={u.course.slug} href={`/library/${u.course.slug}/${u.n}`} className="flex min-h-[68px] items-center gap-3.5 rounded-[14px] px-3.5 py-2.5 hover:bg-hover" style={link}>
+                <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: u.course.color }} />
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate text-[16px] font-semibold">{u.course.title}</span>
+                  <span className="truncate text-[14px] text-faint">Topic {u.n} · {u.topic.title}</span>
+                </span>
+                <span aria-hidden className="text-[20px] text-faint">›</span>
+              </Link>
+            ))}
+          </div>}
+        </div>
       )}
 
-      <section className="flex flex-col gap-3.5">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-[22px] font-bold tracking-[-0.02em]">{LEVEL_LABEL[level]} courses</h2>
-          <Link href="/library" className="text-[13px]">See all levels</Link>
+      {(quote || latest) && (
+        <div className="grid items-start gap-5 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          {quote && (
+            <figure className="m-0 flex flex-col gap-3 rounded-[22px] bg-peach p-7">
+              <span aria-hidden className="h-7 font-display text-[64px] leading-[0.5] text-amber">“</span>
+              <blockquote className="m-0 font-display text-[24px] leading-[1.25]">{quote.text}</blockquote>
+              <figcaption className="text-[14px] text-muted">{quote.author}{quote.source ? `, ${quote.source}` : ""}</figcaption>
+            </figure>
+          )}
+          {latest && (
+            <Link href={`/articles/${latest.slug}`} className="group flex flex-col overflow-hidden rounded-[22px] border border-edge/10 bg-surface" style={link}>
+              {latest.image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={latest.image} alt="" width={1280} height={560} decoding="async" className="block aspect-[16/7] w-full object-cover" />
+              )}
+              <span className="flex flex-col gap-1.5 px-5 py-[18px]">
+                <span className={`${eyebrow} font-bold text-plum`}>New article{latest.industry ? ` · ${latest.industry}` : ""}</span>
+                <span className="text-balance font-display text-[24px] leading-[1.15]">{latest.title}</span>
+                <span className="text-[14px] text-faint">{latest.mins} min read</span>
+              </span>
+            </Link>
+          )}
         </div>
-        {courses.length === 0 ? (
-          <Empty title={`No courses for ${LEVEL_LABEL[level]} yet`}>Courses appear here once they are published.</Empty>
-        ) : (
-          <div className="flex flex-col gap-7">
-            {bySemester(courses).map((sem) => (
-              <div key={sem.semester} className="flex flex-col gap-3">
-                <div className="flex items-baseline justify-between gap-3 border-b-[0.5px] border-edge/15 pb-2">
-                  <h3 className="m-0 text-[17px] font-semibold tracking-[-0.01em]">{sem.label}</h3>
-                  <span className="text-[13px] text-muted">{sem.courses.length} {sem.courses.length === 1 ? "course" : "courses"}</span>
-                </div>
-                {/* Phones: a stacked list so every course is in view. sm+: grid. */}
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
-                  {sem.courses.map((c) => (
-                    <Link
-                      key={c.slug}
-                      href={`/library/${c.slug}`}
-                      className="flex min-h-[64px] items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 shadow-card transition-shadow hover:shadow-card-hover active:opacity-70 sm:p-4"
-                      // The course colour as a light wash over the card, matching its title colour in the Library.
-                      style={{ ...link, backgroundImage: `linear-gradient(${c.color}1f, ${c.color}0a)` }}
-                    >
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <div className="text-[15px] font-semibold leading-tight sm:min-h-[38px]">{c.title}</div>
-                        <div className="text-xs text-muted">{c.topics.length} topics · {c.topics.filter((t) => t.ready).length} available</div>
-                      </div>
-                      <Chevron />
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      )}
     </div>
   );
 }

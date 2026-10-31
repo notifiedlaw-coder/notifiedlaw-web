@@ -65,7 +65,7 @@ export default function AuthForm({ mode, elsewhere = false }: { mode: "login" | 
             ["student", "I’m a student", `Student plan from ${cedis(PLAN_PRICES.Student)} a month. Needs your university email.`],
             ["professional", "I’m a professional", "Senior Judicial (Pro) or Supreme Justice (Max). Sign up with Google."],
           ] as const).map(([id, title, hint]) => (
-            <button key={id} type="button" onClick={() => setPath(id)} className="rounded-xl bg-surface px-4 py-3.5 text-left shadow-[0_0_0_0.5px_var(--hairline)] hover:shadow-[0_0_0_2px_#007AFF]">
+            <button key={id} type="button" onClick={() => setPath(id)} className="rounded-xl bg-surface px-4 py-3.5 text-left shadow-[0_0_0_0.5px_var(--hairline)] hover:shadow-[0_0_0_2px_#23305C]">
               <div className="text-[15px] font-semibold">{title}</div>
               <div className="text-xs text-muted">{hint}</div>
             </button>

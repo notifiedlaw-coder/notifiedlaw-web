@@ -26,7 +26,7 @@ function Cover({ a, eager }: { a: ArticleRow; eager?: boolean }) {
     // eslint-disable-next-line @next/next/no-img-element
     <img src={a.image} alt="" width={1280} height={720} loading={eager ? "eager" : "lazy"} decoding="async" className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
   ) : (
-    <span aria-hidden className="absolute inset-0 grid place-items-center bg-gradient-to-br from-[#ff9f0a]/25 via-[#af52de]/15 to-[#007aff]/25 text-5xl font-bold text-muted/50">{a.title[0]}</span>
+    <span aria-hidden className="absolute inset-0 grid place-items-center bg-gradient-to-br from-[#C4552B]/25 via-[#af52de]/15 to-[#23305C]/25 text-5xl font-bold text-muted/50">{a.title[0]}</span>
   );
 }
 
@@ -239,7 +239,7 @@ export function Articles({ list, initial }: { list: ArticleRow[]; initial: Initi
                 <Link href={`/articles/${lead.slug}`} className="group block overflow-hidden rounded-[26px] bg-surface shadow-card transition-transform duration-300 active:scale-[0.985] sm:grid sm:grid-cols-[1.35fr_1fr]" style={{ textDecoration: "none", color: "inherit" }}>
                   <span className="relative block aspect-video overflow-hidden sm:aspect-auto sm:min-h-[300px]"><Cover a={lead} eager /></span>
                   <span className="flex flex-col gap-2 p-5 sm:justify-center sm:p-8">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#ff9f0a]">Featured{lead.industry ? ` · ${lead.industry}` : ""}</span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#C4552B]">Featured{lead.industry ? ` · ${lead.industry}` : ""}</span>
                     <span className="text-balance text-[24px] font-bold leading-[1.15] tracking-[-0.022em] sm:text-[28px]">{lead.title}</span>
                     {lead.summary && <span className="line-clamp-3 text-[15px] leading-snug text-muted">{lead.summary}</span>}
                     <TagPills tags={lead.tags} max={4} />
@@ -256,7 +256,7 @@ export function Articles({ list, initial }: { list: ArticleRow[]; initial: Initi
                     <Link key={a.slug} href={`/articles/${a.slug}`} className="group flex flex-col overflow-hidden rounded-[22px] bg-surface shadow-card transition-transform duration-300 active:scale-[0.98]" style={{ textDecoration: "none", color: "inherit" }}>
                       <span className="relative block aspect-video overflow-hidden"><Cover a={a} /></span>
                       <span className="flex flex-1 flex-col gap-1.5 p-4">
-                        {a.industry && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#ff9f0a]">{a.industry}</span>}
+                        {a.industry && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#C4552B]">{a.industry}</span>}
                         <span className="text-balance text-[18px] font-semibold leading-snug tracking-[-0.01em]">{a.title}</span>
                         {a.summary && <span className="line-clamp-2 text-[14px] leading-snug text-muted">{a.summary}</span>}
                         <TagPills tags={a.tags} />

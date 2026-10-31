@@ -78,9 +78,9 @@ export function ExamPrep({ today }: { today: string }) {
 
       {/* Three ways to practise. */}
       <section aria-label="Start a session" className="grid gap-3 md:grid-cols-3">
-        <SessionCard title="Timed mock exam" body="A real paper under a real clock, from 20 minutes to 3 hours." color="#0071E3" icon={<path d="M10 4.5V10l3 2M10 17.5a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15zM8 1.5h4" />} onClick={() => setSheet({ course: next, format: "timed" })} />
+        <SessionCard title="Timed mock exam" body="A real paper under a real clock, from 20 minutes to 3 hours." color="#23305C" icon={<path d="M10 4.5V10l3 2M10 17.5a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15zM8 1.5h4" />} onClick={() => setSheet({ course: next, format: "timed" })} />
         <SessionCard title="Practice questions" body="Work at your own pace with no clock, then see how you did." color="#34C759" icon={<path d="M4 3.5h9a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 13 16.5H4zM7 7.5h5M7 10.5h5M7 13.5h3" />} onClick={() => setSheet({ course: COURSES[0], format: "practice" })} />
-        <SessionCard title="Weak spots" body={`Starts with ${lowest.course}, your lowest course right now.`} color="#FF9500" icon={<path d="M3 15.5 8 10l3 3 6-7.5M12.5 5.5H17V10" />} onClick={() => start(lowest, "practice", "quick")} />
+        <SessionCard title="Weak spots" body={`Starts with ${lowest.course}, your lowest course right now.`} color="#C4552B" icon={<path d="M3 15.5 8 10l3 3 6-7.5M12.5 5.5H17V10" />} onClick={() => start(lowest, "practice", "quick")} />
       </section>
 
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-8">
@@ -112,7 +112,7 @@ export function ExamPrep({ today }: { today: string }) {
             <ul className="m-0 flex list-none flex-col overflow-hidden rounded-[18px] bg-surface p-0 shadow-card">
               {ATTEMPTS.map((a) => (
                 <li key={a.daysAgo} className="flex items-center gap-3.5 border-t border-edge/[0.06] px-4 py-3 first:border-0">
-                  <Ring value={a.score} size={44} stroke={5} color={a.score >= 0.6 ? "#34C759" : "#FF9500"} label={`Score ${Math.round(a.score * 100)} percent`} text={`${Math.round(a.score * 100)}`} small />
+                  <Ring value={a.score} size={44} stroke={5} color={a.score >= 0.6 ? "#34C759" : "#C4552B"} label={`Score ${Math.round(a.score * 100)} percent`} text={`${Math.round(a.score * 100)}`} small />
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate text-[15px] font-medium">{a.course}</span>
                     <span className="text-[12px] text-muted">{a.title} · {a.minutes} min · {a.daysAgo === 1 ? "Yesterday" : `${a.daysAgo} days ago`}</span>
@@ -131,7 +131,7 @@ export function ExamPrep({ today }: { today: string }) {
                 <div key={`${t.code}-${t.name}`} className="flex items-center gap-3">
                   <span className="w-9 shrink-0 text-[11px] font-bold" style={{ color: t.color }}>{t.code}</span>
                   <span className="min-w-0 flex-1 truncate text-[14px]">{t.name}</span>
-                  <span className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-track" aria-hidden><span className="block h-full rounded-full bg-[#FF9500]" style={{ width: `${t.score * 100}%` }} /></span>
+                  <span className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-track" aria-hidden><span className="block h-full rounded-full bg-[#C4552B]" style={{ width: `${t.score * 100}%` }} /></span>
                   <span className="w-9 shrink-0 text-right text-[13px] font-semibold tabular-nums">{Math.round(t.score * 100)}%</span>
                 </div>
               ))}
@@ -250,13 +250,13 @@ function ExamRoom({ s, onExit, onSubmit }: { s: Session; onExit: () => void; onS
             <span className="text-[12px] text-muted">{q.kind} · {q.marks} marks</span>
           </div>
           {timed ? (
-            <span role="timer" aria-label={`${clock(left)} left`} className={`justify-self-end rounded-full px-3 py-1.5 text-[15px] font-semibold tabular-nums ${left < 60 ? "bg-red/15 text-red" : left < 600 ? "bg-[#ff9f0a]/20 text-[#b36b00]" : "bg-fill text-ink"}`}>{clock(left)}</span>
+            <span role="timer" aria-label={`${clock(left)} left`} className={`justify-self-end rounded-full px-3 py-1.5 text-[15px] font-semibold tabular-nums ${left < 60 ? "bg-red/15 text-red" : left < 600 ? "bg-[#C4552B]/20 text-[#b36b00]" : "bg-fill text-ink"}`}>{clock(left)}</span>
           ) : <span className="justify-self-end text-[13px] text-muted">No clock</span>}
         </div>
         <div className="mx-auto flex max-w-[1100px] gap-1.5 px-4 pb-2 md:px-6" role="tablist" aria-label="Questions">
           {s.questions.map((x, i) => (
             <button key={x.id} type="button" role="tab" aria-selected={i === at} aria-label={`Question ${i + 1}${words(answers[i]) ? ", answered" : ""}${flags[i] ? ", flagged" : ""}`} onClick={() => setAt(i)} className="group h-6 flex-1 border-0 bg-transparent p-0">
-              <span className={`mt-2.5 block h-1 rounded-full transition-colors ${i === at ? "bg-blue" : words(answers[i]) ? "bg-blue/45" : "bg-track"} ${flags[i] ? "!bg-[#ff9f0a]" : ""}`} />
+              <span className={`mt-2.5 block h-1 rounded-full transition-colors ${i === at ? "bg-blue" : words(answers[i]) ? "bg-blue/45" : "bg-track"} ${flags[i] ? "!bg-[#C4552B]" : ""}`} />
             </button>
           ))}
         </div>
@@ -267,7 +267,7 @@ function ExamRoom({ s, onExit, onSubmit }: { s: Session; onExit: () => void; onS
           <article className="flex flex-col gap-3 lg:sticky lg:top-0 lg:self-start">
             <span className="text-[12px] font-semibold uppercase tracking-[0.05em]" style={{ color: s.course.color }}>{q.kind}</span>
             <p className="m-0 text-pretty text-[19px] leading-[1.45] tracking-[-0.01em] md:text-[21px]">{q.text}</p>
-            <button type="button" aria-pressed={flags[at]} onClick={() => setFlags((f) => f.map((x, i) => (i === at ? !x : x)))} className={`mt-1 flex h-9 w-fit items-center gap-2 rounded-full border-0 px-3.5 text-[13px] font-medium ${flags[at] ? "bg-[#ff9f0a]/20 text-[#b36b00]" : "bg-fill text-ink"}`}>
+            <button type="button" aria-pressed={flags[at]} onClick={() => setFlags((f) => f.map((x, i) => (i === at ? !x : x)))} className={`mt-1 flex h-9 w-fit items-center gap-2 rounded-full border-0 px-3.5 text-[13px] font-medium ${flags[at] ? "bg-[#C4552B]/20 text-[#b36b00]" : "bg-fill text-ink"}`}>
               <svg width="14" height="14" viewBox="0 0 16 16" fill={flags[at] ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden><path d="M3.5 14V2.5h8l-1.5 3 1.5 3h-8" /></svg>
               {flags[at] ? "Flagged for review" : "Flag for review"}
             </button>
@@ -341,7 +341,7 @@ function Results({ r, onAgain, onDone }: { r: Result; onAgain: () => void; onDon
         </div>
 
         <section className="flex flex-col items-center gap-4 rounded-[24px] bg-surface p-6 text-center shadow-card md:p-8">
-          <Ring value={pct} size={148} stroke={13} color={pct >= 0.6 ? "#34C759" : pct >= 0.5 ? "#FF9500" : "#FF3B30"} label={`Score ${Math.round(pct * 100)} percent`} text={`${Math.round(pct * 100)}%`} />
+          <Ring value={pct} size={148} stroke={13} color={pct >= 0.6 ? "#34C759" : pct >= 0.5 ? "#C4552B" : "#FF3B30"} label={`Score ${Math.round(pct * 100)} percent`} text={`${Math.round(pct * 100)}%`} />
           <div className="flex flex-col gap-1">
             <h2 className="m-0 text-[26px] font-bold tracking-[-0.025em]">{pct >= 0.7 ? "Excellent work" : pct >= 0.6 ? "A solid answer" : pct >= 0.5 ? "A pass, with room to grow" : "Needs more work"}</h2>
             <p className="m-0 text-[14px] text-muted">{s.course.course} · Grade {grade(pct)} · {got} of {out} marks · {clock(r.seconds)} taken</p>
@@ -361,7 +361,7 @@ function Results({ r, onAgain, onDone }: { r: Result; onAgain: () => void; onDon
               </div>
               <span className="shrink-0 rounded-[12px] bg-fill px-3 py-1.5 text-[15px] font-bold tabular-nums">{marks[i]}<span className="font-medium text-muted">/{q.marks}</span></span>
             </header>
-            <div className="h-1.5 overflow-hidden rounded-full bg-track" aria-hidden><div className="h-full rounded-full" style={{ width: `${(marks[i] / q.marks) * 100}%`, background: marks[i] / q.marks >= 0.6 ? "#34C759" : "#FF9500" }} /></div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-track" aria-hidden><div className="h-full rounded-full" style={{ width: `${(marks[i] / q.marks) * 100}%`, background: marks[i] / q.marks >= 0.6 ? "#34C759" : "#C4552B" }} /></div>
             {words(r.answers[i]) < 15
               ? <Feedback tone="warn" title="To improve" items={["This answer is blank or too short to mark. Write at least a short answer: the issue, the rule, how it applies, and a conclusion."]} />
               : <><Feedback tone="good" title="What you did well" items={q.strengths} /><Feedback tone="warn" title="To improve" items={q.improve} /></>}
@@ -396,7 +396,7 @@ function Results({ r, onAgain, onDone }: { r: Result; onAgain: () => void; onDon
 const Feedback = ({ tone, title, items }: { tone: "good" | "warn"; title: string; items: string[] }) => (
   <div className="flex flex-col gap-1.5">
     <h4 className="m-0 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.04em]" style={{ color: tone === "good" ? "var(--color-green)" : "#c77700" }}>
-      <span aria-hidden className="size-2 rounded-full" style={{ background: tone === "good" ? "var(--color-green)" : "#ff9f0a" }} />{title}
+      <span aria-hidden className="size-2 rounded-full" style={{ background: tone === "good" ? "var(--color-green)" : "#C4552B" }} />{title}
     </h4>
     <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[14px] leading-snug">{items.map((t) => <li key={t}>{t}</li>)}</ul>
   </div>

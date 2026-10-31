@@ -67,7 +67,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <div className={label}>Interests
           <div className="flex flex-wrap gap-2">{GOALS.map((g) => {
             const on = f.goals.includes(g);
-            return <button key={g} type="button" aria-pressed={on} onClick={() => { setStatus("idle"); setF((p) => ({ ...p, goals: on ? p.goals.filter((x) => x !== g) : [...p.goals, g] })); }} className="rounded-full px-3.5 py-1.5 text-sm font-medium text-ink" style={{ background: on ? "rgba(0,122,255,0.08)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #007AFF" : "0 0 0 0.5px var(--hairline)" }}>{g}</button>;
+            return <button key={g} type="button" aria-pressed={on} onClick={() => { setStatus("idle"); setF((p) => ({ ...p, goals: on ? p.goals.filter((x) => x !== g) : [...p.goals, g] })); }} className="rounded-full px-3.5 py-1.5 text-sm font-medium text-ink" style={{ background: on ? "var(--tint)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #23305C" : "0 0 0 0.5px var(--hairline)" }}>{g}</button>;
           })}</div>
         </div>
         {error && <p className="m-0 text-sm text-red">{error}</p>}

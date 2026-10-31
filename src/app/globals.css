@@ -2,6 +2,8 @@
 
 /* Tokens lifted from the Claude Design handoff (iOS-style system palette). */
 /* Semantic colours switch with the theme; see :root blocks below. */
+/* Tokens from the NotifiedLaw v2 handoff: warm paper, navy ink, terracotta accent. */
+/* Semantic colours switch with the theme; see :root blocks below. */
 @theme inline {
   --color-ink: var(--ink);
   --color-surface: var(--surface);
@@ -17,89 +19,115 @@
   --color-strong: var(--strong);
   --color-strong-fg: var(--strong-fg);
   --color-link: var(--link);
+  /* The primary (navy) and its tint. Named blue for the existing utilities. */
+  --color-blue: var(--primary);
+  --color-blue-press: var(--primary-press);
+  --color-tint: var(--tint);
+  --color-peach: var(--peach);
 }
 
 @theme {
-  --color-blue: #0066cc;
-  --color-blue-press: #0058ad;
-  --color-amber: #ff9500;
-  --color-amber-soft: #ff9f0a;
+  --color-amber: #c4552b;
+  --color-amber-soft: #e0683a;
+  --color-plum: #8a2b4f;
   /* Backdrop for white text over photos, shown while the photo loads or if it fails. */
-  --color-ink-dark: #1c1c1e;
-  --color-green: #34c759;
-  --color-red: #ff3b30;
-  --color-purple: #af52de;
-  --color-indigo: #5856d6;
-  --color-teal: #30b0c7;
-  --color-brown: #a2845e;
+  --color-ink-dark: #161a26;
+  --color-green: #2f7a4f;
+  --color-red: #c0392b;
+  --color-purple: #6b4a8a;
+  --color-indigo: #3b3b6b;
+  --color-teal: #2f6b6b;
+  --color-brown: #6b4a2f;
   --font-serif: var(--font-source-serif), "Source Serif 4", "Iowan Old Style", Georgia, "Times New Roman", serif;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-card-hover: 0 4px 14px rgba(0, 0, 0, 0.08);
+  --font-display: var(--font-instrument), "Instrument Serif", var(--font-source-serif), Georgia, serif;
+  --shadow-card: 0 0 0 1px rgba(22, 26, 38, 0.08);
+  --shadow-card-hover: 0 8px 24px rgba(22, 26, 38, 0.08);
 }
 
 :root {
   color-scheme: light;
-  --ink: #1d1d1f;
+  --ink: #161a26;
   --surface: #ffffff;
-  --canvas: #f5f5f7;
-  --sidebar: #f2f1f6;
-  --panel: #fafafc;
-  --fill: #f2f2f7;
-  --track: #e5e5ea;
-  --hover: #f7f7fa;
-  --muted: rgba(60, 60, 67, 0.74);
-  --faint: rgba(60, 60, 67, 0.72);
-  --link: #0066cc;
-  --edge: #000000;
-  --hairline: rgba(0, 0, 0, 0.12);
-  --strong: #1d1d1f;
-  --strong-fg: #ffffff;
+  --canvas: #f6f5f2;
+  --sidebar: #edeef2;
+  --panel: #fafaf8;
+  --fill: #ecedf1;
+  --track: #e1e3ea;
+  --hover: #f1f1ee;
+  --muted: #555b6b;
+  --faint: #636978;
+  --link: #23305c;
+  --edge: #161a26;
+  --hairline: rgba(22, 26, 38, 0.12);
+  --strong: #161a26;
+  --strong-fg: #f6f5f2;
+  --primary: #23305c;
+  --primary-press: #1b2649;
+  --tint: #e4e8f3;
+  --peach: #f7e6dc;
+  --peach-fg: #7a3216;
+  --plum-bg: #f3dde6;
+  --plum-fg: #8a2b4f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
     color-scheme: dark;
-    --ink: #f5f5f7;
-    --surface: #1c1c1e;
-    --canvas: #0b0b0d;
-    --sidebar: #161618;
-    --panel: #19191b;
-    --fill: #2c2c2e;
-    --track: #3a3a3c;
-    --hover: #2a2a2d;
-    --muted: rgba(235, 235, 245, 0.6);
-    --faint: rgba(235, 235, 245, 0.6);
-    --link: #4da3ff;
+    --ink: #f1efea;
+    --surface: #1c2030;
+    --canvas: #12151f;
+    --sidebar: #171b27;
+    --panel: #1a1e2b;
+    --fill: #262b3b;
+    --track: #343a4c;
+    --hover: #232838;
+    --muted: #aeb3c2;
+    --faint: #9097a8;
+    --link: #a9b8e8;
     --edge: #ffffff;
     --hairline: rgba(255, 255, 255, 0.14);
-    --strong: #f5f5f7;
-    --strong-fg: #1d1d1f;
+    --strong: #f1efea;
+    --strong-fg: #161a26;
+    --primary: #4a5fa8;
+    --primary-press: #3f5294;
+    --tint: #262f4d;
+    --peach: #3a2a24;
+    --peach-fg: #f0a27e;
+    --plum-bg: #3a2230;
+    --plum-fg: #e7a3bd;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ink: #f5f5f7;
-  --surface: #1c1c1e;
-  --canvas: #0b0b0d;
-  --sidebar: #161618;
-  --panel: #19191b;
-  --fill: #2c2c2e;
-  --track: #3a3a3c;
-  --hover: #2a2a2d;
-  --muted: rgba(235, 235, 245, 0.6);
-  --faint: rgba(235, 235, 245, 0.6);
-  --link: #4da3ff;
+  --ink: #f1efea;
+  --surface: #1c2030;
+  --canvas: #12151f;
+  --sidebar: #171b27;
+  --panel: #1a1e2b;
+  --fill: #262b3b;
+  --track: #343a4c;
+  --hover: #232838;
+  --muted: #aeb3c2;
+  --faint: #9097a8;
+  --link: #a9b8e8;
   --edge: #ffffff;
   --hairline: rgba(255, 255, 255, 0.14);
-  --strong: #f5f5f7;
-  --strong-fg: #1d1d1f;
+  --strong: #f1efea;
+  --strong-fg: #161a26;
+  --primary: #4a5fa8;
+  --primary-press: #3f5294;
+  --tint: #262f4d;
+  --peach: #3a2a24;
+  --peach-fg: #f0a27e;
+  --plum-bg: #3a2230;
+  --plum-fg: #e7a3bd;
 }
 
 /* Height of the phone tab bar (app shell, below md), for overlays fixed to the bottom of the screen. */
 :root { --tabbar: 0px; --gutter: 1.25rem; }
 @media (max-width: 767px) {
-  :root { --tabbar: calc(50px + env(safe-area-inset-bottom)); }
+  :root { --tabbar: calc(58px + max(6px, env(safe-area-inset-bottom))); }
 }
 
 /* Public pages scroll the document: reserve the scrollbar's width so the centred top bar does not shift
@@ -153,9 +181,12 @@ body {
   box-sizing: border-box;
 }
 
-a {
-  color: var(--color-link);
-  text-decoration: none;
+/* In the base layer, so a colour utility on a link wins over the default link colour. */
+@layer base {
+  a {
+    color: var(--color-link);
+    text-decoration: none;
+  }
 }
 
 button,
@@ -199,16 +230,18 @@ img {
 }
 
 
-/* Desktop content scales with the screen, matching the sidebar and toolbar steps. */
-@media (min-width: 1440px) { .nl-content { zoom: 1.1; } }
-@media (min-width: 1920px) { .nl-content { zoom: 1.25; } }
-@media (min-width: 2560px) { .nl-content { zoom: 1.5; } }
+/* Large desktop screens: the page, sidebar and top bar scale together, so text and controls keep the
+   same physical size on a 27-inch display as on a laptop. */
+@media (min-width: 1440px) { .nl-content, .nl-chrome, .nl-scale { zoom: 1.1; } }
+@media (min-width: 1920px) { .nl-content, .nl-chrome, .nl-scale { zoom: 1.25; } }
+@media (min-width: 2560px) { .nl-content, .nl-chrome, .nl-scale { zoom: 1.5; } }
 
-/* Phones: page text steps up to the iOS type ramp. The desktop sizes in the markup map to their iOS
-   counterparts: 11 → Caption 12, 12 → Footnote 13, 13 → Subheadline 15, 14 → Callout 16,
-   15 and 16 → Body 17; 17 and up are already iOS sizes. Only page content (main) is mapped: the top bar,
+/* Page text follows the v2 type ramp on every screen: body 16–17 px, metadata 13–15 px, so desktop pages
+   read at the same comfortable size as phones instead of 13 px UI text. The sizes in the markup map up:
+   phones 11 → 12, 12 → 13, 13 → 15, 14 → 16, 15 and 16 → 17; larger screens 11 → 12, 12 → 13, 13 → 14,
+   14 → 15, 15 → 16, 16 → 17 (sm: and md: sizes included). Only page content (main) is mapped: the top bar,
    tab bar and sheet have their own sizes. Dense widgets (calendar grids, charts) opt out with .nl-type-fixed.
-   Unlayered, so it outranks the utilities it remaps; below sm only, where no sm: size is active. */
+   Unlayered, so it outranks the utilities it remaps. */
 @media (max-width: 639px) {
   .nl-content { font-size: 17px; }
   .nl-content :is(.text-\[11px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 12px; }
@@ -216,6 +249,25 @@ img {
   .nl-content :is(.text-\[13px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 15px; }
   .nl-content :is(.text-sm, .text-\[14px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 16px; }
   .nl-content :is(.text-\[15px\], .text-\[16px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 17px; }
+}
+@media (min-width: 640px) {
+  .nl-content { font-size: 16px; }
+  .nl-content :is(.text-\[11px\], .sm\:text-\[11px\], .md\:text-\[11px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 12px; }
+  .nl-content :is(.text-xs, .text-\[12px\], .sm\:text-xs, .sm\:text-\[12px\], .md\:text-xs, .md\:text-\[12px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 13px; }
+  .nl-content :is(.text-\[13px\], .sm\:text-\[13px\], .md\:text-\[13px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 14px; }
+  .nl-content :is(.text-sm, .text-\[14px\], .sm\:text-sm, .sm\:text-\[14px\], .md\:text-sm, .md\:text-\[14px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 15px; }
+  .nl-content :is(.text-\[15px\], .sm\:text-\[15px\], .md\:text-\[15px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 16px; }
+  .nl-content :is(.text-\[16px\], .sm\:text-\[16px\], .md\:text-\[16px\]):not(.nl-type-fixed, .nl-type-fixed *) { font-size: 17px; }
+}
+
+/* Headings set in Instrument Serif, as in the v2 design. It has one weight, so bold utilities are ignored.
+   Small uppercase labels marked up as h2 keep the text face. */
+h1,
+h2:not(.uppercase),
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 /* Phones: a chip row becomes one swipeable line that bleeds to the screen edge, instead of wrapping into stacks. */
@@ -295,7 +347,7 @@ img {
 /* Landing page and top bar force a light palette whatever the theme. */
 [data-site-nav] :focus-visible,
 .nl-light :focus-visible {
-  outline-color: #0066cc;
+  outline-color: #23305c;
 }
 
 /* Skip link: off screen until it receives keyboard focus. */
@@ -307,7 +359,7 @@ img {
   transform: translateY(-200%);
   padding: 10px 16px;
   border-radius: 10px;
-  background: #1d1d1f;
+  background: #161a26;
   color: #fff !important;
   font-size: 15px;
   font-weight: 600;

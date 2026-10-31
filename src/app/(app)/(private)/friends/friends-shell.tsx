@@ -161,7 +161,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
         <Avatar id={me.id} name={me.name} src={me.avatar} size={52} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-[16px] font-semibold">{me.name}</span>
-          <span className={`flex items-center gap-1 text-[13px] ${streak.streak ? "font-medium text-[#FF9500]" : "text-muted"}`}>
+          <span className={`flex items-center gap-1 text-[13px] ${streak.streak ? "font-medium text-[#C4552B]" : "text-muted"}`}>
             <Icon name="flame" size={13} />{streak.streak ? `${streak.streak}-day streak${streak.best > streak.streak ? ` · best ${streak.best}` : ""}` : "No streak yet"}
           </span>
         </span>
@@ -466,7 +466,7 @@ export const Check = ({ on }: { on: boolean }) => (
 export function StreakTag({ streak, today }: { streak: number; today: boolean }) {
   if (!streak) return null;
   return (
-    <span className={`flex shrink-0 items-center gap-0.5 text-[13px] font-semibold tabular-nums ${today ? "text-[#FF9500]" : "text-faint"}`} aria-label={`${streak}-day streak${today ? "" : ", not yet active today"}`}>
+    <span className={`flex shrink-0 items-center gap-0.5 text-[13px] font-semibold tabular-nums ${today ? "text-[#C4552B]" : "text-faint"}`} aria-label={`${streak}-day streak${today ? "" : ", not yet active today"}`}>
       <Icon name="flame" size={13} />{streak}
     </span>
   );

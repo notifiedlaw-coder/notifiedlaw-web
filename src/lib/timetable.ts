@@ -37,7 +37,7 @@ export const BREAK_MINS = [0, 5, 10, 15, 30] as const;
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 export const WEEKDAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = { 1: "Light", 2: "Medium", 3: "Hard" };
-export const COURSE_COLORS = ["#007AFF", "#34C759", "#FF9500", "#AF52DE", "#30B0C7", "#FF3B30", "#5856D6", "#A2845E"];
+export const COURSE_COLORS = ["#23305C", "#8A2B4F", "#C4552B", "#2F4A6B", "#6B4A2F", "#3B3B6B", "#4A6B5A", "#7A5C2E"];
 
 export const DEFAULT_INPUT: TimetableInput = { courses: [], free: [], sessionMins: 60, breakMins: 10 };
 

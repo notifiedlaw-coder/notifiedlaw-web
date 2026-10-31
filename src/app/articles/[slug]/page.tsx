@@ -69,7 +69,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
         breadcrumbs([["Articles", "/articles"], [a.title, `/articles/${a.slug}`]]),
       ]} />
       <header className="flex flex-col gap-3">
-        {a.area && <Eyebrow color="#ff9f0a">{a.area}</Eyebrow>}
+        {a.area && <Eyebrow color="#C4552B">{a.area}</Eyebrow>}
         <h1 id="article-title" className="text-balance m-0 text-[28px] font-bold leading-[1.15] tracking-[-0.025em] md:text-[40px]">{a.title}</h1>
         {a.summary && <p id="article-answer" className="text-pretty m-0 text-[17px] leading-snug text-muted md:text-[19px]">{a.summary}</p>}
         <div className="mt-1 flex items-center gap-3 border-y border-edge/[0.08] py-3">
@@ -95,7 +95,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
           <div className="grid gap-3 sm:grid-cols-2">
             {related.map((r) => (
               <Link key={r.slug} href={`/articles/${r.slug}`} className="flex flex-col gap-1 rounded-2xl bg-surface p-4 shadow-card transition-transform active:scale-[0.98]" style={{ textDecoration: "none", color: "inherit" }}>
-                {r.industry && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#ff9f0a]">{r.industry}</span>}
+                {r.industry && <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-[#C4552B]">{r.industry}</span>}
                 <span className="text-[16px] font-semibold leading-snug">{r.title}</span>
                 <span className="text-xs text-faint">{r.mins} min read</span>
               </Link>

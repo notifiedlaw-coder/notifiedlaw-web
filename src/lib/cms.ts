@@ -8,7 +8,7 @@ import { splitChapters } from "@/components/markdown";
 // Nothing is built in: when D1 has no rows, or cannot be read, the pages show an empty state.
 // These call the Cloudflare binding, so a page using them is rendered on request, not at build time.
 
-const PALETTE = ["#007AFF", "#34C759", "#FF9500", "#AF52DE", "#30B0C7", "#FF3B30", "#5856D6", "#A2845E"];
+const PALETTE = ["#23305C", "#8A2B4F", "#C4552B", "#2F4A6B", "#6B4A2F", "#3B3B6B", "#4A6B5A", "#7A5C2E"];
 type Entry = typeof cmsEntry.$inferSelect;
 
 async function entries(kind: string, onlyPublished: boolean): Promise<Entry[]> {
