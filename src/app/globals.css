@@ -409,3 +409,16 @@ main:focus {
 .article-body ul { padding-left: 1.2rem; margin: 0 0 1rem; }
 .article-body li { margin-bottom: 0.6rem; overflow-wrap: anywhere; }
 .article-body a { overflow-wrap: anywhere; }
+
+/* Plan crest shimmer: a light band sweeping across the crest every few seconds. */
+@keyframes nl-shimmer {
+  0% { transform: translateX(-100%); }
+  55%, 100% { transform: translateX(100%); }
+}
+.nl-shimmer {
+  transform-box: fill-box;
+  animation: nl-shimmer 3.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nl-shimmer { animation: none; opacity: 0; }
+}

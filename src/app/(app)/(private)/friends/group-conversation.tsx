@@ -201,7 +201,7 @@ function GroupInfo({ group, setGroup, onClose, onReport }: { group: GroupDetail;
                       <button type="button" role="checkbox" aria-checked={on} disabled={!on && adding.size >= room}
                         onClick={() => setAdding((s) => { const n = new Set(s); if (on) n.delete(f.id); else n.add(f.id); return n; })}
                         className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-ink disabled:opacity-40">
-                        <Avatar id={f.id} name={f.name} src={f.avatar} size={36} />
+                        <Avatar id={f.id} name={f.name} src={f.avatar} plan={f.plan} size={36} />
                         <span className="min-w-0 flex-1 truncate text-[15px]">{f.name}</span>
                         <Check on={on} />
                       </button>
@@ -219,7 +219,7 @@ function GroupInfo({ group, setGroup, onClose, onReport }: { group: GroupDetail;
             <ul className="m-0 flex list-none flex-col overflow-hidden rounded-[16px] bg-surface p-0 shadow-card">
               {group.members.map((m) => (
                 <li key={m.id} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-2.5 first:border-0">
-                  <Avatar id={m.id} name={m.name} src={m.avatar} size={36} />
+                  <Avatar id={m.id} name={m.name} src={m.avatar} plan={m.plan} size={36} />
                   <span className="min-w-0 flex-1 truncate text-[15px]">{m.id === me.id ? "You" : m.name}</span>
                   {m.admin && <span className="shrink-0 rounded-full bg-fill px-2 py-0.5 text-[12px] font-medium text-muted">Admin</span>}
                   {admin && !m.admin && (confirm === m.id

@@ -167,7 +167,7 @@ export async function callState(userId: string, callId: string): Promise<{ call:
   return {
     call: await info(c),
     peers: rows.map((r) => ({
-      userId: r.userId, name: names.get(r.userId)?.name ?? "Someone", avatar: names.get(r.userId)?.avatar ?? null,
+      userId: r.userId, name: names.get(r.userId)?.name ?? "Someone", avatar: names.get(r.userId)?.avatar ?? null, plan: names.get(r.userId)?.plan,
       session: `${r.userId}:${r.joinedAt.getTime()}`, tracks: (JSON.parse(r.tracks) as Published[]).map((t) => t.name),
     })),
   };

@@ -8,6 +8,7 @@ import { useFriends } from "@/components/friends";
 import { ReportSheet, type ReportTarget } from "@/components/report";
 import { Sheet } from "@/components/sheet";
 import { MESSAGE_RULE, ONLINE_MS, seenLabel, type FriendLists, type Message } from "@/lib/friend-view";
+import type { Plan } from "@/lib/data";
 import { ChatView, HeaderButton, InfoIcon, PhoneIcon, type ChatMessage } from "./chat";
 import { StreakTag, useFriendsShell } from "./friends-shell";
 
@@ -15,7 +16,7 @@ import { StreakTag, useFriendsShell } from "./friends-shell";
 const POLL_MS = 4_000;
 const TYPING_POLL_MS = 2_000;
 
-type Other = { id: string; name: string; avatar: string | null };
+type Other = { id: string; name: string; avatar: string | null; plan?: Plan };
 
 /**
  * A conversation with one friend: messages, polled while open, voice calls, report and block. After the friendship
@@ -98,7 +99,7 @@ export function Conversation({ friendId, initial, initialSeen, other }: { friend
   const online = !!friend && friend.lastSeen !== null && now - friend.lastSeen < ONLINE_MS;
   const header = (
     <header className="flex shrink-0 items-center gap-3 border-b-[0.5px] border-edge/15 bg-surface/80 px-4 py-2.5 backdrop-blur-xl">
-      <Avatar id={who.id} name={who.name} src={who.avatar} size={38} online={online} />
+      <Avatar id={who.id} name={who.name} src={who.avatar} plan={who.plan} size={38} online={online} />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-center gap-2">
           <span className="truncate text-[16px] font-semibold">{who.name}</span>
@@ -126,7 +127,7 @@ export function Conversation({ friendId, initial, initialSeen, other }: { friend
       {options && (
         <Sheet label={who.name} onClose={() => { setOptions(false); setConfirm(null); }}>
           <div className="flex flex-col items-center gap-2 px-4 pb-2 pt-4 text-center">
-            <Avatar id={who.id} name={who.name} src={who.avatar} size={72} />
+            <Avatar id={who.id} name={who.name} src={who.avatar} plan={who.plan} size={72} />
             <h2 className="m-0 text-[20px] font-semibold">{who.name}</h2>
             {friend?.school && <p className="m-0 text-[14px] text-muted">{friend.school}</p>}
           </div>

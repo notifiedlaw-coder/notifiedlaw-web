@@ -1,6 +1,7 @@
 import { and, eq, inArray, or, sql } from "drizzle-orm";
-import { activity, friendship, profile, student, user, userAvatar, userBlock } from "@/db/schema";
-import { getDb } from "@/lib/auth";
+import { activity, friendship, profile, student, subscription, user, userAvatar, userBlock } from "@/db/schema";
+import { getDb, planCols, planOf } from "@/lib/auth";
+import type { Plan } from "@/lib/data";
 import { avatarUrl, dayOf, liveStreak, type Friend, type FriendLists } from "@/lib/friend-view";
 
 /** Friends, requests received and requests sent, together, per account. Keeps lists and sheets short. */
@@ -17,7 +18,7 @@ async function others(userId: string, side: "from" | "to") {
     .select({
       id: user.id, name: user.name, email: user.email, first: profile.firstName, last: profile.lastName,
       studentUni: student.university, status: friendship.status, at: friendship.createdAt,
-      lastSeen: activity.lastSeenAt, streak: activity.streak, best: activity.bestStreak, streakDay: activity.streakDay, avatar: userAvatar.key,
+      lastSeen: activity.lastSeenAt, streak: activity.streak, best: activity.bestStreak, streakDay: activity.streakDay, avatar: userAvatar.key, ...planCols,
     })
     .from(friendship)
     .innerJoin(user, eq(user.id, theirs))
@@ -25,6 +26,7 @@ async function others(userId: string, side: "from" | "to") {
     .leftJoin(student, eq(student.userId, user.id))
     .leftJoin(activity, eq(activity.userId, user.id))
     .leftJoin(userAvatar, eq(userAvatar.userId, user.id))
+    .leftJoin(subscription, eq(subscription.userId, user.id))
     .where(eq(mine, userId))
     .limit(MAX_FRIENDS * 2);
 }
@@ -40,6 +42,8 @@ function view(r: Row): Friend {
   const friend = r.status === "accepted" && r.streakDay !== null;
   return {
     id: r.id, name: r.first ? `${r.first} ${r.last}` : NO_NAME, school: r.studentUni ?? null, avatar: avatarUrl(r.avatar),
+    // The plan crest, like activity, is shown only between friends.
+    ...(r.status === "accepted" ? { plan: planOf(r.plan ? { plan: r.plan, promoPlan: r.promoPlan, promoUntil: r.promoUntil } : undefined) } : {}),
     lastSeen: friend ? r.lastSeen!.getTime() : null,
     streak: friend ? liveStreak(r.streak!, r.streakDay!) : 0,
     best: friend ? r.best! : 0,
@@ -140,9 +144,12 @@ export async function blockedEitherWay(a: string, b: string) {
 
 /** Names and pictures of a few accounts (a group's members, a call's people), keyed by id. */
 export async function people(ids: string[]) {
-  if (!ids.length) return new Map<string, { name: string; avatar: string | null }>();
-  const rows = await getDb().select({ id: user.id, name: user.name, first: profile.firstName, last: profile.lastName, avatar: userAvatar.key })
-    .from(user).leftJoin(profile, eq(profile.userId, user.id)).leftJoin(userAvatar, eq(userAvatar.userId, user.id))
+  if (!ids.length) return new Map<string, { name: string; avatar: string | null; plan: Plan }>();
+  const rows = await getDb().select({ id: user.id, name: user.name, first: profile.firstName, last: profile.lastName, avatar: userAvatar.key, ...planCols })
+    .from(user).leftJoin(profile, eq(profile.userId, user.id)).leftJoin(userAvatar, eq(userAvatar.userId, user.id)).leftJoin(subscription, eq(subscription.userId, user.id))
     .where(inArray(user.id, [...new Set(ids)].slice(0, 90)));
-  return new Map(rows.map((r) => [r.id, { name: r.first ? `${r.first} ${r.last}` : NO_NAME, avatar: avatarUrl(r.avatar) }]));
+  return new Map(rows.map((r) => [r.id, {
+    name: r.first ? `${r.first} ${r.last}` : NO_NAME, avatar: avatarUrl(r.avatar),
+    plan: planOf(r.plan ? { plan: r.plan, promoPlan: r.promoPlan, promoUntil: r.promoUntil } : undefined),
+  }]));
 }

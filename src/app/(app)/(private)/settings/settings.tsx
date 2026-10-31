@@ -81,7 +81,7 @@ export function Settings() {
 /** The profile picture: the only place it is added, changed or removed. The server keeps a 256 px WebP. */
 function ProfilePhoto({ name, email }: { name: string; email: string }) {
   const router = useRouter();
-  const { avatar: saved } = usePlan();
+  const { avatar: saved, plan } = usePlan();
   const [avatar, setAvatar] = useState(saved);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -110,7 +110,7 @@ function ProfilePhoto({ name, email }: { name: string; email: string }) {
   return (
     <div className="flex items-center gap-4">
       <button type="button" onClick={() => file.current?.click()} disabled={busy} aria-label={avatar ? "Change your profile picture" : "Add a profile picture"} className="relative shrink-0 cursor-pointer border-0 bg-transparent p-0 disabled:opacity-50">
-        <Avatar id={email} name={name} src={avatar} size={64} />
+        <Avatar id={email} name={name} src={avatar} plan={plan} size={64} />
         <span aria-hidden className="absolute -bottom-0.5 -right-0.5 grid size-6 place-items-center rounded-full bg-blue text-white ring-2 ring-canvas">
           <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M8 3v10M3 8h10" /></svg>
         </span>

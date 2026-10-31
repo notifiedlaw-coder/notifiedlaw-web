@@ -14,6 +14,6 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   const friends = await areFriends(s.user.id, id);
   if (!friends && !(await hasHistory(s.user.id, id))) redirect("/friends");
   const [{ messages, seen }, names] = await Promise.all([conversation(s.user.id, id), people([id])]);
-  const other = { id, name: names.get(id)?.name ?? "Notified Law user", avatar: names.get(id)?.avatar ?? null };
+  const other = { id, name: names.get(id)?.name ?? "Notified Law user", avatar: names.get(id)?.avatar ?? null, plan: friends ? names.get(id)?.plan : undefined };
   return <Conversation key={id} friendId={id} initial={messages} initialSeen={friends ? seen : null} other={other} />;
 }

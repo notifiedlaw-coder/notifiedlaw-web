@@ -78,6 +78,7 @@ export async function threads(userId: string): Promise<Thread[]> {
   for (const t of byFriend.values()) {
     t.name = names.get(t.friendId)?.name ?? "Notified Law user";
     t.avatar = names.get(t.friendId)?.avatar ?? null;
+    t.plan = names.get(t.friendId)?.plan;
   }
   return [...byFriend.values()];
 }

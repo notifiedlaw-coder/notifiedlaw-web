@@ -3,9 +3,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icons";
+import type { Plan } from "@/lib/data";
 import { MAX_MESSAGE, TYPING_PING_MS, dayOf, type Typer } from "@/lib/friend-view";
 
-export type ChatMessage = { id: string; fromMe: boolean; body: string; at: number; fromId?: string; name?: string; avatar?: string | null; pending?: boolean };
+export type ChatMessage = { id: string; fromMe: boolean; body: string; at: number; fromId?: string; name?: string; avatar?: string | null; plan?: Plan; pending?: boolean };
 
 const dayLabel = (at: number, now: number) => {
   const d = dayOf(at);
@@ -104,7 +105,7 @@ export function ChatView({ header, messages, rule, empty, status, group, now, ty
                 {newDay && <span className="my-3 text-center text-[12px] font-medium text-muted">{dayLabel(m.at, now)}</span>}
                 {showName && <span className="mb-0.5 ml-11 mt-1 text-[12px] font-medium text-muted">{m.name}</span>}
                 <div className={`flex items-end gap-2 ${m.fromMe ? "justify-end" : "justify-start"} ${tail ? "mb-1.5" : ""}`}>
-                  {group && !m.fromMe && (tail ? <Avatar id={m.fromId ?? m.id} name={m.name ?? ""} src={m.avatar} size={28} /> : <span className="w-7 shrink-0" />)}
+                  {group && !m.fromMe && (tail ? <Avatar id={m.fromId ?? m.id} name={m.name ?? ""} src={m.avatar} plan={m.plan} size={28} /> : <span className="w-7 shrink-0" />)}
                   <p title={clock(m.at)}
                     onContextMenu={m.fromMe || m.pending ? undefined : (e) => { e.preventDefault(); setMenu(m.id); }}
                     onTouchStart={m.fromMe || m.pending ? undefined : () => { press.current = setTimeout(() => setMenu(m.id), 500); }}

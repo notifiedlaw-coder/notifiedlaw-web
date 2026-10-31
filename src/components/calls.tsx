@@ -451,7 +451,7 @@ function CallScreen({ active, mini, setMini, onClose }: { active: Active; mini: 
           <MiniButton label="End call" danger onClick={() => hangUp()}><HangUp size={20} /></MiniButton>
         </>}>
           <span className={`relative shrink-0 rounded-full transition-shadow ${focus && speaking.has(focus.userId) ? "shadow-[0_0_0_3px_#34c759]" : ""}`}>
-            {focus ? <Avatar id={focus.userId} name={focus.name} src={focus.avatar} size={40} />
+            {focus ? <Avatar id={focus.userId} name={focus.name} src={focus.avatar} plan={focus.plan} size={40} />
               : <Avatar id={active.call.groupId ?? active.call.callerId} name={active.title} size={40} group={!!active.call.groupId} />}
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
@@ -585,7 +585,7 @@ function Tile({ peer, connected, speaking, size }: { peer: CallPeer; connected: 
   return (
     <div className="flex min-w-0 max-w-full flex-col items-center gap-2.5">
       <span className={`rounded-full transition-shadow duration-150 ${speaking ? "shadow-[0_0_0_4px_#34c759,0_0_24px_6px_rgba(52,199,89,0.35)]" : "shadow-[0_0_0_4px_transparent]"}`}>
-        <Avatar id={peer.userId} name={peer.name} src={peer.avatar} size={size} />
+        <Avatar id={peer.userId} name={peer.name} src={peer.avatar} plan={peer.plan} size={size} />
       </span>
       <span className="max-w-full truncate text-[15px] font-medium">{peer.name}</span>
       {!connected && <span className="-mt-1.5 text-[12px] text-white/50">Connecting…</span>}

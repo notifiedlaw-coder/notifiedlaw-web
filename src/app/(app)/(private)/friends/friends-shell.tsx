@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { Avatar } from "@/components/avatar";
 import { friendsCall, useFriends } from "@/components/friends";
 import { Icon } from "@/components/icons";
+import { usePlan } from "@/components/plan";
 import { Sheet } from "@/components/sheet";
 import { MAX_GROUP_MEMBERS, MAX_GROUP_NAME, MAX_OWNED_GROUPS, MESSAGE_RULE, GROUP_MESSAGE_RULE, ONLINE_MS, seenLabel, shortTime, type FriendLists, type GroupSummary, type Thread } from "@/lib/friend-view";
 import { InfoIcon } from "./chat";
@@ -91,6 +92,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
   const router = useRouter();
   const { me, lists, setLists, threads, groups, now, typing, reload, setBlocked } = useFriendsShell();
   const { mine } = useFriends();
+  const { plan: myPlan } = usePlan();
   const streak = mine ?? initialStreak;
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -158,7 +160,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
 
       {/* You: picture and streak. The picture and profile are changed on the Profile page. */}
       <Link href="/settings" className="flex items-center gap-3 rounded-[18px] border border-edge/10 bg-surface px-4 py-3 active:bg-fill" style={{ textDecoration: "none", color: "inherit" }}>
-        <Avatar id={me.id} name={me.name} src={me.avatar} size={52} />
+        <Avatar id={me.id} name={me.name} src={me.avatar} plan={myPlan} size={52} />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-display text-[22px] leading-tight">{me.name}</span>
           <span className={`flex items-center gap-1 text-[13px] ${streak.streak ? "font-medium text-[#C4552B]" : "text-muted"}`}>
@@ -176,7 +178,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
           <ul className={group}>
             {lists.incoming.map((f) => (
               <li key={f.id} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-2.5 first:border-0">
-                <Avatar id={f.id} name={f.name} src={f.avatar} size={40} />
+                <Avatar id={f.id} name={f.name} src={f.avatar} plan={f.plan} size={40} />
                 <Who name={f.name} sub={f.school ?? ""} />
                 <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "DELETE")} className="h-10 shrink-0 rounded-full border border-edge/15 bg-transparent px-4 text-[15px] font-semibold text-ink disabled:opacity-50">Decline</button>
                 <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "POST")} className="h-10 shrink-0 rounded-full border-0 bg-blue px-4 text-[15px] font-semibold text-white disabled:opacity-50">Accept</button>
@@ -234,7 +236,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
               const on = f.lastSeen !== null && now - f.lastSeen < ONLINE_MS;
               const body = (
                 <>
-                  <Avatar id={f.id} name={f.name} src={f.avatar} size={44} online={on} />
+                  <Avatar id={f.id} name={f.name} src={f.avatar} plan={f.plan} size={44} online={on} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-baseline gap-2">
                       <span className={`min-w-0 flex-1 truncate text-[16px] ${t?.unread ? "font-bold" : "font-semibold"}`}>{f.name}</span>
@@ -284,7 +286,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
               <li key={t.friendId} className="border-t border-edge/[0.06] first:border-0">
                 <Link href={`/friends/${t.friendId}`} aria-current={selected === `f:${t.friendId}` ? "page" : undefined}
                   className={`${rowLink} ${selected === `f:${t.friendId}` ? "bg-sidebar" : "hover:bg-hover"}`} style={{ textDecoration: "none", color: "inherit" }}>
-                  <Avatar id={t.friendId} name={t.name} src={t.avatar} size={44} />
+                  <Avatar id={t.friendId} name={t.name} src={t.avatar} plan={t.plan} size={44} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex items-baseline gap-2">
                       <span className={`min-w-0 flex-1 truncate text-[16px] ${t.unread ? "font-bold" : "font-semibold"}`}>{t.name}</span>
@@ -308,7 +310,7 @@ function FriendsList({ selected, streak: initialStreak, blocked }: { selected: s
           <ul className={group}>
             {lists.outgoing.map((f) => (
               <li key={f.id} className="flex items-center gap-3 border-t border-edge/[0.06] px-4 py-2.5 first:border-0">
-                <Avatar id={f.id} name={f.name} src={f.avatar} size={36} />
+                <Avatar id={f.id} name={f.name} src={f.avatar} plan={f.plan} size={36} />
                 <Who name={f.name} sub="Pending" />
                 <button type="button" disabled={busy === f.id} onClick={() => act(f.id, "DELETE")} className="shrink-0 border-0 bg-transparent text-[15px] text-link disabled:opacity-50">Cancel</button>
               </li>
@@ -397,7 +399,7 @@ function NewGroupSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
                 <button type="button" role="checkbox" aria-checked={on} disabled={!on && full}
                   onClick={() => setPicked((s) => { const n = new Set(s); if (on) n.delete(f.id); else n.add(f.id); return n; })}
                   className="flex w-full items-center gap-3 border-0 bg-transparent px-4 py-2.5 text-left text-ink disabled:opacity-40">
-                  <Avatar id={f.id} name={f.name} src={f.avatar} size={36} />
+                  <Avatar id={f.id} name={f.name} src={f.avatar} plan={f.plan} size={36} />
                   <span className="min-w-0 flex-1 truncate text-[15px]">{f.name}</span>
                   <Check on={on} />
                 </button>

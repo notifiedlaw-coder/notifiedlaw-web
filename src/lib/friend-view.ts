@@ -1,21 +1,23 @@
 // Friend shapes and labels shared by the server (lib/friends) and the client (Friend activity, Leaderboard).
 
+import type { Plan } from "@/lib/data";
+
 /**
  * Someone the user is friends with or has a request open with. Activity is shared only between friends, so
  * `lastSeen` is null and `streak` 0 on requests.
  */
-export type Friend = { id: string; name: string; school: string | null; avatar: string | null; lastSeen: number | null; streak: number; best: number; today: boolean };
+export type Friend = { id: string; name: string; school: string | null; avatar: string | null; plan?: Plan; lastSeen: number | null; streak: number; best: number; today: boolean };
 
 /** The URL a stored avatar key is served from (signed-in users only). */
 export const avatarUrl = (key: string | null | undefined) => (key ? `/api/avatars/${key.replace(/^avatars\//, "")}` : null);
 
 export type GroupSummary = { id: string; name: string; avatar: string | null; admin: boolean; members: number; last: { body: string; from: string; fromMe: boolean; at: number } | null; unread: number; call: string | null };
-export type GroupMember = { id: string; name: string; avatar: string | null; admin: boolean };
+export type GroupMember = { id: string; name: string; avatar: string | null; plan?: Plan; admin: boolean };
 export type GroupDetail = { id: string; name: string; avatar: string | null; ownerId: string; members: GroupMember[] };
-export type GroupMessage = { id: string; fromId: string; fromMe: boolean; name: string; avatar: string | null; body: string; at: number };
+export type GroupMessage = { id: string; fromId: string; fromMe: boolean; name: string; avatar: string | null; plan?: Plan; body: string; at: number };
 
 export type CallInfo = { id: string; groupId: string | null; groupName: string | null; callerId: string; callerName: string; calleeId: string | null; video: boolean; startedAt: number; endsAt: number; endedAt: number | null; endReason: string | null };
-export type CallPeer = { userId: string; name: string; avatar: string | null; session: string; tracks: string[] };
+export type CallPeer = { userId: string; name: string; avatar: string | null; plan?: Plan; session: string; tracks: string[] };
 export type FriendLists = { friends: Friend[]; incoming: Friend[]; outgoing: Friend[] };
 export const NO_FRIENDS: FriendLists = { friends: [], incoming: [], outgoing: [] };
 
@@ -74,7 +76,7 @@ export const MAX_MESSAGE = 2000;
 export type Message = { id: string; fromMe: boolean; body: string; at: number; readAt: number | null; expiresAt: number | null };
 /** A conversation's newest message and how many the user has not read, for the friends list. */
 /** A conversation in the list. `name` and `avatar` are for one that outlived the friendship (shown under Past chats). */
-export type Thread = { friendId: string; name: string; avatar: string | null; last: { body: string; fromMe: boolean; at: number }; unread: number };
+export type Thread = { friendId: string; name: string; avatar: string | null; plan?: Plan; last: { body: string; fromMe: boolean; at: number }; unread: number };
 
 /** A message time for lists: "14:05" today, "Yesterday", the weekday within a week, else "3 Oct". */
 export function shortTime(at: number, now = Date.now()) {

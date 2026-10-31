@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Crest } from "@/components/avatar";
 import { usePathname } from "next/navigation";
 import { PLAN_NAMES } from "@/lib/data";
 import type { Me } from "@/lib/profile";
@@ -49,12 +50,17 @@ function Count({ n, className = "" }: { n: number; className?: string }) {
 }
 
 function Avatar({ size }: { size: number }) {
-  const { avatar } = usePlan();
+  const { avatar, plan } = usePlan();
   const user = useUser();
-  return avatar
-    // eslint-disable-next-line @next/next/no-img-element -- a 256 px WebP from our own route
-    ? <img src={avatar} alt="" width={size} height={size} className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />
-    : <span className="grid shrink-0 place-items-center rounded-full bg-plum font-bold text-[#F6F5F2]" style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}>{user.initials}</span>;
+  return (
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      {avatar
+        // eslint-disable-next-line @next/next/no-img-element -- a 256 px WebP from our own route
+        ? <img src={avatar} alt="" width={size} height={size} className="size-full rounded-full object-cover" />
+        : <span className="grid size-full place-items-center rounded-full bg-plum font-bold text-[#F6F5F2]" style={{ fontSize: Math.round(size * 0.38) }}>{user.initials}</span>}
+      <Crest plan={plan} size={size} />
+    </span>
+  );
 }
 
 /** Desktop (lg up): the five destinations, the open one expanded to its sub-pages, and the profile at the foot. */

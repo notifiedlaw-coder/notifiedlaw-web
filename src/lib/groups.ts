@@ -103,7 +103,7 @@ export async function groupDetail(groupId: string): Promise<GroupDetail | null> 
   const names = await people(rows.map((r) => r.id));
   return {
     id: g.id, name: g.name, avatar: avatarUrl(g.avatarKey), ownerId: g.ownerId,
-    members: rows.map((r) => ({ id: r.id, name: names.get(r.id)?.name ?? "Notified Law user", avatar: names.get(r.id)?.avatar ?? null, admin: r.id === g.ownerId }))
+    members: rows.map((r) => ({ id: r.id, name: names.get(r.id)?.name ?? "Notified Law user", avatar: names.get(r.id)?.avatar ?? null, plan: names.get(r.id)?.plan, admin: r.id === g.ownerId }))
       .sort((a, b) => Number(b.admin) - Number(a.admin) || a.name.localeCompare(b.name)),
   };
 }
@@ -163,7 +163,7 @@ export async function groupMessages(userId: string, groupId: string, after?: num
   const names = await people(rows.map((r) => r.fromId));
   return rows.reverse().map((r) => ({
     id: r.id, fromId: r.fromId, fromMe: r.fromId === userId, name: names.get(r.fromId)?.name ?? "Former member",
-    avatar: names.get(r.fromId)?.avatar ?? null, body: r.body, at: r.createdAt.getTime(),
+    avatar: names.get(r.fromId)?.avatar ?? null, plan: names.get(r.fromId)?.plan, body: r.body, at: r.createdAt.getTime(),
   }));
 }
 
