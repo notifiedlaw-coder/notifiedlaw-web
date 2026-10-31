@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePlan } from "@/components/plan";
-import { Btn, Eyebrow } from "@/components/ui";
+import { Btn } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { StatusPicker, StatusQuestions, fieldCls as field, labelCls as label } from "@/components/profile-fields";
 import { GENDERS, GOALS, MIN_DOB, profileErrors, type Profile } from "@/lib/profile";
@@ -11,6 +11,7 @@ import { GENDERS, GOALS, MIN_DOB, profileErrors, type Profile } from "@/lib/prof
 export function ProfileForm({ profile }: { profile: Profile }) {
   const { setProfile, student } = usePlan();
   const [f, setF] = useState(profile);
+  const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState("");
   const patch = (p: Partial<Profile>) => { setStatus("idle"); setF((x) => ({ ...x, ...p })); };
@@ -41,10 +42,18 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     setStatus("saved");
   };
 
+  // Hick's law: the details form stays folded until it is wanted.
+  if (!open) return (
+    <button type="button" onClick={() => setOpen(true)} aria-expanded={false} className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-3 border-0 border-t border-edge/[0.07] bg-transparent px-[18px] py-2.5 text-left text-[16px] text-ink">
+      <span>Personal details</span><span className="text-[15px] font-bold text-blue">Edit</span>
+    </button>
+  );
   return (
-    <section className="flex flex-col gap-1.5">
-      <Eyebrow>Profile</Eyebrow>
-      <div className="flex flex-col gap-3.5 rounded-xl bg-surface p-4 shadow-card">
+    <section className="flex flex-col border-t border-edge/[0.07]">
+      <button type="button" onClick={() => setOpen(false)} aria-expanded className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-3 border-0 bg-transparent px-[18px] py-2.5 text-left text-[16px] text-ink">
+        <span>Personal details</span><span className="text-[15px] font-bold text-blue">Done</span>
+      </button>
+      <div className="flex flex-col gap-3.5 px-[18px] pb-[18px]">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className={label}>First name<input value={f.firstName} onChange={set("firstName")} onBlur={blur("firstName")} maxLength={80} required aria-invalid={bad("firstName")} autoComplete="given-name" className={field} />{err("firstName")}</label>
           <label className={label}>Last name<input value={f.lastName} onChange={set("lastName")} onBlur={blur("lastName")} maxLength={80} required aria-invalid={bad("lastName")} autoComplete="family-name" className={field} />{err("lastName")}</label>
@@ -67,7 +76,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <div className={label}>Interests
           <div className="flex flex-wrap gap-2">{GOALS.map((g) => {
             const on = f.goals.includes(g);
-            return <button key={g} type="button" aria-pressed={on} onClick={() => { setStatus("idle"); setF((p) => ({ ...p, goals: on ? p.goals.filter((x) => x !== g) : [...p.goals, g] })); }} className="rounded-full px-3.5 py-1.5 text-sm font-medium text-ink" style={{ background: on ? "var(--tint)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #23305C" : "0 0 0 0.5px var(--hairline)" }}>{g}</button>;
+            return <button key={g} type="button" aria-pressed={on} onClick={() => { setStatus("idle"); setF((p) => ({ ...p, goals: on ? p.goals.filter((x) => x !== g) : [...p.goals, g] })); }} className="h-10 rounded-full px-4 text-[15px] font-medium text-ink" style={{ background: on ? "var(--tint)" : "var(--surface)", boxShadow: on ? "0 0 0 2px #23305C" : "0 0 0 0.5px var(--hairline)" }}>{g}</button>;
           })}</div>
         </div>
         {error && <p className="m-0 text-sm text-red">{error}</p>}

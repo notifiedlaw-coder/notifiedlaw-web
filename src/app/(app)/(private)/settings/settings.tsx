@@ -15,10 +15,10 @@ import { CREDIT_NAME, PLAN_NAMES, PLANS } from "@/lib/data";
 import { STUDENT_VERIFY_DAYS } from "@/lib/student";
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="flex flex-col gap-1.5"><Eyebrow>{title}</Eyebrow><div className="overflow-hidden rounded-xl bg-surface shadow-card">{children}</div></section>
+  <section className="flex flex-col gap-2"><div className="pl-1"><Eyebrow>{title}</Eyebrow></div><div className="overflow-hidden rounded-2xl border border-edge/10 bg-surface">{children}</div></section>
 );
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex min-h-11 items-center justify-between gap-4 border-t border-edge/[0.06] px-4 py-2 text-sm first:border-0"><span className="font-medium">{label}</span><span>{children}</span></div>
+  <div className="flex min-h-14 items-center justify-between gap-3 border-t border-edge/[0.07] px-[18px] py-2.5 text-[16px] first:border-0"><span>{label}</span><span className="min-w-0 text-right text-[15px] text-muted">{children}</span></div>
 );
 
 /** An iOS-style switch. */
@@ -37,12 +37,12 @@ export function Settings() {
   const user = useUser();
 
   return (
-    <Page max={640}>
+    <Page max={680}>
       <ProfilePhoto name={user.name} email={user.email} />
-      <Group title="Reading level">
+      <Group title="Profile">
         <Row label="Level"><LevelSelect value={profile?.level || "200"} onChange={setLevel} /></Row>
+        {profile && <ProfileForm profile={profile} />}
       </Group>
-      {profile && <ProfileForm profile={profile} />}
       {student && (
         <Group title="Student">
           <Row label="University">{student.university}</Row>
@@ -55,25 +55,25 @@ export function Settings() {
           <Group title="Friends">
             <Row label="Find me by email"><Switch on={findByEmail} onChange={setFindByEmail} label="Find me by email" /></Row>
           </Group>
-          <p className="m-0 px-4 text-[13px] text-muted">When this is off, someone who types your email is told no account uses it. People you already have a request with can still reach you.</p>
+          <p className="m-0 px-1 text-[14px] text-muted">When this is off, someone who types your email is told no account uses it. People you already have a request with can still reach you.</p>
         </section>
       )}
-      <Group title="Subscription">
-        <Row label="Current plan">{PLAN_NAMES[plan]}</Row>
+      <Group title="Plan">
+        <Row label={PLAN_NAMES[plan]}><Link href="/plans" className="font-bold text-blue" style={{ textDecoration: "none" }}>Manage</Link></Row>
         <Row label={CREDIT_NAME}>{credits} available{allowance > 0 ? ` · ${allowance} monthly` : ""}</Row>
         <Row label="Payment method">MTN MoMo · •• •• 0123</Row>
-        <Link href="/plans" className="block border-t border-edge/[0.06] px-4 py-3 text-sm" style={{ textDecoration: "none" }}>Change plan</Link>
       </Group>
-      <Group title="Appearance">
-        <Row label="Theme"><Segmented options={["system", "light", "dark"] as readonly Theme[]} value={theme} onChange={setTheme} labels={{ system: "System", light: "Light", dark: "Dark" }} /></Row>
-      </Group>
+      <section className="flex flex-col gap-2">
+        <div className="pl-1"><Eyebrow>Appearance</Eyebrow></div>
+        <Segmented options={["light", "dark", "system"] as readonly Theme[]} value={theme} onChange={setTheme} labels={{ system: "System", light: "Light", dark: "Dark" }} />
+      </section>
       {DEMO_BILLING && (
         <Group title="Demo">
           <Row label="Preview as plan"><Segmented options={PLANS} value={plan} onChange={setPlan} labels={{ None: "Unpaid", "Pro Max": "Max" }} /></Row>
         </Group>
       )}
       <DeleteAccount />
-      <button onClick={() => authClient.signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } })} className="cursor-pointer rounded-xl border-0 bg-surface py-3 text-center text-sm font-medium text-red shadow-card" style={{ color: "#FF3B30" }}>Sign Out</button>
+      <button onClick={() => authClient.signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/"; } } })} className="h-[52px] cursor-pointer rounded-full border border-plum/40 bg-transparent text-center text-[16px] font-semibold text-plum hover:bg-plum/5">Sign out</button>
     </Page>
   );
 }
@@ -117,8 +117,8 @@ function ProfilePhoto({ name, email }: { name: string; email: string }) {
       </button>
       <input ref={file} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" hidden onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = ""; }} />
       <div className="flex min-w-0 flex-col gap-0.5">
-        <div className="truncate text-xl font-bold">{name}</div>
-        <div className="truncate text-[13px] text-muted">{email}</div>
+        <div className="truncate font-display text-[34px] leading-[1.1]">{name}</div>
+        <div className="truncate text-[15px] text-faint">{email}</div>
         {busy ? <span className="text-[13px] text-muted">Saving picture…</span>
           : <span className="flex gap-3 text-[13px]">
             <button type="button" onClick={() => file.current?.click()} className="cursor-pointer border-0 bg-transparent p-0 text-link">{avatar ? "Change picture" : "Add picture"}</button>
@@ -144,7 +144,7 @@ function DeleteAccount() {
   };
   return (
     <Group title="Delete account">
-      <div className="flex flex-col gap-3 px-4 py-3 text-sm">
+      <div className="flex flex-col gap-3 px-[18px] py-4 text-[15px]">
         <p className="m-0 text-muted">Deletes your profile, plan, {CREDIT_NAME} and every file in My Files. This cannot be undone.</p>
         {stage === "idle" ? (
           <div><Btn tone="plain" onClick={() => setStage("confirm")}>Delete account…</Btn></div>
