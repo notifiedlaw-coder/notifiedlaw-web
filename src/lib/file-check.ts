@@ -25,8 +25,8 @@ function latin1(b: Uint8Array) {
 
 /**
  * Inflates `data` with the given format, keeping at most `max` bytes. Returns what was produced, whether the
- * stream ended cleanly, and whether it ran past `max`. Viewers show what they can of a broken stream, so a
- * broken one still returns its partial output to be checked.
+ * stream ended cleanly, and whether it ran past `max` (then with no output, since the file is refused anyway).
+ * Viewers show what they can of a broken stream, so a broken one still returns its partial output to be checked.
  */
 async function inflate(data: Uint8Array, format: "deflate" | "deflate-raw", max: number) {
   const reader = new Blob([data as BlobPart]).stream().pipeThrough(new DecompressionStream(format)).getReader();
@@ -41,7 +41,9 @@ async function inflate(data: Uint8Array, format: "deflate" | "deflate-raw", max:
       chunks.push(value);
     }
   } catch { clean = false; }
-  const out = new Uint8Array(Math.min(size, max));
+  if (over) return { out: new Uint8Array(0), clean, over };
+  if (chunks.length === 1) return { out: chunks[0], clean, over };
+  const out = new Uint8Array(size);
   let at = 0;
   for (const c of chunks) { out.set(c, at); at += c.byteLength; }
   return { out, clean, over };
@@ -73,10 +75,14 @@ function pdfProblem(text: string): string | null {
   return null;
 }
 
-/** Start of the `<< ... >>` dictionary that ends at `end` (exclusive), or -1. */
-function dictStart(s: string, end: number) {
+/**
+ * Start of the `<< ... >>` dictionary that ends at `end` (exclusive), or -1. `work` is shared by the whole file, so
+ * many streams with long dictionaries cannot each scan back 64 KB.
+ */
+function dictStart(s: string, end: number, work: { left: number }) {
   let depth = 0;
   for (let i = end - 1; i > 0 && end - i < 64 * 1024; i--) {
+    if (--work.left < 0) return -1;
     if (s[i] === ">" && s[i - 1] === ">") { depth++; i--; }
     else if (s[i] === "<" && s[i - 1] === "<") { depth--; i--; if (depth === 0) return i; }
   }
@@ -90,7 +96,10 @@ async function checkPdf(bytes: Uint8Array): Promise<CheckResult> {
   // Stream data (images, fonts, page content) is binary and is left out of the scan, where it would match by
   // chance. Objects can also be packed, compressed, inside object streams (/Type /ObjStm): those are inflated
   // and scanned like the rest.
-  let budget = 100 * MB, outside = "", from = 0;
+  // Inflated object streams and dictionary scanning are both capped for the whole file, so a crafted PDF cannot
+  // use more memory or CPU than a Worker has. Real PDFs come nowhere near either.
+  let budget = 16 * MB, outside = "", from = 0;
+  const work = { left: 16 * MB };
   for (let at = 0; (at = s.indexOf("stream", at)) >= 0; ) {
     const index = at;
     at += 6;
@@ -104,7 +113,8 @@ async function checkPdf(bytes: Uint8Array): Promise<CheckResult> {
     outside += s.slice(from, dataStart);
     from = at = dataEnd;
     const dictEnd = s.lastIndexOf(">>", m.index) + 2;
-    const start = dictStart(s, dictEnd);
+    const start = dictStart(s, dictEnd, work);
+    if (work.left < 0) return fail("This PDF is too complex to check. Print it to a new PDF and try again.");
     if (start < 0) continue;
     const dict = decodeNames(s.slice(start, dictEnd));
     if (!/\/Type\s*\/ObjStm\b/.test(dict)) continue;
@@ -178,7 +188,7 @@ export function zipEntries(b: Uint8Array): Entry[] | string {
     if (seen.has(lower)) return "This Word file contains duplicate parts.";
     seen.add(lower);
     // A small part that expands enormously is a zip bomb.
-    if (size > 10 * MB && size > comp * 100) return "This Word file expands to an unsafe size.";
+    if (size > MB && size > comp * 100) return "This Word file expands to an unsafe size.";
 
     // The local header must agree with the central directory, so a checker and Word read the same bytes.
     if (offset + 30 > b.length || v.getUint32(offset, true) !== 0x04034b50) return "This Word file is damaged.";
@@ -201,7 +211,12 @@ export async function readEntry(b: Uint8Array, e: Entry, max: number): Promise<s
   return new TextDecoder().decode(r.out);
 }
 
-const attrs = (tag: string) => Object.fromEntries([...tag.matchAll(/([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)].map((m) => [m[1], m[2] ?? m[3]]));
+/** A tag's attributes. Each name must follow whitespace, so the scan stays linear however the tag is padded. */
+const attrs = (tag: string) => Object.fromEntries([...tag.matchAll(/\s([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)].map((m) => [m[1], m[2] ?? m[3]]));
+/** Longest tag read for its attributes; real ones are a few hundred bytes. */
+const MAX_TAG = 16 * 1024;
+/** Most of one text part (document, header, notes) inflated for checking. */
+const MAX_PART = 24 * MB;
 
 async function checkDocx(bytes: Uint8Array): Promise<CheckResult> {
   const entries = zipEntries(bytes);
@@ -226,7 +241,8 @@ async function checkDocx(bytes: Uint8Array): Promise<CheckResult> {
     if (!e.name.endsWith(".rels")) continue;
     const xml = await readEntry(bytes, e, 4 * MB);
     if (xml === null) return fail("This Word file is damaged.");
-    for (const [tag] of xml.matchAll(/<(?:\w+:)?Relationship\b[^>]*>/g)) {
+    for (const [tag] of xml.matchAll(/<(?:\w+:)?Relationship\b[^<>]*>?/g)) {
+      if (tag.length > MAX_TAG || !tag.endsWith(">")) return fail("This Word file is damaged or too unusual to check.");
       const a = attrs(tag);
       if (a.TargetMode !== "External") continue;
       const hyperlink = a.Type?.endsWith("/hyperlink");
@@ -237,12 +253,13 @@ async function checkDocx(bytes: Uint8Array): Promise<CheckResult> {
 
   for (const e of entries) {
     if (!/^word\/(document|header\d*|footer\d*|footnotes|endnotes|comments)\.xml$/.test(e.name)) continue;
-    const xml = await readEntry(bytes, e, 64 * MB);
+    const xml = await readEntry(bytes, e, MAX_PART);
     if (xml === null) return fail("This Word file is damaged or too large to check.");
     // A field's code can be split across many runs, so join each document's field text before matching.
     if (!/instr/.test(xml)) continue;
-    const codes = [...xml.matchAll(/<w:instrText\b[^>]*>([^<]*)<\/w:instrText>/g)].map((m) => m[1]).join("")
-      + [...xml.matchAll(/<w:fldSimple\b[^>]*\bw:instr\s*=\s*"([^"]*)"/g)].map((m) => m[1]).join(" ");
+    // [^<>] keeps each match inside one tag, so an unclosed tag cannot make every match scan to the end.
+    const codes = [...xml.matchAll(/<w:instrText\b[^<>]*>([^<]*)<\/w:instrText>/g)].map((m) => m[1]).join("")
+      + [...xml.matchAll(/<w:fldSimple\b[^<>]*\bw:instr\s*=\s*"([^"]*)"/g)].map((m) => m[1]).join(" ");
     if (DDE.test(codes)) return fail("This Word file has DDE fields that can run programs, so it cannot be uploaded.");
   }
   return { ok: true, kind: "docx" };
