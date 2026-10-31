@@ -15,7 +15,7 @@ export type GroupDetail = { id: string; name: string; avatar: string | null; own
 export type GroupMessage = { id: string; fromId: string; fromMe: boolean; name: string; avatar: string | null; body: string; at: number };
 
 export type CallInfo = { id: string; groupId: string | null; groupName: string | null; callerId: string; callerName: string; calleeId: string | null; video: boolean; startedAt: number; endsAt: number; endedAt: number | null; endReason: string | null };
-export type CallPeer = { userId: string; name: string; avatar: string | null; sessionId: string; tracks: string[] };
+export type CallPeer = { userId: string; name: string; avatar: string | null; session: string; tracks: string[] };
 export type FriendLists = { friends: Friend[]; incoming: Friend[]; outgoing: Friend[] };
 export const NO_FRIENDS: FriendLists = { friends: [], incoming: [], outgoing: [] };
 

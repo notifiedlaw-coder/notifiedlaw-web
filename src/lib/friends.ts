@@ -119,6 +119,13 @@ export async function areFriends(a: string, b: string) {
   return row?.status === "accepted" && !(await blockedEitherWay(a, b));
 }
 
+/** Everyone the user has blocked or been blocked by, to keep them apart in groups they share with others. */
+export async function blockedWith(userId: string) {
+  const rows = await getDb().select({ a: userBlock.blockerId, b: userBlock.blockedId }).from(userBlock)
+    .where(or(eq(userBlock.blockerId, userId), eq(userBlock.blockedId, userId)));
+  return new Set(rows.map((r) => (r.a === userId ? r.b : r.a)));
+}
+
 /** Whether either account has blocked the other. */
 export async function blockedEitherWay(a: string, b: string) {
   const [row] = await getDb().select({ x: userBlock.blockerId }).from(userBlock)

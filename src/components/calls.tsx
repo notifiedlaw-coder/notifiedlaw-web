@@ -336,9 +336,9 @@ function CallScreen({ active, mini, setMini, onClose }: { active: Active; mini: 
         setPeers(d.peers);
         if (d.peers.length) setTalkingSince((t) => t ?? Date.now());
         setAudio((a) => Object.fromEntries(Object.entries(a).filter(([id]) => d.peers.some((p) => p.userId === id))));
-        const wants = d.peers.filter((p) => p.tracks.includes("audio") && !pulled.current.has(p.sessionId));
+        const wants = d.peers.filter((p) => p.tracks.includes("audio") && !pulled.current.has(p.session));
         if (!wants.length || !pc.current) return;
-        wants.forEach((w) => pulled.current.add(w.sessionId));
+        wants.forEach((w) => pulled.current.add(w.session));
         await serial(async () => {
           const conn = pc.current;
           if (!conn) return;
@@ -351,7 +351,7 @@ function CallScreen({ active, mini, setMini, onClose }: { active: Active; mini: 
               await post(`/api/calls/${callId}/answer`, { sdp: conn.localDescription!.sdp });
             }
           } catch {
-            wants.forEach((w) => pulled.current.delete(w.sessionId)); // try again on the next poll
+            wants.forEach((w) => pulled.current.delete(w.session)); // try again on the next poll
           }
         });
       } catch {}

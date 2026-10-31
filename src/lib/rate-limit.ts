@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-type Bucket = "WRITES" | "READS" | "ADMIN" | "MEDIA" | "UNI_EMAIL" | "TIMETABLE" | "CALLS" | "MESSAGES" | "AVATARS" | "TYPING";
+type Bucket = "WRITES" | "READS" | "ADMIN" | "MEDIA" | "UNI_EMAIL" | "TIMETABLE" | "CALLS" | "MESSAGES" | "AVATARS" | "TYPING" | "SFU";
 
 /** Buckets set faster than a person works: going over one keeps refusing that key for this long (ms). */
 const BLOCK_MS: Partial<Record<Bucket, number>> = { TIMETABLE: 5 * 60_000 };
@@ -12,7 +12,7 @@ const blocked = new Map<string, number>();
 /**
  * Per-client rate limit using the Workers Rate Limiting bindings in wrangler.jsonc. Returns a 429 response when
  * the caller is over the limit, otherwise null. Keyed on the user id when known, else the client IP.
- * Fails open if the binding is missing (local `next dev`).
+ * Fails open only under `next dev`, which has no bindings; a missing binding in production refuses the request.
  */
 export async function limited(req: Request, bucket: Bucket, userId?: string | null): Promise<Response | null> {
   return limitedBy(bucket, [userId ?? clientIp(req)]);
@@ -23,7 +23,7 @@ export const clientIp = (req: Request) => req.headers.get("cf-connecting-ip") ??
 /** Like `limited`, with explicit keys: over the limit on any one of them returns the 429. */
 export async function limitedBy(bucket: Bucket, keys: string[]): Promise<Response | null> {
   const binding = (getCloudflareContext().env as unknown as Record<string, RateLimit | undefined>)[`RL_${bucket}`];
-  if (!binding) return null;
+  if (!binding) return process.env.NODE_ENV === "production" ? tooMany(bucket, 60) : null;
   const now = Date.now();
   const ids = keys.map((key) => `${bucket}:${key}`);
   const until = Math.max(0, ...ids.map((id) => blocked.get(id) ?? 0));

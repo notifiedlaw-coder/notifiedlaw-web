@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, desc, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { call, callParticipant, chatGroup, groupMember } from "@/db/schema";
 import { getDb } from "@/lib/auth";
-import { areFriends, blockedEitherWay, people } from "@/lib/friends";
+import { areFriends, blockedEitherWay, blockedWith, people } from "@/lib/friends";
 import { MAX_CALL_MS, MAX_GROUP_MEMBERS, type CallInfo, type CallPeer } from "@/lib/friend-view";
 import { closeTracks, newSession, pullTracks, pushTracks, renegotiate, sfuConfigured } from "@/lib/sfu";
 
@@ -144,15 +144,19 @@ export async function ringing(userId: string): Promise<CallInfo[]> {
   const db = getDb();
   const since = new Date(Date.now() - RING_MS);
   const groups = db.select({ id: groupMember.groupId }).from(groupMember).where(eq(groupMember.userId, userId));
-  const rows = await db.select().from(call).where(and(
+  const [rows, blocked] = await Promise.all([db.select().from(call).where(and(
     isNull(call.endedAt), gt(call.startedAt, since), ne(call.callerId, userId),
     or(eq(call.calleeId, userId), inArray(call.groupId, groups)),
     sql`not exists (select 1 from call_participant p where p.call_id = ${call.id} and p.user_id = ${userId})`,
-  ));
-  return Promise.all(rows.map(info));
+  )), blockedWith(userId)]);
+  // A group call started by someone blocked either way does not ring; the group still shows it to join.
+  return Promise.all(rows.filter((r) => !blocked.has(r.callerId)).map(info));
 }
 
-/** The call as the call screen polls it: the call, and everyone else in it with the tracks they publish. */
+/**
+ * The call as the call screen polls it: the call, and everyone else in it with the tracks they publish. Each peer
+ * carries a handle that changes when they rejoin, not their SFU session id, which the browser has no use for.
+ */
 export async function callState(userId: string, callId: string): Promise<{ call: CallInfo; peers: CallPeer[] }> {
   const c = await load(userId, callId);
   const db = getDb();
@@ -164,7 +168,7 @@ export async function callState(userId: string, callId: string): Promise<{ call:
     call: await info(c),
     peers: rows.map((r) => ({
       userId: r.userId, name: names.get(r.userId)?.name ?? "Someone", avatar: names.get(r.userId)?.avatar ?? null,
-      sessionId: r.sessionId, tracks: (JSON.parse(r.tracks) as Published[]).map((t) => t.name),
+      session: `${r.userId}:${r.joinedAt.getTime()}`, tracks: (JSON.parse(r.tracks) as Published[]).map((t) => t.name),
     })),
   };
 }
@@ -209,13 +213,15 @@ export async function publish(userId: string, callId: string, offer: string, tra
 
 /**
  * Subscribes the user to other people's tracks in the same call. Only sessions of people present in this call can be
- * pulled, so nobody can listen in on another call by guessing a session id. Each track is pulled once per session and
+ * pulled, so nobody can listen in on another call by guessing a session id; two people where one has blocked the
+ * other do not hear each other, even in a group call they are both in. Each track is pulled once per session and
  * a session pulls at most MAX_PULLED, so repeating a request cannot multiply what the SFU sends.
  */
 export async function subscribe(userId: string, callId: string, wants: { userId: string; name: string }[]) {
   const p = await me(userId, callId);
   const rows = await getDb().select().from(callParticipant).where(and(eq(callParticipant.callId, callId), present(Date.now()), ne(callParticipant.userId, userId)));
-  const byUser = new Map(rows.map((r) => [r.userId, r]));
+  const blocked = await blockedWith(userId);
+  const byUser = new Map(rows.filter((r) => !blocked.has(r.userId)).map((r) => [r.userId, r]));
   const pulled = JSON.parse(p.pulled) as Pulled[];
   const had = new Set(pulled.map((t) => t.key));
   const ok = new Map<string, { sessionId: string; trackName: string }>();

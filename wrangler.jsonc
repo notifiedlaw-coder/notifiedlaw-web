@@ -52,6 +52,8 @@
     { "name": "RL_TIMETABLE", "namespace_id": "1007", "simple": { "limit": 12, "period": 10 } },
     // Call signalling (join, publish, subscribe, answer), per user. Joining a full group call takes a few dozen.
     { "name": "RL_CALLS", "namespace_id": "1008", "simple": { "limit": 120, "period": 60 } },
+    // The same signalling for every user together (key "all"), so many free accounts cannot run up the SFU bill.
+    { "name": "RL_SFU", "namespace_id": "1012", "simple": { "limit": 3000, "period": 60 } },
     // Messages sent (direct and group), per user: a fast typist, not a script.
     { "name": "RL_MESSAGES", "namespace_id": "1009", "simple": { "limit": 30, "period": 60 } },
     // Profile and group picture uploads, per user.

@@ -17,6 +17,7 @@ interface __BaseEnv_CloudflareEnv {
 	RL_MESSAGES: RateLimit;
 	RL_AVATARS: RateLimit;
 	RL_TYPING: RateLimit;
+	RL_SFU: RateLimit;
 	IMAGES: ImagesBinding;
 	ASSETS: Fetcher;
 	GOOGLE_CLIENT_ID: "776945171684-51d8p7incfdsv3vfaendvmg10vo75br2.apps.googleusercontent.com";

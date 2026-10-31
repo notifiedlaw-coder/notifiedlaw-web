@@ -1,5 +1,5 @@
 import { userIdFrom } from "@/lib/auth";
-import { limited } from "@/lib/rate-limit";
+import { limited, limitedBy } from "@/lib/rate-limit";
 import { readBytes } from "@/lib/http";
 import { CallError, answer, declineCall, joinCall, leaveCall, publish, subscribe } from "@/lib/calls";
 import { ICE_SERVERS } from "@/lib/sfu";
@@ -21,7 +21,8 @@ const str = (v: unknown, max: number) => (typeof v === "string" && v.length <= m
 export async function POST(req: Request, { params }: Ctx) {
   const userId = await userIdFrom(req);
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
-  const rl = await limited(req, "CALLS", userId);
+  // Per user, then for everyone together: free sign-ups multiply the per-user allowance, the SFU budget is shared.
+  const rl = (await limited(req, "CALLS", userId)) ?? (await limitedBy("SFU", ["all"]));
   if (rl) return rl;
   const { id, action } = await params;
   const raw = await readBytes(req, MAX_BODY);
