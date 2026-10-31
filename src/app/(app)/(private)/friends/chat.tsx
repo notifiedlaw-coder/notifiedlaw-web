@@ -121,8 +121,10 @@ export function ChatView({ header, messages, rule, empty, status, group, now, ty
             );
           })}
         </ol>
-        {typingShown && <TypingBubble typers={typers} group={group} />}
       </div>
+
+      {/* Pinned just above the composer, on the left, so it is seen wherever the conversation is scrolled. */}
+      {typingShown && <div className="shrink-0 px-3 pb-1.5 md:px-6"><TypingBubble typers={typers} group={group} /></div>}
 
       <form onSubmit={(e) => { e.preventDefault(); void send(); }} className="flex shrink-0 flex-col gap-1 border-t-[0.5px] border-edge/15 bg-surface/80 px-3 py-2 backdrop-blur-xl md:px-6">
         {error && <p role="alert" className="m-0 px-1 text-[13px] text-red">{error}</p>}
@@ -154,7 +156,7 @@ export function typingLabel(typers: Typer[]) {
 /** Three dots bouncing in a received bubble, as in Messages; in a group, beside the picture of whoever is typing. */
 function TypingBubble({ typers, group }: { typers: Typer[]; group?: boolean }) {
   return (
-    <div role="status" aria-label={group ? typingLabel(typers) : "Typing"} className="mt-1 flex items-end gap-2 animate-[nl-pop_0.2s_ease-out] origin-bottom-left">
+    <div role="status" aria-label={group ? typingLabel(typers) : "Typing"} className="flex w-fit items-end gap-2 animate-[nl-pop_0.2s_ease-out] origin-bottom-left">
       {group && <Avatar id={typers[0].id} name={typers[0].name} src={typers[0].avatar} size={28} />}
       <span className="flex h-[38px] items-center gap-[5px] rounded-[18px] rounded-bl-[6px] bg-surface px-4 shadow-card">
         {[0, 1, 2].map((i) => <span key={i} className="size-[7px] rounded-full bg-muted animate-[nl-typing_1.2s_ease-in-out_infinite]" style={{ animationDelay: `${i * 0.15}s` }} />)}
