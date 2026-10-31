@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Crest } from "@/components/avatar";
 import { usePathname } from "next/navigation";
 import { PLAN_NAMES } from "@/lib/data";
@@ -234,14 +235,53 @@ function TabBar({ path }: { path: string }) {
   );
 }
 
+/** A field that brings up the on-screen keyboard. */
+const typing = (el: Element | null) =>
+  el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable)
+  || (el instanceof HTMLInputElement && !["button", "checkbox", "color", "file", "hidden", "image", "radio", "range", "reset", "submit"].includes(el.type));
+
+/**
+ * Phones and tablets with an on-screen keyboard: while a text field has focus, the app fits the part of the screen
+ * above the keyboard (the visual viewport) and the tab bar is hidden. Without this the browser pans the whole page,
+ * tab bar included, up over the keyboard. Returns the box to pin the app to, or null when no keyboard is open.
+ */
+function useKeyboardBox() {
+  const [box, setBox] = useState<{ top: number; height: number } | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv || !window.matchMedia("(pointer: coarse)").matches) return;
+    const update = () => {
+      const open = typing(document.activeElement);
+      document.documentElement.toggleAttribute("data-keyboard", open);
+      setBox(open ? { top: vv.offsetTop, height: vv.height } : null);
+    };
+    // Focus moves before the keyboard finishes opening; the viewport events follow it to its final size.
+    const later = () => requestAnimationFrame(update);
+    document.addEventListener("focusin", later);
+    document.addEventListener("focusout", later);
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      document.removeEventListener("focusin", later);
+      document.removeEventListener("focusout", later);
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      document.documentElement.removeAttribute("data-keyboard");
+    };
+  }, []);
+  return box;
+}
+
 export function AppShell({ me, children }: { me: Me | null; children: React.ReactNode }) {
   const path = usePathname();
   const sec = sectionFor(path);
+  const keyboard = useKeyboardBox();
   return (
     <PlanProvider me={me}>
     <FriendsProvider enabled={!!me}>
     <CallProvider enabled={!!me}>
-    <div className="flex h-dvh overflow-hidden bg-canvas text-[15px] text-ink">
+    <div className="flex h-dvh overflow-hidden bg-canvas text-[15px] text-ink"
+      style={keyboard ? { position: "fixed", left: 0, right: 0, top: keyboard.top, height: keyboard.height } : undefined}>
       <Sidebar path={path} />
       <Rail path={path} />
       <div className="relative flex min-w-0 flex-1 flex-col">
@@ -250,7 +290,7 @@ export function AppShell({ me, children }: { me: Me | null; children: React.Reac
         <main id="main" tabIndex={-1} className="nl-content min-h-0 flex-1 overflow-auto overscroll-contain bg-canvas">
           {children}
         </main>
-        <TabBar path={path} />
+        {!keyboard && <TabBar path={path} />}
       </div>
     </div>
     </CallProvider>

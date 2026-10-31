@@ -129,6 +129,17 @@
 @media (max-width: 767px) {
   :root { --tabbar: calc(58px + max(6px, env(safe-area-inset-bottom))); }
 }
+/* While the on-screen keyboard is open the tab bar is hidden (app-shell useKeyboardBox), so bottom overlays sit on the keyboard. */
+:root[data-keyboard] { --tabbar: 0px; }
+
+/* Touch screens: iOS zooms the whole page into any field set below 16 px, so text fields never go smaller. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="file"]),
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
 
 /* Public pages scroll the document: reserve the scrollbar's width so the centred top bar does not shift
    between long and short pages. The app shell scrolls inside its own panel, so it is left alone. */
