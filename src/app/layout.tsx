@@ -74,6 +74,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   // Lets the top and tab bars run under the notch and home indicator; they pad themselves with env(safe-area-inset-*).
   viewportFit: "cover",
+  // Android: the keyboard shrinks the layout, as in a native app, instead of sliding the page up behind it.
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f6f5f2" },
     { media: "(prefers-color-scheme: dark)", color: "#12151f" },

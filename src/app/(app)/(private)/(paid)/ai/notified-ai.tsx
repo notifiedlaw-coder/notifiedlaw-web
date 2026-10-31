@@ -93,6 +93,14 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
   useEffect(() => {
     if (stick.current) scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
   }, [messages]);
+  // As in a native chat app: when the keyboard opens and the chat area shrinks, the newest message stays in view.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => { if (stick.current) el.scrollTo({ top: el.scrollHeight, behavior: "instant" }); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => () => { abort.current?.abort(); voice.current?.stop(); }, []);
   useEffect(() => {
     // Opened from a file, case or topic with a question ready: put the caret at the end.
@@ -333,10 +341,10 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
         </div>
 
         {/* The composer: modes above it, what was @-mentioned in it, and the list of things to mention opens over it. */}
-        <div className="shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1 md:px-6">
+        <div className="shrink-0 px-3 pb-2.5 pt-1 md:px-6 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="relative mx-auto w-full max-w-[720px]">
             {mention && <MentionList options={options} index={pickIndex} full={attached.length >= MAX_REFS} none={!mentions.length} onPick={pick} onHover={setPickIndex} />}
-            <div className="-mx-1 mb-2.5 flex items-center gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="nl-kb-hide -mx-1 mb-2.5 flex items-center gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div role="radiogroup" aria-label="Study mode" className="flex shrink-0 gap-2">
                 {MODE_ORDER.filter((k, i) => moreModes || i < FIRST_MODES || k === mode).map((k) => (
                   <button key={k} type="button" role="radio" aria-checked={mode === k} title={MODES[k].hint} onClick={() => setMode(k)}

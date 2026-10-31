@@ -131,6 +131,15 @@
 }
 /* While the on-screen keyboard is open the tab bar is hidden (app-shell useKeyboardBox), so bottom overlays sit on the keyboard. */
 :root[data-keyboard] { --tabbar: 0px; }
+/* Phones while typing: secondary rows (such as the Ask AI modes) step aside so the conversation keeps its room. */
+@media (max-width: 767px) {
+  :root[data-keyboard] .nl-kb-hide { display: none; }
+}
+/* The app shell scrolls inside itself, so the page never rubber-bands and drags the bars with it. */
+html:has(#main.nl-content),
+html:has(#main.nl-content) body {
+  overscroll-behavior: none;
+}
 
 /* Touch screens: iOS zooms the whole page into any field set below 16 px, so text fields never go smaller. */
 @media (pointer: coarse) {
