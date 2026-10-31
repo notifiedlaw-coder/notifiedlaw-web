@@ -31,7 +31,8 @@ const weekNumber = (today: string) => {
 export function Leaderboard({ today, initialFriends, myStreak }: { today: string; initialFriends: Friend[]; myStreak: number }) {
   // Hick's law: this week only, and one switch for whom you are ranked against.
   const period: Period = "week";
-  const [scope, setScope] = useState<Scope>("school");
+  // Ghana first: students from every university, then your own and your friends.
+  const [scope, setScope] = useState<Scope>("everyone");
   const [bonus, setBonus] = useState(0); // points from this session's quiz
   const [quiz, setQuiz] = useState(false);
   const [taken, setTaken] = useState(false);
@@ -73,7 +74,7 @@ export function Leaderboard({ today, initialFriends, myStreak }: { today: string
         </div>
       </section>
 
-      <Seg label="Who" value={scope} onChange={setScope} options={[["school", "University"], ["everyone", "Ghana"], ["friends", "Friends"]]} />
+      <Seg label="Who" value={scope} onChange={setScope} options={[["everyone", "Ghana"], ["school", "University"], ["friends", "Friends"]]} />
 
       {friendsView && !friends.length ? (
         <section aria-label="Friends" className="flex flex-col items-center gap-3 rounded-[18px] border border-edge/10 bg-surface px-6 py-10 text-center">

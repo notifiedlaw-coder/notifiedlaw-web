@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { BookmarkButton, useBookmarks } from "@/components/bookmark";
 import { usePlan } from "@/components/plan";
+import { Sheet } from "@/components/sheet";
 import { CompareSheet } from "./compare-sheet";
 import { Chevron, Page, SearchField, Segmented } from "@/components/ui";
 import type { CmsCase, CmsColumn } from "@/lib/cms";
@@ -55,6 +56,7 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
   const [comparing, setComparing] = useState(false);
   const [pick, setPick] = useState<string[]>([]);
   const [sheet, setSheet] = useState(false);
+  const [filtering, setFiltering] = useState(false); // phones: the filters in a bottom sheet
   const startCompare = () => {
     if (!marks.marked) return router.push("/login");
     if (!paid) return router.push("/plans");
@@ -96,8 +98,15 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
       {/* Hick's law: search first, then a handful of filters. */}
       <div className="relative -mt-2 flex flex-col gap-3">
         <div className="flex"><SearchField value={q} onChange={setQ} placeholder="Search cases, citations, courts" /></div>
-        <div className="-mx-[18px] flex items-center gap-2 overflow-x-auto px-[18px] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-          {filters.map((c) => <ColumnFilter key={c.name} col={c} picked={picked[c.name] ?? []} onPick={(v) => setCol(c.name, v)} count={(v) => count(c.name, v)} pill />)}
+        {/* Phones: one Filters button opens every filter and the sort in a sheet, so the row fits the screen. */}
+        <div className="flex items-center gap-2 sm:flex-wrap">
+          <button type="button" onClick={() => setFiltering(true)} aria-haspopup="dialog" className={`shrink-0 sm:hidden ${pill(active > 0)}`}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden><path d="M2.5 4.5h11M4.5 8h7M6.5 11.5h3" /></svg>
+            Filters{active > 0 ? ` · ${active}` : ""}
+          </button>
+          <div className="hidden sm:contents">
+            {filters.map((c) => <ColumnFilter key={c.name} col={c} picked={picked[c.name] ?? []} onPick={(v) => setCol(c.name, v)} count={(v) => count(c.name, v)} pill />)}
+          </div>
           <button type="button" aria-pressed={saved} onClick={() => (marks.marked ? setSaved((v) => !v) : marks.toggle(""))} className={`shrink-0 ${pill(saved)}`}>
             Saved{marks.marked?.size ? ` · ${marks.marked.size}` : ""}
           </button>
@@ -105,8 +114,12 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
             {comparing ? "Cancel compare" : "Compare"}
           </button>
           <span className="hidden flex-1 sm:block" />
-          <div className="w-[140px] shrink-0"><Segmented options={["A–Z", "Z–A"] as const} value={sort} onChange={setSort} /></div>
+          <div className="hidden w-[140px] shrink-0 sm:block"><Segmented options={["A–Z", "Z–A"] as const} value={sort} onChange={setSort} /></div>
         </div>
+        {filtering && (
+          <FilterSheet filters={filters} picked={picked} onPick={setCol} count={count} sort={sort} onSort={setSort} results={cases.length}
+            onReset={() => setPicked({})} onClose={() => setFiltering(false)} />
+        )}
       </div>
       {marks.error && <p role="alert" className="m-0 text-[13px] text-red">{marks.error}</p>}
       <div role="status" className="-mt-3 flex items-center gap-3 text-[14px] text-faint">
@@ -173,7 +186,7 @@ const NoMatch = ({ q, none, saved }: { q: string; none: boolean; saved: boolean 
   <div className="p-8 text-center text-[15px] text-muted">{none ? "No case briefs yet. They appear here once they are published." : q ? <>Nothing matches “{q}”. Try a party name or citation.</> : saved ? "No bookmarked cases here yet. Tap the bookmark on a case to keep it." : "No cases match these filters."}</div>
 );
 
-/** A column's filter: a button (a header, or a pill on small screens) opening a checklist of the column's Notion options. */
+/** A column's filter from small tablets up: a button (a header, or a pill) opening a checklist of the column's Notion options. */
 function ColumnFilter({ col, picked, onPick, count, pill }: { col: Col; picked: string[]; onPick: (v: string[]) => void; count: (v: string) => number; pill?: boolean }) {
   const [open, setOpen] = useState(false);
   const [end, setEnd] = useState(false); // the list opens leftwards when it would run off the right of the screen
@@ -190,8 +203,8 @@ function ColumnFilter({ col, picked, onPick, count, pill }: { col: Col; picked: 
   const toggle = (v: string) => onPick(picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v]);
   const name = label(col.name);
   return (
-    <div ref={box} className={pill ? "shrink-0 sm:relative" : "relative"}>
-      <button type="button" onClick={() => { setEnd(!!pill && window.innerWidth < 640 ? false : (box.current?.getBoundingClientRect().left ?? 0) + 270 > window.innerWidth); setOpen((o) => !o); }} aria-expanded={open} aria-haspopup="true"
+    <div ref={box} className={pill ? "relative shrink-0" : "relative"}>
+      <button type="button" onClick={() => { setEnd((box.current?.getBoundingClientRect().left ?? 0) + 270 > window.innerWidth); setOpen((o) => !o); }} aria-expanded={open} aria-haspopup="true"
         aria-label={`Filter by ${name}${on ? `, ${picked.length} chosen` : ""}`}
         className={pill
           ? `flex h-10 items-center gap-1.5 rounded-full border px-4 text-[15px] font-medium ${on ? "border-transparent bg-strong text-strong-fg" : "border-edge/15 bg-surface text-ink hover:bg-hover"}`
@@ -220,6 +233,55 @@ function ColumnFilter({ col, picked, onPick, count, pill }: { col: Col; picked: 
         </div>
       )}
     </div>
+  );
+}
+
+/** Phones: every column's options and the sort in one bottom sheet, as grouped lists. Choices apply as they are tapped. */
+function FilterSheet({ filters, picked, onPick, count, sort, onSort, results, onReset, onClose }: {
+  filters: Col[]; picked: Record<string, string[]>; onPick: (col: string, v: string[]) => void; count: (col: string, v: string) => number;
+  sort: "A–Z" | "Z–A"; onSort: (v: "A–Z" | "Z–A") => void; results: number; onReset: () => void; onClose: () => void;
+}) {
+  return (
+    <Sheet label="Filters" onClose={onClose}>
+      <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center px-4 pb-2 pt-2.5">
+        <button type="button" onClick={onReset} className="justify-self-start border-0 bg-transparent text-[17px] text-link">Reset</button>
+        <h2 className="m-0 text-[17px] font-semibold">Filters</h2>
+        <button type="button" onClick={onClose} className="justify-self-end border-0 bg-transparent text-[17px] font-semibold text-link">Done</button>
+      </div>
+      <div className="flex flex-col gap-5 overflow-y-auto overscroll-contain px-4 pb-4 pt-2">
+        <section className="flex flex-col gap-2">
+          <h3 className="m-0 px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Sort</h3>
+          <Segmented options={["A–Z", "Z–A"] as const} value={sort} onChange={onSort} />
+        </section>
+        {filters.map((col) => {
+          const on = picked[col.name] ?? [];
+          const toggle = (v: string) => onPick(col.name, on.includes(v) ? on.filter((x) => x !== v) : [...on, v]);
+          return (
+            <section key={col.name} role="group" aria-label={`${label(col.name)} options`} className="flex flex-col gap-2">
+              <h3 className="m-0 px-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">{label(col.name)}</h3>
+              <div className="overflow-hidden rounded-[14px] bg-surface text-[15px]">
+                <button type="button" onClick={() => onPick(col.name, [])} className={`flex min-h-12 w-full items-center gap-3 border-0 bg-transparent px-3.5 text-left text-ink active:bg-fill ${on.length ? "" : "font-semibold"}`}>
+                  <Box on={!on.length} />All
+                </button>
+                {col.options.map((v) => (
+                  <button key={v} type="button" role="checkbox" aria-checked={on.includes(v)} onClick={() => toggle(v)}
+                    className="flex min-h-12 w-full items-center gap-3 border-0 border-t border-edge/[0.07] bg-transparent px-3.5 text-left text-ink active:bg-fill">
+                    <Box on={on.includes(v)} />
+                    <span className="min-w-0 flex-1">{label(v)}</span>
+                    <span className="text-[13px] tabular-nums text-muted">{count(col.name, v)}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+      <div className="shrink-0 border-t border-edge/[0.08] bg-canvas/90 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <button type="button" onClick={onClose} className="h-[50px] w-full rounded-full border-0 bg-blue text-[17px] font-semibold text-white transition-transform active:scale-[0.98]">
+          Show {results} {results === 1 ? "case" : "cases"}
+        </button>
+      </div>
+    </Sheet>
   );
 }
 
