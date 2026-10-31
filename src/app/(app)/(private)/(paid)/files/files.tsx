@@ -4,15 +4,18 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { usePlan } from "@/components/plan";
-import { Btn, Chip, Page, SearchField, Title, cardCls } from "@/components/ui";
+import { Btn, Chip, Page, SearchField } from "@/components/ui";
 import { MAX_FILE_BYTES } from "@/lib/data";
 import type { FilesState, Folder, StoredFile } from "@/lib/files";
 
 const ACCEPT = ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 const FILTERS = ["All", "PDF", "DOCX"] as const;
 // A plain anchor, not Btn's Link: downloads must be ordinary requests, never client navigations or prefetches.
-const plainLink = "inline-flex h-8 items-center justify-center rounded-[7px] bg-surface px-3.5 text-[13px] font-medium text-ink no-underline shadow-[0_0_0_0.5px_var(--hairline)] hover:bg-fill";
-const field = "h-8 min-w-0 rounded-[7px] bg-surface px-2.5 text-[13px] text-ink shadow-[0_0_0_0.5px_var(--hairline)] outline-none focus-visible:ring-2 focus-visible:ring-blue";
+const plainLink = "inline-flex h-10 items-center justify-center rounded-full border border-edge/15 bg-surface px-4 text-[15px] font-medium text-ink! no-underline hover:bg-hover";
+const field = "h-10 min-w-0 rounded-[12px] border border-edge/15 bg-surface px-3 text-[15px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-blue";
+/** A folder's colour tab, picked from the design palette by its name so it stays the same. */
+const TABS = ["#23305C", "#C4552B", "#8A2B4F", "#2F7A4F", "#6B4A8A", "#2F6B6B"];
+const tab = (name: string) => TABS[[...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % TABS.length];
 
 function size(n: number) {
   if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))} KB`;
@@ -182,59 +185,60 @@ export function Files({ initial }: { initial: FilesState }) {
 
   return (
     <Page>
-      <Title
-        title="My Files"
-        sub="Lecture notes, past papers and your own answers, in one place. Only you can see your files."
-        right={
-          <div className="flex w-full gap-2 sm:w-auto">
-            <Btn tone="plain" onClick={() => setNewFolder("")} disabled={newFolder !== null} className="flex-1 sm:flex-none">New folder</Btn>
-            <Btn onClick={() => input.current?.click()} disabled={!!busy} className="flex-1 sm:flex-none">{busy ? `Uploading… ${Math.round(busy.sent * 100)}%` : <><span className="sm:hidden">Upload</span><span className="hidden sm:inline">Upload PDF or Word</span></>}</Btn>
-          </div>
-        }
-      />
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Only you can see these</div>
+          <h1 className="m-0 text-[38px] leading-[1.02] md:text-[46px] lg:text-[56px]">My files</h1>
+        </div>
+        {/* Hick's law: Upload is the one primary action; a new folder is secondary. */}
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Btn tone="plain" onClick={() => setNewFolder("")} disabled={newFolder !== null} className="flex-1 sm:flex-none">New folder</Btn>
+          <Btn onClick={() => input.current?.click()} disabled={!!busy} className="flex-1 sm:flex-none">{busy ? `Uploading… ${Math.round(busy.sent * 100)}%` : <><span className="sm:hidden">Upload</span><span className="hidden sm:inline">Upload PDF or Word</span></>}</Btn>
+        </div>
+      </header>
       <input ref={input} type="file" accept={ACCEPT} multiple hidden onChange={(e) => e.target.files && void upload(e.target.files)} />
 
-      <div className="rounded-xl bg-surface px-4 py-3 shadow-card">
-        <div className="flex justify-between text-xs">
-          <span className="font-semibold">Storage</span>
+      <div className="rounded-[18px] border border-edge/10 bg-surface px-5 py-4">
+        <div className="flex justify-between text-[14px]">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Storage</span>
           <span className="text-muted">{used ? size(used) : "0 MB"} of {size(quota)}</span>
         </div>
-        <div className="mt-2 h-1 overflow-hidden rounded-sm bg-track">
-          <div className="h-full rounded-sm" style={{ width: `${pct}%`, background: full ? "var(--color-red)" : "var(--color-blue)" }} />
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-fill">
+          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: full ? "var(--color-plum)" : "var(--primary)" }} />
         </div>
-        {full && !max && <div className="mt-2 text-xs text-muted">Running out of space? <Link href="/plans">Upgrade for more storage.</Link></div>}
+        {full && !max && <div className="mt-2 text-[14px] text-muted">Running out of space? <Link href="/plans">Upgrade for more storage.</Link></div>}
       </div>
 
       {busy && (
-        <div role="status" className="rounded-xl bg-surface px-4 py-3 shadow-card">
-          <div className="flex justify-between gap-3 text-xs">
+        <div role="status" className="rounded-[18px] border border-edge/10 bg-surface px-5 py-4">
+          <div className="flex justify-between gap-3 text-[14px]">
             <span className="truncate font-semibold">{busy.sent < 1 ? "Uploading" : "Checking"} {busy.name}</span>
             <span className="shrink-0 text-muted">{busy.of > 1 ? `File ${busy.n} of ${busy.of} · ` : ""}{busy.sent < 1 ? `${Math.round(busy.sent * 100)}%` : "Scanning…"}</span>
           </div>
-          <div role="progressbar" aria-label={`Uploading ${busy.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(busy.sent * 100)} className="mt-2 h-1 overflow-hidden rounded-sm bg-track">
-            <div className={`h-full rounded-sm bg-blue transition-[width] duration-200 ${busy.sent >= 1 ? "animate-pulse" : ""}`} style={{ width: `${busy.sent * 100}%` }} />
+          <div role="progressbar" aria-label={`Uploading ${busy.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(busy.sent * 100)} className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-fill">
+            <div className={`h-full rounded-full bg-blue transition-[width] duration-200 ${busy.sent >= 1 ? "animate-pulse" : ""}`} style={{ width: `${busy.sent * 100}%` }} />
           </div>
         </div>
       )}
       {errors.length > 0 && (
-        <div role="alert" className="rounded-xl bg-red/10 px-4 py-3 text-[13px] text-ink">
+        <div role="alert" className="rounded-[18px] bg-plum-bg px-5 py-3.5 text-[14px] text-plum-fg">
           {errors.map((e) => <div key={e}>{e}</div>)}
         </div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <SearchField value={q} onChange={setQ} placeholder="Search all your files" />
+        <div className="flex w-full sm:w-auto sm:flex-1"><SearchField value={q} onChange={setQ} placeholder="Search all your files" /></div>
         {FILTERS.map((x) => <Chip key={x} on={filter === x} onClick={() => setFilter(x)}>{x}</Chip>)}
       </div>
 
       {!needle && (
-        <nav aria-label="Folder" className="-mb-3 flex flex-wrap items-center gap-1 text-[13px]">
+        <nav aria-label="Folder" className="-mb-3 flex flex-wrap items-center gap-1.5 text-[15px]">
           {[{ id: null, name: "My Files" }, ...crumbs].map((c, i, all) => (
             <span key={c.id ?? "root"} className="flex items-center gap-1">
               {i > 0 && <span className="text-faint">/</span>}
               {i === all.length - 1
                 ? <span className="font-semibold">{c.name}</span>
-                : <button type="button" onClick={() => { setCwd(c.id); close(); }} className="text-link">{c.name}</button>}
+                : <button type="button" onClick={() => { setCwd(c.id); close(); }} className="font-semibold text-link">{c.name}</button>}
             </span>
           ))}
         </nav>
@@ -244,21 +248,21 @@ export function Files({ initial }: { initial: FilesState }) {
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); if (!busy && e.dataTransfer.files.length) void upload(e.dataTransfer.files); }}
-        className={`${cardCls} ${over ? "ring-2 ring-blue" : ""}`}
+        className={`overflow-hidden rounded-[18px] border border-edge/10 bg-surface ${over ? "ring-2 ring-blue" : ""}`}
       >
         {newFolder !== null && (
-          <form onSubmit={(e) => { e.preventDefault(); void createFolder(); }} className="flex items-center gap-2 border-b border-[var(--hairline)] px-4 py-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber/15 text-amber"><Icon name="folder" size={16} /></span>
+          <form onSubmit={(e) => { e.preventDefault(); void createFolder(); }} className="flex items-center gap-2.5 border-b border-edge/[0.07] px-5 py-3.5">
+            <FolderTile color={tab(newFolder || "?")} />
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <input autoFocus value={newFolder} onChange={(e) => setNewFolder(e.target.value)} maxLength={80} placeholder="Folder name" aria-label="Folder name" aria-invalid={taken(newFolder, cwd)} aria-describedby="folder-taken" className={field} />
-              {taken(newFolder, cwd) && <span id="folder-taken" className="text-xs text-red">A folder with this name is already here.</span>}
+              {taken(newFolder, cwd) && <span id="folder-taken" className="text-[13px] text-plum">A folder with this name is already here.</span>}
             </div>
             <Btn type="submit" disabled={taken(newFolder, cwd)}>Create</Btn>
             <Btn tone="plain" onClick={() => setNewFolder(null)}>Cancel</Btn>
           </form>
         )}
         {items.length ? (
-          <ul className="m-0 list-none divide-y divide-[var(--hairline)] p-0">
+          <ul className="m-0 list-none divide-y divide-edge/[0.07] p-0">
             {items.map((it) => {
               const { f } = it;
               const isOpen = open === f.id;
@@ -266,33 +270,33 @@ export function Files({ initial }: { initial: FilesState }) {
               const count = nested ? files.filter((x) => x.folderId && nested.has(x.folderId)).length : 0;
               const clash = it.type === "folder" && rename?.id === f.id && taken(rename.value, it.f.parentId, f.id);
               return (
-                <li key={f.id} className="px-4 py-3">
+                <li key={f.id} className="px-5 py-3.5">
                   <div className="flex items-center gap-3">
                     {it.type === "folder" ? (
-                      <button type="button" onClick={() => { setCwd(f.id); setQ(""); close(); }} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber/15 text-amber"><Icon name="folder" size={16} /></span>
+                      <button type="button" onClick={() => { setCwd(f.id); setQ(""); close(); }} className="flex min-w-0 flex-1 items-center gap-3.5 text-left">
+                        <FolderTile color={tab(f.name)} />
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">{f.name}</span>
-                          <span className="block text-xs text-muted">{needle ? label(it.f.parentId) : `Folder · ${count} ${count === 1 ? "file" : "files"}`}</span>
+                          <span className="block truncate text-[16px] font-semibold">{f.name}</span>
+                          <span className="block text-[14px] text-faint">{needle ? label(it.f.parentId) : `Folder · ${count} ${count === 1 ? "file" : "files"}`}</span>
                         </span>
                       </button>
                     ) : (
                       <>
-                        <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${it.f.kind === "pdf" ? "bg-red/10 text-red" : "bg-blue/10 text-link"}`}><Icon name="doc" size={16} /></span>
+                        <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-peach text-[11px] font-bold tracking-[0.04em] text-[var(--peach-fg)]">{it.f.kind.toUpperCase()}</span>
                         <div className="min-w-0 flex-1">
                           {it.f.kind === "pdf"
-                            ? <a href={`/api/files/${f.id}?view=1`} target="_blank" rel="noopener" className="block truncate text-sm font-medium text-ink">{f.name}</a>
-                            : <a href={`/api/files/${f.id}`} className="block truncate text-sm font-medium text-ink">{f.name}</a>}
-                          <div className="truncate text-xs text-muted">{it.f.kind.toUpperCase()} · {size(it.f.size)} · {date(f.createdAt)}{needle ? ` · ${label(it.f.folderId)}` : ""}</div>
+                            ? <a href={`/api/files/${f.id}?view=1`} target="_blank" rel="noopener" className="block truncate text-[16px] font-semibold text-ink!">{f.name}</a>
+                            : <a href={`/api/files/${f.id}`} className="block truncate text-[16px] font-semibold text-ink!">{f.name}</a>}
+                          <div className="truncate text-[14px] text-faint">{it.f.kind.toUpperCase()} · {size(it.f.size)} · {date(f.createdAt)}{needle ? ` · ${label(it.f.folderId)}` : ""}</div>
                         </div>
                         <Link href={`/ai?ref=file:${f.id}&ask=summarise`} className={`${plainLink} max-sm:hidden`}>Summarise</Link>
                         <a href={`/api/files/${f.id}`} download className={`${plainLink} max-sm:hidden`}>Download</a>
                       </>
                     )}
-                    <button type="button" aria-expanded={isOpen} aria-label={`More actions for ${f.name}`} onClick={() => { close(); if (!isOpen) setOpen(f.id); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] text-lg leading-none text-muted hover:bg-fill">⋯</button>
+                    <button type="button" aria-expanded={isOpen} aria-label={`More actions for ${f.name}`} onClick={() => { close(); if (!isOpen) setOpen(f.id); }} className="flex size-10 shrink-0 items-center justify-center rounded-full text-[20px] leading-none text-muted hover:bg-hover">⋯</button>
                   </div>
                   {isOpen && (
-                    <div className="mt-3 flex flex-wrap items-center gap-2 pl-12">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 pl-[58px]">
                       {rename?.id === f.id ? (
                         <form onSubmit={(e) => { e.preventDefault(); if (!clash) void patch(it, { name: rename.value }); }} className="flex flex-1 gap-2">
                           <input autoFocus value={rename.value} onChange={(e) => setRename({ id: f.id, value: e.target.value })} maxLength={130} aria-label="New name" title={clash ? "A folder with this name is already here." : undefined} aria-invalid={clash} className={`${field} flex-1`} />
@@ -301,8 +305,8 @@ export function Files({ initial }: { initial: FilesState }) {
                         </form>
                       ) : confirm === f.id ? (
                         <>
-                          <span className="text-[13px]">{it.type === "folder" ? `Delete this folder${count ? ` and the ${count} ${count === 1 ? "file" : "files"} inside it` : ""}?` : "Delete this file?"}</span>
-                          <Btn onClick={() => void remove(it)} className="!bg-red">Delete</Btn>
+                          <span className="text-[15px]">{it.type === "folder" ? `Delete this folder${count ? ` and the ${count} ${count === 1 ? "file" : "files"} inside it` : ""}?` : "Delete this file?"}</span>
+                          <Btn onClick={() => void remove(it)} className="!bg-plum">Delete</Btn>
                           <Btn tone="plain" onClick={() => setConfirm(null)}>Keep</Btn>
                         </>
                       ) : (
@@ -316,7 +320,7 @@ export function Files({ initial }: { initial: FilesState }) {
                             </>
                           )}
                           <Btn tone="plain" onClick={() => setRename({ id: f.id, value: it.type === "file" ? f.name.replace(/\.(pdf|docx)$/i, "") : f.name })}>Rename</Btn>
-                          <label className="flex items-center gap-1.5 text-[13px] text-muted">
+                          <label className="flex items-center gap-2 text-[15px] text-muted">
                             Move to
                             <select
                               value={(it.type === "file" ? it.f.folderId : it.f.parentId) ?? ""}
@@ -338,9 +342,9 @@ export function Files({ initial }: { initial: FilesState }) {
           </ul>
         ) : newFolder === null && (
           <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-            <span className="flex size-11 items-center justify-center rounded-xl bg-blue/10 text-link"><Icon name="folder" size={20} /></span>
-            <div className="text-[15px] font-semibold">{needle ? "No matching files" : cwd ? "This folder is empty" : files.length ? "No files here" : "No files yet"}</div>
-            <div className="max-w-[420px] text-[13px] text-muted">
+            <span className="flex size-12 items-center justify-center rounded-full bg-tint text-link"><Icon name="folder" size={20} /></span>
+            <div className="font-display text-[26px] leading-tight">{needle ? "No matching files" : cwd ? "This folder is empty" : files.length ? "No files here" : "No files yet"}</div>
+            <div className="max-w-[420px] text-[15px] text-muted">
               {needle ? "Try a different search or filter." : `Upload PDFs and Word documents, up to ${size(MAX_FILE_BYTES)} each, or drop them here.`}
             </div>
           </div>
@@ -349,3 +353,11 @@ export function Files({ initial }: { initial: FilesState }) {
     </Page>
   );
 }
+
+/** A folder: a card shape with its coloured tab. */
+const FolderTile = ({ color }: { color: string }) => (
+  <span aria-hidden className="relative flex h-11 w-11 shrink-0 items-end overflow-hidden rounded-[10px] bg-fill">
+    <span className="absolute left-0 top-0 h-2 w-5 rounded-br-[6px]" style={{ background: color }} />
+    <span className="h-1 w-full" style={{ background: color, opacity: 0.35 }} />
+  </span>
+);
