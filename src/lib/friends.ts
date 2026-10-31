@@ -17,7 +17,7 @@ async function others(userId: string, side: "from" | "to") {
   return getDb()
     .select({
       id: user.id, name: user.name, email: user.email, first: profile.firstName, last: profile.lastName,
-      university: profile.university, studentUni: student.university, status: friendship.status, at: friendship.createdAt,
+      studentUni: student.university, status: friendship.status, at: friendship.createdAt,
       lastSeen: activity.lastSeenAt, streak: activity.streak, best: activity.bestStreak, streakDay: activity.streakDay, avatar: userAvatar.key,
     })
     .from(friendship)
@@ -32,14 +32,15 @@ async function others(userId: string, side: "from" | "to") {
 
 type Row = Awaited<ReturnType<typeof others>>[number] & { fromSide?: boolean };
 /**
- * Activity is shown only between friends; a request received shows the name and school alone. A request sent shows
+ * Activity is shown only between friends; a request received shows the name and school alone. The school is the
+ * university a student proved with their mailbox, never one typed into a profile, so it cannot be claimed. A request sent shows
  * only the email the sender typed, so typing someone's address does not reveal who owns it before they accept.
  */
 function view(r: Row): Friend {
   if (r.status === "pending" && r.fromSide) return { id: r.id, name: r.email, school: null, avatar: null, lastSeen: null, streak: 0, best: 0, today: false };
   const friend = r.status === "accepted" && r.streakDay !== null;
   return {
-    id: r.id, name: r.first ? `${r.first} ${r.last}` : NO_NAME, school: r.studentUni ?? r.university ?? null, avatar: avatarUrl(r.avatar),
+    id: r.id, name: r.first ? `${r.first} ${r.last}` : NO_NAME, school: r.studentUni ?? null, avatar: avatarUrl(r.avatar),
     lastSeen: friend ? r.lastSeen!.getTime() : null,
     streak: friend ? liveStreak(r.streak!, r.streakDay!) : 0,
     best: friend ? r.best! : 0,
