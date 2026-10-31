@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { CallInfo, CallPeer } from "@/lib/friend-view";
 import { Avatar } from "./avatar";
+import { BARS, better, measure, playTone, useSpeaking, type Net, type Quality } from "./call-media";
 import { Sheet } from "./sheet";
 
 /** How often the app checks for calls ringing for the user, while visible and not in a call. */
@@ -10,9 +11,10 @@ const RING_POLL_MS = 5_000;
 /** How often the call screen refreshes who is in the call (this also keeps the user present). */
 const CALL_POLL_MS = 3_000;
 
-type Active = { call: CallInfo; title: string; stream: MediaStream };
+/** The call on screen; `outgoing` when the user placed it, so they hear it ring. */
+type Active = { call: CallInfo; title: string; stream: MediaStream; outgoing: boolean };
 type Ctx = {
-  /** Starts (or joins the open) voice call with a friend or a group. `title` names it on the call screen. */
+  /** Starts (or joins the open) voice call with a friend or a group. `title` names it on the call screen. In a call already, opens it. */
   start: (target: { friendId?: string; groupId?: string }, title: string) => void;
   inCall: boolean;
   error: string;
@@ -42,6 +44,7 @@ export function CallProvider({ enabled, children }: { enabled: boolean; children
   const [ringing, setRinging] = useState<CallInfo[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [active, setActive] = useState<Active | null>(null);
+  const [mini, setMini] = useState(false);
   const [mic, setMic] = useState<MicAsk | null>(null);
   const [error, setError] = useState("");
 
@@ -79,13 +82,14 @@ export function CallProvider({ enabled, children }: { enabled: boolean; children
   }, [openMic]);
 
   const start = useCallback((target: { friendId?: string; groupId?: string }, title: string) => {
+    if (active) return setMini(false);
     setError("");
     void withMic((stream) => {
       post<{ call: CallInfo }>("/api/calls", target)
-        .then(({ call }) => setActive({ call, title, stream }))
+        .then(({ call }) => setActive({ call, title, stream, outgoing: true }))
         .catch((e: Error) => { stream.getTracks().forEach((t) => t.stop()); flash(e.message); });
     });
-  }, [withMic, flash]);
+  }, [active, withMic, flash]);
 
   const incoming = active ? null : ringing.find((c) => !dismissed.has(c.id)) ?? null;
   const dismiss = (c: CallInfo) => {
@@ -94,9 +98,21 @@ export function CallProvider({ enabled, children }: { enabled: boolean; children
   };
   const pickUp = (c: CallInfo) => {
     setDismissed((s) => new Set(s).add(c.id));
-    void withMic((stream) => setActive({ call: c, title: c.groupName ?? c.callerName, stream }), c.groupId ? undefined : () => dismiss(c));
+    void withMic((stream) => setActive({ call: c, title: c.groupName ?? c.callerName, stream, outgoing: false }), c.groupId ? undefined : () => dismiss(c));
   };
 
+  // Ring (where the browser allows sound) and vibrate (Android) while a call is coming in.
+  const ringingId = incoming?.id;
+  useEffect(() => {
+    if (!ringingId) return;
+    const stop = playTone("incoming");
+    const buzz = () => navigator.vibrate?.([300, 150, 300]);
+    buzz();
+    const t = setInterval(buzz, 2000);
+    return () => { stop(); clearInterval(t); navigator.vibrate?.(0); };
+  }, [ringingId]);
+
+  const close = useCallback(() => { setActive(null); setMini(false); }, []);
   const value = useMemo(() => ({ start, inCall: !!active, error }), [start, active, error]);
   return (
     <CallCtx.Provider value={value}>
@@ -114,7 +130,7 @@ export function CallProvider({ enabled, children }: { enabled: boolean; children
         </div>
       )}
       {mic && <MicSheet state={mic.state} onAllow={() => void openMic(mic)} onClose={() => { setMic(null); mic.cancel?.(); }} />}
-      {active && <CallScreen active={active} onClose={() => setActive(null)} />}
+      {active && <CallScreen active={active} mini={mini} setMini={setMini} onClose={close} />}
     </CallCtx.Provider>
   );
 }
@@ -162,27 +178,52 @@ const hms = (ms: number) => {
   return `${h ? `${h}:` : ""}${String(m).padStart(h ? 2 : 1, "0")}:${String(r).padStart(2, "0")}`;
 };
 
+/** How often the connection is graded. */
+const STATS_MS = 2_000;
+/** A connection that stays disconnected this long is rebuilt; after this many tries in a row the call is given up. */
+const DROP_MS = 5_000;
+const MAX_RETRIES = 3;
+
+type Status = "connecting" | "live" | "reconnecting" | "ended";
+type Corner = "tl" | "tr" | "bl" | "br";
+const CORNER_KEY = "nl-call-corner";
+// Clear of the phone toolbar and tab bar; the side gutter matches the page's.
+const CORNERS: Record<Corner, string> = {
+  tl: "left-3 top-[calc(env(safe-area-inset-top)+3.75rem)] md:left-5 md:top-5",
+  tr: "right-3 top-[calc(env(safe-area-inset-top)+3.75rem)] md:right-5 md:top-5",
+  bl: "left-3 bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] md:left-5 md:bottom-5",
+  br: "right-3 bottom-[calc(env(safe-area-inset-bottom)+3.75rem)] md:right-5 md:bottom-5",
+};
+const QUALITY_TEXT: Record<Quality, string> = { good: "Good connection", fair: "Fair connection", poor: "Poor connection", lost: "No connection" };
+
 /**
  * The call itself: one RTCPeerConnection to Cloudflare's SFU. The microphone, already allowed, is published once; other
- * people's audio is pulled as they appear in the polled call state. SDP exchanges run one at a time.
+ * people's audio is pulled as they appear in the polled call state. SDP exchanges run one at a time. A dropped
+ * connection is rebuilt with a fresh session. Minimised, the call carries on in a small player the user can drag to
+ * any corner while using the rest of the app.
  */
-function CallScreen({ active, onClose }: { active: Active; onClose: () => void }) {
+function CallScreen({ active, mini, setMini, onClose }: { active: Active; mini: boolean; setMini: (m: boolean) => void; onClose: () => void }) {
   const callId = active.call.id;
   const [peers, setPeers] = useState<CallPeer[]>([]);
   const [audio, setAudio] = useState<Record<string, MediaStreamTrack>>({});
   const [muted, setMuted] = useState(false);
-  const [status, setStatus] = useState<"connecting" | "live" | "ended">("connecting");
+  const [status, setStatus] = useState<Status>("connecting");
+  const [attempt, setAttempt] = useState(0);
+  const [net, setNet] = useState<Net | null>(null);
   const [ended, setEnded] = useState("");
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => Date.now());
-  const [joinedAt, setJoinedAt] = useState<number | null>(null);
+  const [talkingSince, setTalkingSince] = useState<number | null>(null);
   const [endsAt, setEndsAt] = useState(active.call.endsAt);
+  const [mine] = useState(() => active.stream.getAudioTracks()[0]);
   const pc = useRef<RTCPeerConnection | null>(null);
   const local = useRef<MediaStream>(active.stream);
   const pulled = useRef(new Set<string>());
   const byMid = useRef(new Map<string, string>());
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const closed = useRef(false);
+  const retries = useRef(0);
+  const drop = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const serial = useCallback(<T,>(job: () => Promise<T>) => {
     const next = queue.current.then(job, job);
@@ -193,6 +234,7 @@ function CallScreen({ active, onClose }: { active: Active; onClose: () => void }
   const hangUp = useCallback((reason?: string) => {
     if (closed.current) return;
     closed.current = true;
+    clearTimeout(drop.current);
     local.current.getTracks().forEach((t) => t.stop());
     pc.current?.close();
     void post(`/api/calls/${callId}/leave`).catch(() => {});
@@ -200,6 +242,22 @@ function CallScreen({ active, onClose }: { active: Active; onClose: () => void }
     setEnded(reason ?? "Call ended");
     setTimeout(onClose, 1400);
   }, [callId, onClose]);
+
+  // Throws the connection away and joins again: a new SFU session, publish, and pull everyone afresh.
+  const reconnect = useCallback(() => {
+    if (closed.current) return;
+    clearTimeout(drop.current);
+    if (retries.current >= MAX_RETRIES) return hangUp("Connection lost");
+    retries.current++;
+    pc.current?.close();
+    pc.current = null;
+    pulled.current.clear();
+    byMid.current.clear();
+    setAudio({});
+    setNet((n) => ({ rtt: n?.rtt ?? null, loss: n?.loss ?? 0, quality: "lost" }));
+    setStatus("reconnecting");
+    setAttempt((a) => a + 1);
+  }, [hangUp]);
 
   // Connect: a session at the SFU, then publish the microphone.
   useEffect(() => {
@@ -215,7 +273,16 @@ function CallScreen({ active, onClose }: { active: Active; onClose: () => void }
           const who = e.transceiver.mid ? byMid.current.get(e.transceiver.mid) : undefined;
           if (who) setAudio((a) => ({ ...a, [who]: e.track }));
         };
-        conn.onconnectionstatechange = () => { if (conn.connectionState === "failed") setError("The connection was lost. Check your internet."); };
+        conn.onconnectionstatechange = () => {
+          if (pc.current !== conn) return;
+          const s = conn.connectionState;
+          if (s === "failed") reconnect();
+          else if (s === "disconnected") {
+            setNet((n) => ({ rtt: n?.rtt ?? null, loss: n?.loss ?? 0, quality: "lost" }));
+            clearTimeout(drop.current);
+            drop.current = setTimeout(() => { if (pc.current === conn && conn.connectionState !== "connected") reconnect(); }, DROP_MS);
+          } else if (s === "connected") clearTimeout(drop.current);
+        };
         const sending = local.current.getAudioTracks().map((t) => conn.addTransceiver(t, { direction: "sendonly" }));
         await serial(async () => {
           await conn.setLocalDescription(await conn.createOffer());
@@ -224,16 +291,27 @@ function CallScreen({ active, onClose }: { active: Active; onClose: () => void }
           });
           await conn.setRemoteDescription({ type: "answer", sdp: res.sdp });
         });
-        setStatus("live");
-        setJoinedAt(Date.now());
-      } catch (e) {
         if (cancelled) return;
+        retries.current = 0;
+        setStatus("live");
+      } catch (e) {
+        if (cancelled || closed.current) return;
+        if (attempt > 0) { setTimeout(reconnect, 2000); return; } // still offline: try again shortly
         setError(e instanceof Error ? e.message : "The call could not connect.");
         hangUp("Could not connect");
       }
     })();
     return () => { cancelled = true; };
-  }, [callId, hangUp, serial]);
+  }, [callId, attempt, hangUp, reconnect, serial]);
+
+  // Back online after a drop: rebuild straight away rather than waiting.
+  useEffect(() => {
+    const online = () => { if (pc.current?.connectionState !== "connected") reconnect(); };
+    const offline = () => setNet((n) => ({ rtt: n?.rtt ?? null, loss: n?.loss ?? 0, quality: "lost" }));
+    window.addEventListener("online", online);
+    window.addEventListener("offline", offline);
+    return () => { window.removeEventListener("online", online); window.removeEventListener("offline", offline); };
+  }, [reconnect]);
 
   // Poll who is in the call; pull anyone new.
   useEffect(() => {
@@ -246,12 +324,14 @@ function CallScreen({ active, onClose }: { active: Active; onClose: () => void }
         const d = (await r.json()) as { call: CallInfo; peers: CallPeer[] };
         if (d.call.endedAt) return hangUp(END_TEXT[d.call.endReason ?? "ended"]);
         setPeers(d.peers);
+        if (d.peers.length) setTalkingSince((t) => t ?? Date.now());
         setAudio((a) => Object.fromEntries(Object.entries(a).filter(([id]) => d.peers.some((p) => p.userId === id))));
         const wants = d.peers.filter((p) => p.tracks.includes("audio") && !pulled.current.has(p.sessionId));
         if (!wants.length || !pc.current) return;
         wants.forEach((w) => pulled.current.add(w.sessionId));
         await serial(async () => {
-          const conn = pc.current!;
+          const conn = pc.current;
+          if (!conn) return;
           try {
             const res = await post<{ sdp: string | null; tracks: { mid: string; userId: string }[] }>(`/api/calls/${callId}/subscribe`, { tracks: wants.map((w) => ({ userId: w.userId, name: "audio" })) });
             res.tracks.forEach((t) => byMid.current.set(t.mid, t.userId));
@@ -271,6 +351,28 @@ function CallScreen({ active, onClose }: { active: Active; onClose: () => void }
     return () => clearInterval(t);
   }, [status, callId, hangUp, serial]);
 
+  // Grade the connection every two seconds; a warning needs two bad readings in a row.
+  useEffect(() => {
+    if (status !== "live") return;
+    const totals = { lost: 0, received: 0 };
+    let last: Quality = "good";
+    const t = setInterval(async () => {
+      const conn = pc.current;
+      if (!conn) return;
+      if (!navigator.onLine || conn.connectionState === "disconnected") return setNet((n) => ({ rtt: n?.rtt ?? null, loss: n?.loss ?? 0, quality: "lost" }));
+      const m = await measure(conn, totals);
+      if (!m) return;
+      const shown = better(m.quality, last);
+      last = m.quality;
+      setNet({ ...m, quality: shown });
+    }, STATS_MS);
+    return () => clearInterval(t);
+  }, [status]);
+
+  // The caller hears ringing until someone picks up.
+  const ringing = status === "live" && active.outgoing && !active.call.groupId && !peers.length && talkingSince === null;
+  useEffect(() => (ringing ? playTone("ringback") : undefined), [ringing]);
+
   // The clock, and the 3-hour limit.
   useEffect(() => {
     const t = setInterval(() => {
@@ -286,7 +388,18 @@ function CallScreen({ active, onClose }: { active: Active; onClose: () => void }
     window.addEventListener("pagehide", bye);
     return () => window.removeEventListener("pagehide", bye);
   }, [callId]);
-  useEffect(() => () => { if (!closed.current) { closed.current = true; local.current.getTracks().forEach((t) => t.stop()); pc.current?.close(); void post(`/api/calls/${callId}/leave`).catch(() => {}); } }, [callId]);
+  useEffect(() => () => { if (!closed.current) { closed.current = true; clearTimeout(drop.current); local.current.getTracks().forEach((t) => t.stop()); pc.current?.close(); void post(`/api/calls/${callId}/leave`).catch(() => {}); } }, [callId]);
+
+  // Escape minimises the full screen, as swiping down does on a phone.
+  useEffect(() => {
+    if (mini) return;
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setMini(true); };
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [mini, setMini]);
+
+  const meters = useMemo<[string, MediaStreamTrack][]>(() => [...Object.entries(audio), ...(mine ? [["me", mine] as [string, MediaStreamTrack]] : [])], [audio, mine]);
+  const speaking = useSpeaking(meters);
 
   function toggleMute() {
     const t = local.current.getAudioTracks()[0];
@@ -295,62 +408,190 @@ function CallScreen({ active, onClose }: { active: Active; onClose: () => void }
   }
 
   const left = endsAt - now;
-  const waiting = status === "live" && !peers.length;
-  const sub = status === "ended" ? ended : status === "connecting" ? "Connecting…" : waiting ? (active.call.groupId ? "Waiting for others to join…" : "Ringing…") : joinedAt ? hms(now - joinedAt) : "";
+  const sub = status === "ended" ? ended
+    : status === "connecting" ? "Connecting…"
+    : status === "reconnecting" ? "Reconnecting…"
+    : !peers.length ? (active.call.groupId ? "Waiting for others to join…" : talkingSince ? "Waiting for them to come back…" : "Ringing…")
+    : talkingSince ? hms(now - talkingSince) : "";
+  const quality: Quality | null = status === "reconnecting" ? "lost" : status === "live" ? net?.quality ?? "good" : null;
+  const warn = quality === "poor" || quality === "lost";
+  const focus = peers.find((p) => speaking.has(p.userId)) ?? peers[0];
+  // Everyone's audio sits outside both views, so switching between them never interrupts it.
+  const voices = <div hidden>{peers.map((p) => <PeerAudio key={p.userId} track={audio[p.userId]} />)}</div>;
+
+  if (mini) {
+    return (
+      <>
+        {voices}
+        <MiniPlayer label={`Call with ${active.title}`} onExpand={() => setMini(false)} actions={<>
+          <MiniButton label={muted ? "Unmute" : "Mute"} on={muted} onClick={toggleMute}><MicIcon off={muted} size={18} /></MiniButton>
+          <MiniButton label="End call" danger onClick={() => hangUp()}><HangUp size={20} /></MiniButton>
+        </>}>
+          <span className={`relative shrink-0 rounded-full transition-shadow ${focus && speaking.has(focus.userId) ? "shadow-[0_0_0_3px_#34c759]" : ""}`}>
+            {focus ? <Avatar id={focus.userId} name={focus.name} src={focus.avatar} size={40} />
+              : <Avatar id={active.call.groupId ?? active.call.callerId} name={active.title} size={40} group={!!active.call.groupId} />}
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-[15px] font-semibold">{active.title}</span>
+            <span className={`flex items-center gap-1.5 text-[12px] tabular-nums ${warn ? "text-[#ffb340]" : "text-white/70"}`}>
+              {quality && <Signal quality={quality} size={11} />}
+              <span className="truncate">{warn && status === "live" ? QUALITY_TEXT[quality!] : sub}</span>
+            </span>
+          </span>
+        </MiniPlayer>
+      </>
+    );
+  }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Call with ${active.title}`} className="fixed inset-0 z-[80] flex flex-col bg-[#0b0b0f] text-white">
-      <header className="flex shrink-0 flex-col items-center gap-1 px-4 pb-3 pt-[max(1.25rem,env(safe-area-inset-top))] text-center">
-        <span className="max-w-full truncate text-[20px] font-semibold">{active.title}</span>
-        <span className="text-[14px] tabular-nums text-white/70">{sub}</span>
-        {status === "live" && left < 10 * 60_000 && <span className="rounded-full bg-[#ff9500]/20 px-3 py-0.5 text-[12px] font-medium text-[#ffb340]">Call ends in {hms(left)} (3-hour limit)</span>}
-        {error && <span role="alert" className="mt-1 text-[13px] text-[#ff6961]">{error}</span>}
+    <>
+    {voices}
+    <div role="dialog" aria-modal="true" aria-label={`Call with ${active.title}`} className="fixed inset-0 z-[80] flex flex-col bg-[radial-gradient(120%_80%_at_50%_0%,#1f2a3a_0%,#0b0b0f_60%)] text-white" style={{ animation: "tt-sheet 0.38s cubic-bezier(0.32, 0.72, 0, 1)" }}>
+      <header className="flex shrink-0 items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+        <button type="button" onClick={() => setMini(true)} aria-label="Minimise call" title="Minimise (Esc)" className="grid size-10 place-items-center rounded-full border-0 bg-white/10 text-white active:opacity-60">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3.5 6 8 10.5 12.5 6" /></svg>
+        </button>
+        {quality && (
+          <span className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[12px] font-medium text-white/80" title={net?.rtt != null ? `${net.rtt} ms round trip · ${Math.round(net.loss * 100)}% lost` : undefined}>
+            <Signal quality={quality} size={13} />{QUALITY_TEXT[quality]}
+          </span>
+        )}
       </header>
 
-      <div className={`grid min-h-0 flex-1 content-center gap-x-3 gap-y-6 overflow-y-auto px-4 pb-3 ${peers.length <= 1 ? "grid-cols-1" : peers.length <= 4 ? "grid-cols-2" : "grid-cols-[repeat(auto-fill,minmax(96px,1fr))]"}`}>
-        {peers.map((p) => <Tile key={p.userId} peer={p} track={audio[p.userId]} big={peers.length === 1} />)}
+      <div className="flex shrink-0 flex-col items-center gap-1 px-4 pb-2 pt-3 text-center">
+        <span className="max-w-full truncate text-[24px] font-semibold tracking-[-0.01em]">{active.title}</span>
+        <span className="text-[15px] tabular-nums text-white/70">{sub}</span>
+        {warn && status !== "ended" && (
+          <span role="status" className="mt-2 flex items-center gap-2 rounded-full bg-[#ff9500]/15 px-3.5 py-1.5 text-[13px] font-medium text-[#ffb340]">
+            <Signal quality={quality!} size={12} />
+            {status === "reconnecting" ? "Connection dropped. Reconnecting…" : quality === "lost" ? "No connection. Trying to reconnect…" : "Poor connection. Others may hear you break up."}
+          </span>
+        )}
+        {status === "live" && left < 10 * 60_000 && <span className="mt-2 rounded-full bg-[#ff9500]/20 px-3 py-0.5 text-[12px] font-medium text-[#ffb340]">Call ends in {hms(left)} (3-hour limit)</span>}
+        {error && <span role="alert" className="mt-1 text-[13px] text-[#ff6961]">{error}</span>}
+      </div>
+
+      <div className={`grid min-h-0 flex-1 content-center justify-items-center gap-x-3 gap-y-7 overflow-y-auto px-4 pb-3 ${peers.length <= 1 ? "grid-cols-1" : peers.length <= 4 ? "grid-cols-2" : "grid-cols-[repeat(auto-fill,minmax(96px,1fr))]"}`}>
+        {peers.map((p) => <Tile key={p.userId} peer={p} connected={!!audio[p.userId]} speaking={speaking.has(p.userId)} big={peers.length === 1} />)}
         {!peers.length && (
-          <div className="grid place-items-center">
-            <span className="animate-pulse"><Avatar id={active.call.groupId ?? active.call.callerId} name={active.title} size={112} group={!!active.call.groupId} /></span>
-          </div>
+          <span className={status === "ended" ? "" : "animate-pulse"}><Avatar id={active.call.groupId ?? active.call.callerId} name={active.title} size={128} group={!!active.call.groupId} /></span>
         )}
       </div>
 
-      <footer className="flex shrink-0 items-center justify-center gap-8 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3">
+      <p aria-live="polite" className={`m-0 shrink-0 text-center text-[13px] ${muted ? "text-[#ffb340]" : "text-white/50"}`}>
+        {muted ? "You are muted" : speaking.has("me") ? "You are speaking" : " "}
+      </p>
+      <footer className="flex shrink-0 items-start justify-center gap-7 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
         <Control label={muted ? "Unmute" : "Mute"} on={muted} onClick={toggleMute}><MicIcon off={muted} /></Control>
-        <button type="button" onClick={() => hangUp()} aria-label="End call" className="grid size-16 place-items-center rounded-full border-0 bg-[#ff3b30] text-white active:opacity-70"><HangUp /></button>
+        <Control label="End" danger onClick={() => hangUp()}><HangUp /></Control>
+        <Control label="Minimise" on={false} onClick={() => setMini(true)}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M14 10h6M14 10V4M14 10l7-7M10 14H4M10 14v6M10 14l-7 7" /></svg>
+        </Control>
       </footer>
       <span className="sr-only" aria-live="polite">{sub}</span>
     </div>
+    </>
   );
 }
 
-/** One person: their picture and name, and their audio. */
-function Tile({ peer, track, big }: { peer: CallPeer; track?: MediaStreamTrack; big: boolean }) {
-  const audio = useRef<HTMLAudioElement>(null);
-  useEffect(() => { if (audio.current) audio.current.srcObject = track ? new MediaStream([track]) : null; }, [track]);
+/** The floating player: tap to open the call, drag to move it to another corner (remembered on this device). */
+function MiniPlayer({ label, onExpand, actions, children }: { label: string; onExpand: () => void; actions: React.ReactNode; children: React.ReactNode }) {
+  const [corner, setCorner] = useState<Corner>(() => {
+    try { const c = localStorage.getItem(CORNER_KEY); return c && c in CORNERS ? (c as Corner) : "tr"; } catch { return "tr"; }
+  });
+  const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const box = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="flex min-w-0 flex-col items-center gap-2">
-      <audio ref={audio} autoPlay />
-      <Avatar id={peer.userId} name={peer.name} src={peer.avatar} size={big ? 128 : 72} />
-      <span className="max-w-full truncate text-[14px] font-medium">{peer.name}</span>
-      {!track && <span className="-mt-1 text-[12px] text-white/50">Connecting…</span>}
+    <div ref={box} role="region" aria-label={label}
+      className={`fixed z-[75] w-[min(330px,calc(100vw-1.5rem))] touch-none select-none ${CORNERS[corner]} ${offset ? "" : "transition-transform duration-200"}`}
+      style={{ transform: offset ? `translate(${offset.x}px, ${offset.y}px) scale(1.03)` : undefined, animation: "tt-sheet 0.35s cubic-bezier(0.32, 0.72, 0, 1)" }}
+      onPointerDown={(e) => { if (e.button === 0) drag.current = { x: e.clientX, y: e.clientY, moved: false }; }}
+      onPointerMove={(e) => {
+        const d = drag.current;
+        if (!d) return;
+        const x = e.clientX - d.x, y = e.clientY - d.y;
+        if (!d.moved && Math.hypot(x, y) < 6) return;
+        if (!d.moved) { d.moved = true; e.currentTarget.setPointerCapture(e.pointerId); }
+        setOffset({ x, y });
+      }}
+      onPointerUp={() => {
+        const d = drag.current;
+        drag.current = null;
+        if (!d?.moved) return;
+        const r = box.current?.getBoundingClientRect();
+        if (r) {
+          const next = `${r.top + r.height / 2 < innerHeight / 2 ? "t" : "b"}${r.left + r.width / 2 < innerWidth / 2 ? "l" : "r"}` as Corner;
+          setCorner(next);
+          try { localStorage.setItem(CORNER_KEY, next); } catch {}
+        }
+        setOffset(null);
+      }}
+      onPointerCancel={() => { drag.current = null; setOffset(null); }}>
+      <div className="flex items-center gap-2.5 rounded-[24px] bg-[#1c1c1e]/95 p-2 pl-2.5 text-white shadow-[0_10px_40px_rgba(0,0,0,0.35)] ring-[0.5px] ring-white/15 backdrop-blur-xl">
+        <button type="button" onClick={onExpand} aria-label="Open call" className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-0 bg-transparent p-0 text-left text-white">
+          {children}
+        </button>
+        {actions}
+      </div>
     </div>
   );
 }
 
-function Control({ label, on, onClick, children }: { label: string; on: boolean; onClick: () => void; children: React.ReactNode }) {
+/** Four bars, like a phone's: green when good, amber when fair, red when poor, empty when lost. */
+function Signal({ quality, size }: { quality: Quality; size: number }) {
+  const n = BARS[quality];
+  const colour = n >= 3 ? "#34c759" : n === 2 ? "#ffcc00" : "#ff453a";
   return (
-    <button type="button" onClick={onClick} aria-label={label} aria-pressed={on} title={label}
-      className={`grid size-14 place-items-center rounded-full border-0 active:opacity-70 ${on ? "bg-white text-black" : "bg-white/15 text-white"}`}>{children}</button>
+    <svg width={size * 1.3} height={size} viewBox="0 0 13 10" aria-label={QUALITY_TEXT[quality]} role="img" className="shrink-0">
+      {[0, 1, 2, 3].map((i) => <rect key={i} x={i * 3.4} y={7.5 - i * 2.5} width="2.4" height={2.5 + i * 2.5} rx="0.8" fill={i < n ? colour : "rgba(255,255,255,0.25)"} />)}
+    </svg>
   );
 }
 
-const HangUp = () => (
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 0 1-.56.9 11.5 11.5 0 0 0-2.66 1.85 1 1 0 0 1-1.4-.02L.29 13.1a1 1 0 0 1 0-1.41C3.34 8.79 7.46 7 12 7s8.66 1.79 11.71 4.69a1 1 0 0 1 0 1.41l-2.49 2.48a1 1 0 0 1-1.4.02 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z" /></svg>
+/** Someone's audio. Kept mounted in both views so the call is heard while minimised. */
+function PeerAudio({ track }: { track?: MediaStreamTrack }) {
+  const el = useRef<HTMLAudioElement>(null);
+  useEffect(() => { if (el.current) el.current.srcObject = track ? new MediaStream([track]) : null; }, [track]);
+  return <audio ref={el} autoPlay />;
+}
+
+/** One person: their picture, ringed in green while they speak, and their name. */
+function Tile({ peer, connected, speaking, big }: { peer: CallPeer; connected: boolean; speaking: boolean; big: boolean }) {
+  return (
+    <div className="flex min-w-0 max-w-full flex-col items-center gap-2.5">
+      <span className={`rounded-full transition-shadow duration-150 ${speaking ? "shadow-[0_0_0_4px_#34c759,0_0_24px_6px_rgba(52,199,89,0.35)]" : "shadow-[0_0_0_4px_transparent]"}`}>
+        <Avatar id={peer.userId} name={peer.name} src={peer.avatar} size={big ? 128 : 76} />
+      </span>
+      <span className="max-w-full truncate text-[15px] font-medium">{peer.name}</span>
+      {!connected && <span className="-mt-1.5 text-[12px] text-white/50">Connecting…</span>}
+    </div>
+  );
+}
+
+function Control({ label, on, danger, onClick, children }: { label: string; on?: boolean; danger?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <span className="flex w-16 flex-col items-center gap-1.5">
+      <button type="button" onClick={onClick} aria-label={label} aria-pressed={danger ? undefined : on} title={label}
+        className={`grid size-16 place-items-center rounded-full border-0 active:opacity-70 ${danger ? "bg-[#ff3b30] text-white" : on ? "bg-white text-black" : "bg-white/15 text-white"}`}>{children}</button>
+      <span aria-hidden className="text-[12px] text-white/70">{label}</span>
+    </span>
+  );
+}
+
+function MiniButton({ label, on, danger, onClick, children }: { label: string; on?: boolean; danger?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label} aria-pressed={danger ? undefined : on} title={label}
+      className={`grid size-10 shrink-0 place-items-center rounded-full border-0 active:opacity-70 ${danger ? "bg-[#ff3b30] text-white" : on ? "bg-white text-black" : "bg-white/15 text-white"}`}>{children}</button>
+  );
+}
+
+const HangUp = ({ size = 26 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 0 1-.56.9 11.5 11.5 0 0 0-2.66 1.85 1 1 0 0 1-1.4-.02L.29 13.1a1 1 0 0 1 0-1.41C3.34 8.79 7.46 7 12 7s8.66 1.79 11.71 4.69a1 1 0 0 1 0 1.41l-2.49 2.48a1 1 0 0 1-1.4.02 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z" /></svg>
 );
-const MicIcon = ({ off }: { off?: boolean }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" />{off && <path d="M4 4l16 16" />}</svg>
+const MicIcon = ({ off, size = 24 }: { off?: boolean; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" />{off && <path d="M4 4l16 16" />}</svg>
 );
 const Handset = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z" /></svg>
