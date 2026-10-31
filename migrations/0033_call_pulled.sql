@@ -1,0 +1,1 @@
+ALTER TABLE `call_participant` ADD `pulled` text DEFAULT '[]' NOT NULL;

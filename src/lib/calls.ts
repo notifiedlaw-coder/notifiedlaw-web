@@ -17,6 +17,10 @@ export const TRACK_NAMES = ["audio"] as const;
 
 type Row = typeof call.$inferSelect;
 type Published = { name: string; mid: string };
+/** A track pulled from someone else: `<their session>:<track name>` and its mid in the puller's own session. */
+type Pulled = { key: string; mid: string };
+/** Tracks one session may pull in a call: one per track of everyone else, with room for people who rejoin. */
+const MAX_PULLED = MAX_GROUP_MEMBERS * TRACK_NAMES.length * 4;
 const env = () => getCloudflareContext().env;
 const present = (now: number) => and(isNull(callParticipant.leftAt), gt(callParticipant.seenAt, new Date(now - PRESENT_MS)));
 
@@ -24,14 +28,22 @@ export class CallError extends Error {
   constructor(message: string, readonly status = 400) { super(message); }
 }
 
-/** Whether the user belongs in this call: the two people of a direct call, or the members of the group. */
+/**
+ * Whether the user belongs in this call: the members of the group, or the two people of a direct call while they are
+ * still friends and neither has blocked the other.
+ */
 async function mayJoin(userId: string, c: Row) {
   if (c.groupId) {
     const [m] = await getDb().select({ x: groupMember.userId }).from(groupMember).where(and(eq(groupMember.groupId, c.groupId), eq(groupMember.userId, userId)));
     return !!m;
   }
-  return userId === c.callerId || userId === c.calleeId;
+  if (userId !== c.callerId && userId !== c.calleeId) return false;
+  return areFriends(userId, userId === c.callerId ? c.calleeId! : c.callerId);
 }
+
+/** Every mid in a participant's session, published or pulled, so closing them stops all of that person's media. */
+const mids = (p: { tracks: string; pulled: string }) =>
+  [...(JSON.parse(p.tracks) as Published[]), ...(JSON.parse(p.pulled) as Pulled[])].map((t) => t.mid);
 
 async function load(userId: string, callId: string) {
   const [c] = await getDb().select().from(call).where(eq(call.id, callId));
@@ -61,7 +73,7 @@ async function end(c: Row, reason: string): Promise<Row> {
   const db = getDb();
   const now = new Date();
   const left = await db.select().from(callParticipant).where(and(eq(callParticipant.callId, c.id), isNull(callParticipant.leftAt)));
-  await Promise.all(left.map((p) => closeTracks(env(), p.sessionId, (JSON.parse(p.tracks) as Published[]).map((t) => t.mid))));
+  await Promise.all(left.map((p) => closeTracks(env(), p.sessionId, mids(p))));
   await db.batch([
     db.update(call).set({ endedAt: now, endReason: reason }).where(and(eq(call.id, c.id), isNull(call.endedAt))),
     db.update(callParticipant).set({ leftAt: now }).where(and(eq(callParticipant.callId, c.id), isNull(callParticipant.leftAt))),
@@ -168,9 +180,9 @@ export async function joinCall(userId: string, callId: string) {
   const elsewhere = await currentCall(userId);
   if (elsewhere && elsewhere !== callId) throw new CallError("You are already in another call.", 409);
   const [old] = await db.select().from(callParticipant).where(and(eq(callParticipant.callId, callId), eq(callParticipant.userId, userId)));
-  if (old && !old.leftAt) await closeTracks(env(), old.sessionId, (JSON.parse(old.tracks) as Published[]).map((t) => t.mid));
+  if (old && !old.leftAt) await closeTracks(env(), old.sessionId, mids(old));
   const { sessionId } = await newSession(env());
-  const values = { callId, userId, sessionId, tracks: "[]", joinedAt: new Date(now), seenAt: new Date(now), leftAt: null };
+  const values = { callId, userId, sessionId, tracks: "[]", pulled: "[]", joinedAt: new Date(now), seenAt: new Date(now), leftAt: null };
   await db.insert(callParticipant).values(values).onConflictDoUpdate({ target: [callParticipant.callId, callParticipant.userId], set: values });
   return { sessionId, endsAt: c.endsAt.getTime() };
 }
@@ -197,22 +209,32 @@ export async function publish(userId: string, callId: string, offer: string, tra
 
 /**
  * Subscribes the user to other people's tracks in the same call. Only sessions of people present in this call can be
- * pulled, so nobody can listen in on another call by guessing a session id.
+ * pulled, so nobody can listen in on another call by guessing a session id. Each track is pulled once per session and
+ * a session pulls at most MAX_PULLED, so repeating a request cannot multiply what the SFU sends.
  */
 export async function subscribe(userId: string, callId: string, wants: { userId: string; name: string }[]) {
   const p = await me(userId, callId);
   const rows = await getDb().select().from(callParticipant).where(and(eq(callParticipant.callId, callId), present(Date.now()), ne(callParticipant.userId, userId)));
   const byUser = new Map(rows.map((r) => [r.userId, r]));
-  const ok = wants.filter((w) => {
+  const pulled = JSON.parse(p.pulled) as Pulled[];
+  const had = new Set(pulled.map((t) => t.key));
+  const ok = new Map<string, { sessionId: string; trackName: string }>();
+  for (const w of wants) {
     const r = byUser.get(w.userId);
-    return r && (JSON.parse(r.tracks) as Published[]).some((t) => t.name === w.name);
-  }).slice(0, 64);
-  if (!ok.length) return { sdp: null, tracks: [] };
-  const res = await pullTracks(env(), p.sessionId, ok.map((w) => ({ sessionId: byUser.get(w.userId)!.sessionId, trackName: w.name })));
+    const key = r && `${r.sessionId}:${w.name}`;
+    if (!r || !key || had.has(key) || ok.has(key) || !(JSON.parse(r.tracks) as Published[]).some((t) => t.name === w.name)) continue;
+    ok.set(key, { sessionId: r.sessionId, trackName: w.name });
+  }
+  if (!ok.size) return { sdp: null, tracks: [] };
+  if (pulled.length + ok.size > MAX_PULLED) throw new CallError("Rejoin the call to hear everyone.", 409);
+  const res = await pullTracks(env(), p.sessionId, [...ok.values()]);
+  const got = res.tracks.filter((t) => !t.errorCode && t.mid);
+  const next = [...pulled, ...got.map((t) => ({ key: `${t.sessionId}:${t.trackName}`, mid: t.mid! }))];
+  await getDb().update(callParticipant).set({ pulled: JSON.stringify(next) }).where(and(eq(callParticipant.callId, callId), eq(callParticipant.userId, userId)));
   const bySession = new Map(rows.map((r) => [r.sessionId, r.userId]));
   return {
     sdp: res.requiresImmediateRenegotiation ? res.sessionDescription?.sdp ?? null : null,
-    tracks: res.tracks.filter((t) => !t.errorCode && t.mid).map((t) => ({ mid: t.mid!, userId: bySession.get(t.sessionId!) ?? "", name: t.trackName ?? "" })),
+    tracks: got.map((t) => ({ mid: t.mid!, userId: bySession.get(t.sessionId!) ?? "", name: t.trackName ?? "" })),
   };
 }
 
@@ -229,7 +251,7 @@ export async function leaveCall(userId: string, callId: string) {
   const db = getDb();
   const [p] = await db.select().from(callParticipant).where(and(eq(callParticipant.callId, callId), eq(callParticipant.userId, userId)));
   if (p && !p.leftAt) {
-    await closeTracks(env(), p.sessionId, (JSON.parse(p.tracks) as Published[]).map((t) => t.mid));
+    await closeTracks(env(), p.sessionId, mids(p));
     await db.update(callParticipant).set({ leftAt: new Date() }).where(and(eq(callParticipant.callId, callId), eq(callParticipant.userId, userId)));
   }
   if (!c.groupId) await end(c, c.callerId === userId && !(await db.select().from(callParticipant).where(and(eq(callParticipant.callId, callId), eq(callParticipant.userId, c.calleeId!)))).length ? "missed" : "ended");
@@ -240,4 +262,50 @@ export async function leaveCall(userId: string, callId: string) {
 export async function declineCall(userId: string, callId: string) {
   const c = await load(userId, callId);
   if (!c.endedAt && !c.groupId && c.calleeId === userId) await end(c, "declined");
+}
+
+/** Takes the user out of an open group call: stops every track in their session and marks them gone. */
+async function dropFrom(c: Row, userId: string) {
+  const db = getDb();
+  const [p] = await db.select().from(callParticipant).where(and(eq(callParticipant.callId, c.id), eq(callParticipant.userId, userId), isNull(callParticipant.leftAt)));
+  if (!p) return;
+  await closeTracks(env(), p.sessionId, mids(p));
+  await db.update(callParticipant).set({ leftAt: new Date() }).where(and(eq(callParticipant.callId, c.id), eq(callParticipant.userId, userId)));
+  await settle({ ...c, startedAt: new Date(0) });
+}
+
+/** Ends a direct call open between the two, after one unfriends or blocks the other. */
+export async function endCallsBetween(a: string, b: string) {
+  const open = await getDb().select().from(call).where(and(isNull(call.endedAt), isNull(call.groupId),
+    or(and(eq(call.callerId, a), eq(call.calleeId, b)), and(eq(call.callerId, b), eq(call.calleeId, a)))));
+  for (const c of open) await end(c, "ended");
+}
+
+/** Takes the user out of open calls in these groups, after they leave or are removed or blocked. */
+export async function leaveGroupCalls(userId: string, groupIds: string[]) {
+  if (!groupIds.length) return;
+  const open = await getDb().select().from(call).where(and(isNull(call.endedAt), inArray(call.groupId, groupIds)));
+  for (const c of open) await dropFrom(c, userId);
+}
+
+/** Ends a group's open calls before the group is deleted, since the delete cascades away the call rows. */
+export async function endGroupCalls(groupId: string) {
+  const open = await getDb().select().from(call).where(and(isNull(call.endedAt), eq(call.groupId, groupId)));
+  for (const c of open) await end(c, "ended");
+}
+
+/**
+ * Before an account is deleted: ends its direct calls and the calls of groups it owns (those rows go by cascade),
+ * and takes it out of any other group call, so no SFU session outlives the rows that track it.
+ */
+export async function endCallsOf(userId: string) {
+  const db = getDb();
+  const owned = new Set((await db.select({ id: chatGroup.id }).from(chatGroup).where(eq(chatGroup.ownerId, userId))).map((g) => g.id));
+  const joined = db.select({ id: callParticipant.callId }).from(callParticipant).where(and(eq(callParticipant.userId, userId), isNull(callParticipant.leftAt)));
+  const open = await db.select().from(call).where(and(isNull(call.endedAt),
+    or(eq(call.callerId, userId), eq(call.calleeId, userId), inArray(call.groupId, [...owned]), inArray(call.id, joined))));
+  for (const c of open) {
+    if (!c.groupId || owned.has(c.groupId)) await end(c, "ended");
+    else await dropFrom(c, userId);
+  }
 }

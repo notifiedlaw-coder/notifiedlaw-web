@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gt, gte, inArray, isNull, ne, sql } from "drizzle-o
 import { call, chatGroup, friendship, groupMember, groupMessage, typing, userBlock } from "@/db/schema";
 import { getDb } from "@/lib/auth";
 import { people } from "@/lib/friends";
+import { endGroupCalls, leaveGroupCalls } from "@/lib/calls";
 import { MAX_GROUP_MEMBERS, MAX_GROUP_NAME, MAX_OWNED_GROUPS, UNREAD_TTL_MS, avatarUrl, type GroupDetail, type GroupMessage, type GroupSummary } from "@/lib/friend-view";
 import { PROFANITY_ERROR, hasProfanity } from "@/lib/profanity";
 
@@ -119,8 +120,10 @@ export async function addMembers(adminId: string, groupId: string, ids: string[]
   return null;
 }
 
+/** Takes someone out of a group, and out of any call going on in it. */
 export async function removeMember(groupId: string, userId: string) {
   await getDb().delete(groupMember).where(and(eq(groupMember.groupId, groupId), eq(groupMember.userId, userId)));
+  await leaveGroupCalls(userId, [groupId]);
 }
 
 export async function renameGroup(groupId: string, name: string) {
@@ -131,8 +134,9 @@ export async function setGroupAvatar(groupId: string, key: string | null) {
   await getDb().update(chatGroup).set({ avatarKey: key }).where(eq(chatGroup.id, groupId));
 }
 
-/** Deletes a group with its members, messages and calls. */
+/** Deletes a group with its members, messages and calls. Open calls are ended first, while their rows still exist. */
 export async function deleteGroup(groupId: string) {
+  await endGroupCalls(groupId);
   await getDb().delete(chatGroup).where(eq(chatGroup.id, groupId));
 }
 

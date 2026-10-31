@@ -195,13 +195,15 @@ export const call = sqliteTable("call", {
   endReason: text("end_reason"),
 }, (t) => [index("call_group").on(t.groupId, t.endedAt), index("call_callee").on(t.calleeId, t.endedAt), index("call_open").on(t.endedAt, t.endsAt)]);
 
-// Who is or was in a call: their SFU session and the tracks they publish (JSON [{ name, mid }]). Present while
-// leftAt is null and seenAt is recent (the call screen polls).
+// Who is or was in a call: their SFU session, the tracks they publish (JSON [{ name, mid }]) and the tracks they
+// pull from others (JSON [{ key: "<session>:<track>", mid }]), so a pull is not repeated and can be closed when the
+// person loses access. Present while leftAt is null and seenAt is recent (the call screen polls).
 export const callParticipant = sqliteTable("call_participant", {
   callId: text("call_id").notNull().references(() => call.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
   sessionId: text("session_id").notNull(),
   tracks: text("tracks").notNull().default("[]"),
+  pulled: text("pulled").notNull().default("[]"),
   joinedAt: integer("joined_at", { mode: "timestamp_ms" }).notNull(),
   seenAt: integer("seen_at", { mode: "timestamp_ms" }).notNull(),
   leftAt: integer("left_at", { mode: "timestamp_ms" }),

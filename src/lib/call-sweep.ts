@@ -7,7 +7,7 @@ const IDLE_MS = 2 * 60_000;
 /** Call records are kept this long, as the privacy policy says. */
 const CALL_RECORDS_MS = 30 * 86_400_000;
 
-type Published = { name: string; mid: string };
+type Track = { mid: string };
 
 /**
  * Ends calls past their 3 hours, or that everyone has left without saying so (closed tab, lost signal), and stops
@@ -19,8 +19,8 @@ export async function sweepCalls(db: D1Database, env: SfuEnv, now = Date.now()) 
        (SELECT 1 FROM call_participant p WHERE p.call_id = c.id AND p.left_at IS NULL AND p.seen_at > ?2))) LIMIT 200`,
   ).bind(now, now - IDLE_MS).all<{ id: string }>();
   for (const { id } of results) {
-    const { results: people } = await db.prepare("SELECT session_id, tracks FROM call_participant WHERE call_id = ?1 AND left_at IS NULL").bind(id).all<{ session_id: string; tracks: string }>();
-    await Promise.all(people.map((p) => closeTracks(env, p.session_id, (JSON.parse(p.tracks) as Published[]).map((t) => t.mid))));
+    const { results: people } = await db.prepare("SELECT session_id, tracks, pulled FROM call_participant WHERE call_id = ?1 AND left_at IS NULL").bind(id).all<{ session_id: string; tracks: string; pulled: string }>();
+    await Promise.all(people.map((p) => closeTracks(env, p.session_id, [...(JSON.parse(p.tracks) as Track[]), ...(JSON.parse(p.pulled) as Track[])].map((t) => t.mid))));
     await db.batch([
       db.prepare("UPDATE call SET ended_at = ?2, end_reason = CASE WHEN ends_at <= ?2 THEN 'time' ELSE 'ended' END WHERE id = ?1 AND ended_at IS NULL").bind(id, now),
       db.prepare("UPDATE call_participant SET left_at = ?2 WHERE call_id = ?1 AND left_at IS NULL").bind(id, now),

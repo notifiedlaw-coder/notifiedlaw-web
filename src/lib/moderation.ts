@@ -1,7 +1,9 @@
 import { and, eq, gt, inArray, or, sql } from "drizzle-orm";
-import { abuseReport, chatGroup, groupMember, groupMessage, message, userBlock } from "@/db/schema";
+import { abuseReport, chatGroup, friendship, groupMember, groupMessage, message, userBlock } from "@/db/schema";
 import { getDb } from "@/lib/auth";
-import { people, unfriend } from "@/lib/friends";
+import { people } from "@/lib/friends";
+import { pairOf } from "@/lib/messages";
+import { endCallsBetween, leaveGroupCalls } from "@/lib/calls";
 
 export const REPORT_KINDS = ["user", "group", "message", "group_message"] as const;
 export type ReportKind = (typeof REPORT_KINDS)[number];
@@ -12,12 +14,17 @@ const DAILY_REPORTS = 20;
 /**
  * Blocks an account: ends any friendship (and with it the conversation), takes the blocked account out of the
  * blocker's groups and the blocker out of the blocked account's groups. From then on neither can find the other by
- * email, message, call or add the other to a group.
+ * email, message, call or add the other to a group. The block and the end of the friendship are one batch, so a
+ * request accepted in between cannot leave them friends; calls between them, or with either in the other's group, end.
  */
 export async function block(userId: string, otherId: string) {
   const db = getDb();
-  await db.insert(userBlock).values({ blockerId: userId, blockedId: otherId, createdAt: new Date() }).onConflictDoNothing();
-  await unfriend(userId, otherId);
+  const between = or(and(eq(friendship.fromId, userId), eq(friendship.toId, otherId)), and(eq(friendship.fromId, otherId), eq(friendship.toId, userId)));
+  await db.batch([
+    db.insert(userBlock).values({ blockerId: userId, blockedId: otherId, createdAt: new Date() }).onConflictDoNothing(),
+    db.delete(friendship).where(between),
+    db.delete(message).where(pairOf(userId, otherId)),
+  ]);
   const [mine, theirs] = await Promise.all([
     db.select({ id: chatGroup.id }).from(chatGroup).where(eq(chatGroup.ownerId, userId)),
     db.select({ id: chatGroup.id }).from(chatGroup).where(eq(chatGroup.ownerId, otherId)),
@@ -27,6 +34,9 @@ export async function block(userId: string, otherId: string) {
     ...(theirs.length ? [db.delete(groupMember).where(and(eq(groupMember.userId, userId), inArray(groupMember.groupId, theirs.map((g) => g.id))))] : []),
   ];
   for (const q of out) await q;
+  await endCallsBetween(userId, otherId);
+  await leaveGroupCalls(otherId, mine.map((g) => g.id));
+  await leaveGroupCalls(userId, theirs.map((g) => g.id));
 }
 
 export async function unblock(userId: string, otherId: string) {

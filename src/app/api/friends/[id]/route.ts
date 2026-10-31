@@ -1,6 +1,7 @@
 import { userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
 import { friendLists, respond, unfriend } from "@/lib/friends";
+import { endCallsBetween } from "@/lib/calls";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -20,6 +21,8 @@ export async function DELETE(req: Request, { params }: Ctx) {
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
   const rl = await limited(req, "WRITES", userId);
   if (rl) return rl;
-  await unfriend(userId, (await params).id);
+  const other = (await params).id;
+  await unfriend(userId, other);
+  await endCallsBetween(userId, other);
   return Response.json(await friendLists(userId));
 }

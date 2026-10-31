@@ -232,6 +232,13 @@
       "when": 1793407919061,
       "tag": "0032_typing",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1793424520817,
+      "tag": "0033_call_pulled",
+      "breakpoints": true
     }
   ]
 }
