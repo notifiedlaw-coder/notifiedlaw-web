@@ -268,21 +268,21 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
       {lock === "Student" && <Gate title="Choose a plan to keep reading" body="The first two topics of every course are open as a preview. Student unlocks every topic from Level 100 to 400." cta="See plans" />}
       <div className="flex min-w-0 flex-1 flex-col">
       <div className="relative flex min-h-0 flex-1 flex-col">
-      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface">
+      <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-canvas">
         {total > 1 && <PageBar pages={pages} cur={cur} chapterCount={chapterCount} onGo={go} />}
         <div className="mx-auto flex max-w-[1100px] justify-center px-5 md:px-8">
         {/* Text wraps to the column: long words and links break rather than run off the side. */}
-        <article className="min-w-0 max-w-[680px] flex-1 break-words pb-24 pt-7 text-[17px] leading-[1.6] md:pt-10 md:text-[18px] md:leading-[1.65] xl:pb-10" style={{ fontFamily: SERIF }}>
-          <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted" style={SANS}>{course} · Topic {n}</div>
-          <h1 className="mb-2 mt-2 text-[26px] font-bold leading-[1.15] tracking-[-0.01em] md:text-[34px]">{title}</h1>
-          <div className="mb-6 text-[13px] text-muted" style={SANS}>
+        <article className="min-w-0 max-w-[680px] flex-1 break-words pb-24 pt-7 text-[18px] leading-[1.7] md:pt-10 md:text-[19px] xl:pb-10" style={{ fontFamily: SERIF }}>
+          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint" style={SANS}>{course} · Topic {n}</div>
+          <h1 className="mb-3 mt-3 text-[38px] leading-[1.02] md:text-[46px] lg:text-[56px]">{title}</h1>
+          <div className="mb-6 text-[15px] text-faint" style={SANS}>
             {chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}{total > chapterCount ? ` · ${total} pages` : ""} · {minutes} min read
-            {isDone && <span className="font-semibold text-[#248A3D]"> · Studied</span>}
+            {isDone && <span className="font-semibold text-link"> · Read</span>}
           </div>
           {cur === 0 || pages[cur - 1].chapter !== page.chapter ? (
             <>
               {chapterCount > 1 && <div className="mt-8 text-[13px] font-semibold text-muted" style={SANS}>Chapter {page.chapter + 1}</div>}
-              <h2 className="mb-3 mt-1.5 text-[22px] font-bold leading-tight tracking-[-0.01em] md:text-[26px]">{page.chapterTitle}</h2>
+              <h2 className="mb-3 mt-3 text-[28px] leading-tight md:text-[30px]">{page.chapterTitle}</h2>
             </>
           ) : (
             // A later page of the chapter: where the reader is, then the text carries on from the page before.
@@ -304,7 +304,7 @@ export function Reader({ course, slug, n, title, lock = null, body, topicId = nu
       </div>
       <Podcast title={title} minutes={minutes} />
       </div>
-      {wide && <aside className="flex w-[340px] shrink-0 flex-col border-l border-edge/10 bg-fill/50" aria-label="AI Summary and Notes">{sidebar()}</aside>}
+      {wide && <aside className="flex w-[340px] shrink-0 flex-col border-l border-edge/10 bg-sidebar" aria-label="AI Summary and Notes">{sidebar()}</aside>}
       {pick && <AddNoteButton left={pick.left} top={pick.top} onAdd={startNote} />}
     </div>
   );
@@ -534,8 +534,8 @@ function MenuRow({ on, onClick, n = null, page, strong, indent = 0, children }: 
 
 /** The foot of a page: Previous and Next buttons, Apple's page dots, and the way back to the course after the last page. */
 function Pagination({ pages, cur, back, onGo }: { pages: Page[]; cur: number; back: string; onGo: (i: number) => void }) {
-  const btn = "flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-5 text-[15px] font-semibold transition-colors active:scale-[0.98]";
-  const plain = `${btn} bg-fill text-ink hover:bg-track/70`;
+  const btn = "flex h-[52px] min-w-0 items-center justify-center gap-1.5 rounded-full px-6 text-[16px] font-semibold transition-colors active:scale-[0.98]";
+  const plain = `${btn} border border-edge/20 bg-transparent text-ink hover:bg-edge/[0.04]`;
   const main = `${btn} bg-blue text-white hover:bg-blue-press`;
   return (
     <nav aria-label="Pages" className="mt-10 border-t border-edge/10 pt-6" style={SANS}>
@@ -570,11 +570,11 @@ function Studied({ on, error, onToggle }: { on: boolean; error: string | null; o
   return (
     <div className="mt-10 flex flex-col gap-2" style={SANS}>
       <button type="button" onClick={onToggle} aria-pressed={on}
-        className={`flex min-h-[60px] items-center gap-3 rounded-[14px] px-4 py-3 text-left transition-colors active:scale-[0.99] ${on ? "bg-green/12" : "bg-fill hover:bg-track/70"}`}>
+        className={`flex min-h-[60px] items-center gap-3 rounded-[18px] border px-5 py-3 text-left transition-colors active:scale-[0.99] ${on ? "border-transparent bg-tint" : "border-edge/10 bg-surface hover:bg-hover"}`}>
         <CheckCircle on={on} size={26} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className={`text-[15px] font-semibold ${on ? "text-[#248A3D]" : ""}`}>{on ? "Studied" : "Mark as studied"}</span>
-          <span className="text-[13px] text-muted">{on ? "Tap to mark it as not studied." : "Keep track of what you have covered in this course."}</span>
+          <span className={`text-[16px] font-semibold ${on ? "text-link" : ""}`}>{on ? "Marked as read" : "Mark as read"}</span>
+          <span className="text-[14px] text-muted">{on ? "Tap to mark it as not studied." : "Keep track of what you have covered in this course."}</span>
         </span>
       </button>
       {error && <p role="alert" className="m-0 text-[13px] text-red">{error}</p>}
@@ -587,7 +587,7 @@ function Summary() {
   return (
     <section className="flex flex-col gap-3" style={SANS} aria-label="AI Summary, coming soon">
       <div className="flex items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#5AC8FA] to-[#23305C] text-white" aria-hidden><Icon name="sparkle" size={16} /></span>
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-[#23305C] text-white" aria-hidden><Icon name="sparkle" size={16} /></span>
         <span className="flex-1 text-[15px] font-semibold">AI Summary</span>
         <Soon />
       </div>
@@ -626,7 +626,7 @@ function Podcast({ title, minutes }: { title: string; minutes: number }) {
       {/* On phones the progress is a hairline along the top of the bar. */}
       <span className="absolute inset-x-0 top-0 h-0.5 bg-track md:hidden" aria-hidden />
       <div className="flex min-w-0 items-center gap-3">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-[8px] bg-gradient-to-br from-[#D06BFF] to-[#5856D6] text-white shadow-[0_2px_8px_rgba(88,86,214,0.35)]" aria-hidden><Icon name="headphones" size={22} /></span>
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-[8px] bg-[#161A26] text-[#E0683A]" aria-hidden><Icon name="headphones" size={22} /></span>
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate text-[14px] font-semibold">{title}</span>
           <div className="flex min-w-0 items-center gap-2">
