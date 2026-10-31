@@ -116,7 +116,7 @@ function Sidebar({ path }: { path: string }) {
       <Link
         href="/settings"
         aria-current={isActive(path, "/settings") ? "page" : undefined}
-        className="mt-2 flex items-center gap-2.5 rounded-xl border border-edge/10 bg-surface p-2.5 text-ink hover:bg-hover"
+        className="mt-2 flex items-center gap-2.5 rounded-xl border border-edge/10 bg-surface p-2.5 pt-3.5 text-ink hover:bg-hover"
         style={plain}
       >
         <Avatar size={36} />
