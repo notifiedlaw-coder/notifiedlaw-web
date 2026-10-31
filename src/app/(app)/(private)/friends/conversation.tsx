@@ -1,40 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { Avatar } from "@/components/avatar";
+import { useCalls } from "@/components/calls";
 import { useFriends } from "@/components/friends";
-import { Icon } from "@/components/icons";
-import { MAX_MESSAGE, MESSAGE_RULE, ONLINE_MS, dayOf, seenLabel, type Message } from "@/lib/friend-view";
-import { Avatar, StreakTag, useFriendsShell } from "./friends-shell";
+import { ReportSheet, type ReportTarget } from "@/components/report";
+import { Sheet } from "@/components/sheet";
+import { MESSAGE_RULE, ONLINE_MS, seenLabel, type FriendLists, type Message } from "@/lib/friend-view";
+import { ChatView, HeaderButton, InfoIcon, PhoneIcon, VideoIcon, type ChatMessage } from "./chat";
+import { StreakTag, useFriendsShell } from "./friends-shell";
 
 /** How often an open conversation checks for new messages while the page is visible. */
 const POLL_MS = 4_000;
 
-type Pending = Message & { pending?: boolean };
-
-const dayLabel = (at: number, now: number) => {
-  const d = dayOf(at);
-  if (d === dayOf(now)) return "Today";
-  if (d === dayOf(now - 86_400_000)) return "Yesterday";
-  return new Date(at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-};
-const clock = (at: number) => new Date(at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
-
-/** A conversation with one friend: messages as iOS bubbles, polled while open, and a composer. */
+/** A conversation with one friend: messages, polled while open, voice and video calls, report and block. */
 export function Conversation({ friendId, initial, initialSeen }: { friendId: string; initial: Message[]; initialSeen: number | null }) {
-  const { lists, reloadThreads, now } = useFriendsShell();
+  const router = useRouter();
+  const { lists, setLists, reload, now, setBlocked } = useFriendsShell();
   const { refresh } = useFriends();
+  const { start } = useCalls();
   const friend = lists.friends.find((f) => f.id === friendId);
-  const [messages, setMessages] = useState<Pending[]>(initial);
+  const [messages, setMessages] = useState<(Message & { pending?: boolean })[]>(initial);
   const [seen, setSeen] = useState(initialSeen);
-  const [text, setText] = useState("");
-  const [error, setError] = useState("");
-  const scroller = useRef<HTMLDivElement>(null);
-  const box = useRef<HTMLTextAreaElement>(null);
-  const atBottom = useRef(true);
+  const [options, setOptions] = useState(false);
+  const [reporting, setReporting] = useState<ReportTarget | null>(null);
+  const [confirm, setConfirm] = useState<"block" | "remove" | null>(null);
 
   // Opening the conversation read the friend's messages on the server: update the list and the badge.
-  useEffect(() => { reloadThreads(); refresh(); }, [reloadThreads, refresh]);
+  useEffect(() => { reload(); refresh(); }, [reload, refresh]);
 
   const poll = useCallback(async () => {
     if (document.visibilityState !== "visible") return;
@@ -50,9 +45,9 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
         const fresh = d.messages.filter((m) => !ids.has(m.id));
         return fresh.length ? [...cur, ...fresh] : cur;
       });
-      if (d.messages.some((m) => !m.fromMe)) { reloadThreads(); refresh(); }
+      if (d.messages.some((m) => !m.fromMe)) { reload(); refresh(); }
     } catch {}
-  }, [friendId, messages, reloadThreads, refresh]);
+  }, [friendId, messages, reload, refresh]);
 
   useEffect(() => {
     const t = setInterval(poll, POLL_MS);
@@ -60,41 +55,31 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", poll); };
   }, [poll]);
 
-  // Stay at the newest message unless the reader has scrolled up to older ones.
-  useLayoutEffect(() => {
-    const el = scroller.current;
-    if (el && atBottom.current) el.scrollTop = el.scrollHeight;
-  }, [messages]);
-
-  async function send() {
-    const body = text.trim();
-    if (!body) return;
-    setError("");
-    const temp: Pending = { id: `tmp-${Date.now()}`, fromMe: true, body, at: Date.now(), readAt: null, expiresAt: null, pending: true };
-    atBottom.current = true;
+  async function send(body: string) {
+    const temp = { id: `tmp-${Date.now()}`, fromMe: true, body, at: Date.now(), readAt: null, expiresAt: null, pending: true };
     setMessages((cur) => [...cur, temp]);
-    setText("");
     try {
       const r = await fetch(`/api/messages/${encodeURIComponent(friendId)}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ body }) });
       const d = (await r.json().catch(() => ({}))) as { message?: Message; error?: string };
       if (!r.ok || !d.message) throw new Error(d.error ?? "Your message was not sent. Try again.");
       setMessages((cur) => cur.map((m) => (m.id === temp.id ? d.message! : m)));
-      reloadThreads();
+      reload();
+      return null;
     } catch (e) {
       setMessages((cur) => cur.filter((m) => m.id !== temp.id));
-      setText(body);
-      setError(e instanceof Error && e.message !== "Failed to fetch" ? e.message : "You seem to be offline. Try again.");
+      return e instanceof Error && e.message !== "Failed to fetch" ? e.message : "You seem to be offline. Try again.";
     }
-    box.current?.focus();
   }
 
-  // Grow the box with its text, up to about five lines.
-  useLayoutEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 132)}px`;
-  }, [text]);
+  async function blockOrRemove(what: "block" | "remove") {
+    if (what === "block") {
+      const r = await fetch("/api/blocks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: friendId, on: true }) }).catch(() => null);
+      if (r?.ok) setBlocked(((await r.json()) as { blocked: { id: string; name: string; avatar: string | null }[] }).blocked);
+    } else await fetch(`/api/friends/${encodeURIComponent(friendId)}`, { method: "DELETE" }).catch(() => null);
+    const l = (await fetch("/api/friends").then((r) => r.json()).catch(() => null)) as FriendLists | null;
+    if (l) setLists(l);
+    router.push("/friends");
+  }
 
   if (!friend) {
     return (
@@ -106,63 +91,56 @@ export function Conversation({ friendId, initial, initialSeen }: { friendId: str
   }
 
   const online = friend.lastSeen !== null && now - friend.lastSeen < ONLINE_MS;
-  const lastMine = messages.findLast((m) => m.fromMe && !m.pending);
-  const sent = (m: Pending) => m === lastMine;
+  const header = (
+    <header className="flex shrink-0 items-center gap-3 border-b-[0.5px] border-edge/15 bg-surface/80 px-4 py-2.5 backdrop-blur-xl">
+      <Avatar id={friend.id} name={friend.name} src={friend.avatar} size={38} online={online} />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex items-center gap-2">
+          <span className="truncate text-[16px] font-semibold">{friend.name}</span>
+          <StreakTag streak={friend.streak} today={friend.today} />
+        </span>
+        <span className={`truncate text-[12px] ${online ? "font-medium text-green" : "text-muted"}`}>{seenLabel(friend.lastSeen, now)}</span>
+      </span>
+      <HeaderButton label="Voice call" onClick={() => start({ friendId }, friend.name, false)}><PhoneIcon /></HeaderButton>
+      <HeaderButton label="Video call" onClick={() => start({ friendId }, friend.name, true)}><VideoIcon /></HeaderButton>
+      <HeaderButton label="More" onClick={() => setOptions(true)}><InfoIcon /></HeaderButton>
+    </header>
+  );
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 items-center gap-3 border-b-[0.5px] border-edge/15 bg-surface/80 px-4 py-2.5 backdrop-blur-xl">
-        <Avatar f={friend} size={38} online={online} />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="flex items-center gap-2">
-            <span className="truncate text-[16px] font-semibold">{friend.name}</span>
-            <StreakTag streak={friend.streak} today={friend.today} />
-          </span>
-          <span className={`truncate text-[12px] ${online ? "font-medium text-green" : "text-muted"}`}>{seenLabel(friend.lastSeen, now)}</span>
-        </span>
-      </header>
+    <>
+      <ChatView header={header} messages={messages as ChatMessage[]} rule={MESSAGE_RULE} now={now} empty={`Say hello to ${friend.name.split(" ")[0]}.`}
+        status={(m) => {
+          if (seen !== null && seen >= m.at) return "Seen";
+          const exp = messages.find((x) => x.id === m.id)?.expiresAt;
+          return `Delivered${exp ? ` · deleted ${new Date(exp).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })} if unread` : ""}`;
+        }}
+        onSend={send} onReport={(m) => setReporting({ kind: "message", target: m.id, what: "message" })} />
 
-      <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60; }}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 md:px-6">
-        <p className="mx-auto mb-4 mt-0 flex max-w-[340px] items-start justify-center gap-1.5 text-center text-[12px] leading-snug text-muted">
-          <Icon name="lock" size={11} className="mt-[3px] shrink-0" /><span>{MESSAGE_RULE}</span>
-        </p>
-        {!messages.length && <p className="m-0 mt-10 text-center text-[15px] text-muted">Say hello to {friend.name.split(" ")[0]}.</p>}
-        <ol className="m-0 flex list-none flex-col gap-0.5 p-0">
-          {messages.map((m, i) => {
-            const prev = messages[i - 1];
-            const next = messages[i + 1];
-            const newDay = !prev || dayOf(prev.at) !== dayOf(m.at);
-            const tail = !next || next.fromMe !== m.fromMe || dayOf(next.at) !== dayOf(m.at) || next.at - m.at > 5 * 60_000;
-            return (
-              <li key={m.id} className="flex flex-col">
-                {newDay && <span className="my-3 text-center text-[12px] font-medium text-muted">{dayLabel(m.at, now)}</span>}
-                <div className={`flex ${m.fromMe ? "justify-end" : "justify-start"} ${tail ? "mb-1.5" : ""}`}>
-                  <p title={clock(m.at)} className={`m-0 max-w-[78%] whitespace-pre-wrap break-words rounded-[18px] px-3.5 py-2 text-[16px] leading-snug md:max-w-[65%] ${
-                    m.fromMe ? `bg-blue text-white ${tail ? "rounded-br-[6px]" : ""} ${m.pending ? "opacity-60" : ""}` : `bg-surface text-ink shadow-card ${tail ? "rounded-bl-[6px]" : ""}`}`}>{m.body}</p>
-                </div>
-                {sent(m) && <span className="-mt-1 mb-1 pr-1 text-right text-[11px] text-muted">{seen !== null && seen >= m.at ? "Seen" : `Delivered${m.expiresAt ? ` · deleted ${new Date(m.expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })} if unread` : ""}`}</span>}
-              </li>
-            );
-          })}
-        </ol>
-      </div>
+      {options && (
+        <Sheet label={friend.name} onClose={() => { setOptions(false); setConfirm(null); }}>
+          <div className="flex flex-col items-center gap-2 px-4 pb-2 pt-4 text-center">
+            <Avatar id={friend.id} name={friend.name} src={friend.avatar} size={72} />
+            <h2 className="m-0 text-[20px] font-semibold">{friend.name}</h2>
+            {friend.school && <p className="m-0 text-[14px] text-muted">{friend.school}</p>}
+          </div>
+          <div className="flex flex-col gap-3 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3">
+            <div className="flex flex-col overflow-hidden rounded-[16px] bg-surface shadow-card">
+              <SheetRow onClick={() => { setOptions(false); setReporting({ kind: "user", target: friend.id, what: "person" }); }}>Report {friend.name.split(" ")[0]}</SheetRow>
+              <SheetRow danger onClick={() => (confirm === "remove" ? void blockOrRemove("remove") : setConfirm("remove"))}>{confirm === "remove" ? "Tap again to remove friend and delete messages" : "Remove friend"}</SheetRow>
+              <SheetRow danger onClick={() => (confirm === "block" ? void blockOrRemove("block") : setConfirm("block"))}>{confirm === "block" ? `Tap again to block ${friend.name.split(" ")[0]}` : "Block"}</SheetRow>
+            </div>
+            <p className="m-0 px-1 text-[12px] text-muted">Blocking removes them as a friend, deletes your messages, takes them out of your groups and you out of theirs, and stops them finding you, messaging or calling you. They are not told.</p>
+          </div>
+        </Sheet>
+      )}
+      {reporting && <ReportSheet item={reporting} onClose={() => setReporting(null)} />}
+    </>
+  );
+}
 
-      <form onSubmit={(e) => { e.preventDefault(); void send(); }} className="flex shrink-0 flex-col gap-1 border-t-[0.5px] border-edge/15 bg-surface/80 px-3 py-2 backdrop-blur-xl md:px-6">
-        {error && <p role="alert" className="m-0 px-1 text-[13px] text-red">{error}</p>}
-        <div className="flex items-end gap-2">
-          <label htmlFor="message" className="sr-only">Message {friend.name}</label>
-          <textarea id="message" ref={box} rows={1} value={text} maxLength={MAX_MESSAGE} onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              // Enter sends on a keyboard; on touch screens the return key adds a line, as in Messages.
-              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && matchMedia("(hover: hover)").matches) { e.preventDefault(); void send(); }
-            }}
-            placeholder="Message" className="min-h-[38px] min-w-0 flex-1 resize-none rounded-[19px] border-[0.5px] border-edge/20 bg-canvas px-3.5 py-[7px] text-[16px] leading-snug text-ink outline-none placeholder:text-faint focus:border-blue/50" />
-          <button type="submit" disabled={!text.trim()} aria-label="Send" className="grid size-[38px] shrink-0 place-items-center rounded-full border-0 bg-blue text-white transition-opacity disabled:opacity-30">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" /></svg>
-          </button>
-        </div>
-      </form>
-    </div>
+export function SheetRow({ children, onClick, danger }: { children: React.ReactNode; onClick: () => void; danger?: boolean }) {
+  return (
+    <button type="button" onClick={onClick} className={`min-h-12 border-0 border-t border-edge/[0.06] bg-transparent px-4 text-left text-[16px] first:border-t-0 ${danger ? "text-red" : "text-link"}`}>{children}</button>
   );
 }

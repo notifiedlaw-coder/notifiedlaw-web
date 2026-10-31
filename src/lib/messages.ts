@@ -18,13 +18,14 @@ const view = (userId: string) => (r: typeof message.$inferSelect): Message => ({
 });
 
 /**
- * A conversation as the user opens it: what the friend sent is marked read, which moves its delete date to 30 days from
- * now. `after` (ms) returns only messages from then on, for polling. `seen` is when the newest message the friend has read was sent.
+ * A conversation as the user opens it: what the friend sent is marked read, which brings its delete date forward to 30
+ * days from now (if sooner than 90 days from sending). `after` (ms) returns only messages from then on, for polling. `seen` is when the newest message the friend has read was sent.
  */
 export async function conversation(userId: string, friendId: string, after?: number) {
   const now = Date.now();
   const db = getDb();
-  await db.update(message).set({ readAt: new Date(now), expiresAt: new Date(now + MESSAGE_TTL_MS) })
+  // Never later than the 90 days from sending.
+  await db.update(message).set({ readAt: new Date(now), expiresAt: sql`min(${message.expiresAt}, ${now + MESSAGE_TTL_MS})` })
     .where(and(eq(message.fromId, friendId), eq(message.toId, userId), isNull(message.readAt), live(now)));
   const [rows, [seen]] = await Promise.all([
     db.select().from(message)
@@ -36,7 +37,7 @@ export async function conversation(userId: string, friendId: string, after?: num
   return { messages: rows.reverse().map(view(userId)), seen: seen?.at ?? null };
 }
 
-/** Sends a message; the caller has checked the two are friends. Unread, it is deleted after 90 days. */
+/** Sends a message; the caller has checked the two are friends. It is deleted 90 days on, sooner once read. */
 export async function sendMessage(userId: string, friendId: string, body: string): Promise<Message> {
   const now = Date.now();
   const row = { id: crypto.randomUUID(), fromId: userId, toId: friendId, body, createdAt: new Date(now), readAt: null, expiresAt: new Date(now + UNREAD_TTL_MS) };

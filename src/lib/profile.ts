@@ -37,6 +37,8 @@ export type Me = {
   subscription: SubscriptionState;
   /** null for professional accounts. */
   student: StudentState | null;
+  /** The profile picture's URL, or null. */
+  avatar: string | null;
 };
 
 /** Shown as "UG Legon" style tags in the sidebar. */

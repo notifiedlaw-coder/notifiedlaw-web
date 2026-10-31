@@ -4,7 +4,18 @@
  * Someone the user is friends with or has a request open with. Activity is shared only between friends, so
  * `lastSeen` is null and `streak` 0 on requests.
  */
-export type Friend = { id: string; name: string; school: string | null; lastSeen: number | null; streak: number; best: number; today: boolean };
+export type Friend = { id: string; name: string; school: string | null; avatar: string | null; lastSeen: number | null; streak: number; best: number; today: boolean };
+
+/** The URL a stored avatar key is served from (signed-in users only). */
+export const avatarUrl = (key: string | null | undefined) => (key ? `/api/avatars/${key.replace(/^avatars\//, "")}` : null);
+
+export type GroupSummary = { id: string; name: string; avatar: string | null; admin: boolean; members: number; last: { body: string; from: string; fromMe: boolean; at: number } | null; unread: number; call: string | null };
+export type GroupMember = { id: string; name: string; avatar: string | null; admin: boolean };
+export type GroupDetail = { id: string; name: string; avatar: string | null; ownerId: string; members: GroupMember[] };
+export type GroupMessage = { id: string; fromId: string; fromMe: boolean; name: string; avatar: string | null; body: string; at: number };
+
+export type CallInfo = { id: string; groupId: string | null; groupName: string | null; callerId: string; callerName: string; calleeId: string | null; video: boolean; startedAt: number; endsAt: number; endedAt: number | null; endReason: string | null };
+export type CallPeer = { userId: string; name: string; avatar: string | null; sessionId: string; tracks: string[] };
 export type FriendLists = { friends: Friend[]; incoming: Friend[]; outgoing: Friend[] };
 export const NO_FRIENDS: FriendLists = { friends: [], incoming: [], outgoing: [] };
 
@@ -41,13 +52,20 @@ export function hueOf(id: string) {
 
 /** Messages are deleted this long after the recipient opens them... */
 export const MESSAGE_TTL_MS = 30 * 86_400_000;
-/** ...or this long after they were sent, while still unread. */
+/** ...and every message, direct or group, read or not, this long after it was sent. */
 export const UNREAD_TTL_MS = 90 * 86_400_000;
 /** How deletion works, as told to users wherever they message. */
-export const MESSAGE_RULE = "Messages are deleted 30 days after they are read, or 90 days after they are sent if they are never read.";
+export const MESSAGE_RULE = "Messages are deleted 30 days after they are read, and every message is deleted 90 days after it is sent.";
+export const GROUP_MESSAGE_RULE = "Group messages are deleted 90 days after they are sent.";
+
+export const MAX_GROUP_MEMBERS = 30;
+export const MAX_OWNED_GROUPS = 5;
+export const MAX_GROUP_NAME = 40;
+/** Calls end on their own this long after they start. */
+export const MAX_CALL_MS = 3 * 3_600_000;
 export const MAX_MESSAGE = 2000;
 
-/** A message as the signed-in user sees it. `expiresAt`: 90 days after sending while unread, 30 days after reading once read. */
+/** A message as the signed-in user sees it. `expiresAt`: 90 days after sending, or 30 days after reading if sooner. */
 export type Message = { id: string; fromMe: boolean; body: string; at: number; readAt: number | null; expiresAt: number | null };
 /** A conversation's newest message and how many the user has not read, for the friends list. */
 export type Thread = { friendId: string; last: { body: string; fromMe: boolean; at: number }; unread: number };

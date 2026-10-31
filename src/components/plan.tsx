@@ -20,8 +20,10 @@ type Ctx = {
   promoUntil: number | null;
   /** The account's student record; null for professional accounts and guests. */
   student: StudentState | null;
+  /** The profile picture's URL; null without one. */
+  avatar: string | null;
 };
-const PlanCtx = createContext<Ctx>({ plan: "None", setPlan: () => {}, paid: false, pro: false, max: false, credits: 0, allowance: 0, spend: () => false, profile: null, setLevel: () => {}, setProfile: () => {}, promoUntil: null, student: null });
+const PlanCtx = createContext<Ctx>({ plan: "None", setPlan: () => {}, paid: false, pro: false, max: false, credits: 0, allowance: 0, spend: () => false, profile: null, setLevel: () => {}, setProfile: () => {}, promoUntil: null, student: null, avatar: null });
 
 const send = (url: string, method: string, body: unknown) =>
   void fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
@@ -37,6 +39,7 @@ export function PlanProvider({ me, children }: { me: Me | null; children: React.
   const { plan, used, profile } = state;
   const student = me?.student ?? null;
   const promoUntil = me?.subscription.promoUntil ?? null;
+  const avatar = me?.avatar ?? null;
   const allowance = PLAN_CREDITS[plan];
   const credits = Math.max(0, allowance - used);
 
@@ -60,8 +63,8 @@ export function PlanProvider({ me, children }: { me: Me | null; children: React.
 
   // Memoised so the many consumers only re-render when the plan or balance actually changes.
   const value = useMemo(
-    () => ({ plan, setPlan, paid: plan !== "None", pro: plan === "Pro" || plan === "Pro Max", max: plan === "Pro Max", credits, allowance, spend, profile, setLevel, setProfile, promoUntil, student }),
-    [plan, setPlan, credits, allowance, spend, profile, setLevel, setProfile, promoUntil, student],
+    () => ({ plan, setPlan, paid: plan !== "None", pro: plan === "Pro" || plan === "Pro Max", max: plan === "Pro Max", credits, allowance, spend, profile, setLevel, setProfile, promoUntil, student, avatar }),
+    [plan, setPlan, credits, allowance, spend, profile, setLevel, setProfile, promoUntil, student, avatar],
   );
   return <PlanCtx.Provider value={value}>{children}</PlanCtx.Provider>;
 }

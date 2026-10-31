@@ -130,7 +130,7 @@ export const friendship = sqliteTable("friendship", {
 }, (t) => [primaryKey({ columns: [t.fromId, t.toId] }), index("friendship_to").on(t.toId)]);
 
 // Messages between friends. Sending sets expiresAt to 90 days on; opening the conversation as the recipient sets readAt
-// and moves expiresAt to readAt + 30 days;
+// and brings expiresAt forward to readAt + 30 days if that is sooner;
 // reads skip anything past expiresAt, and the Worker's daily cron (custom-worker.ts) deletes it. Unfriending deletes
 // the whole conversation.
 export const message = sqliteTable("message", {
@@ -146,6 +146,85 @@ export const message = sqliteTable("message", {
   index("message_to_unread").on(t.toId, t.readAt),
   index("message_expires").on(t.expiresAt),
 ]);
+
+// Profile pictures: 256 px WebP in the private FILES bucket under `key`, made by the Images binding from the upload.
+export const userAvatar = sqliteTable("user_avatar", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  key: text("key").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+// Group chats. The creator is the group's only admin (ownerId); at most MAX_OWNED_GROUPS per account, MAX_GROUP_MEMBERS each.
+export const chatGroup = sqliteTable("chat_group", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  ownerId: text("owner_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  avatarKey: text("avatar_key"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [index("chat_group_owner").on(t.ownerId)]);
+
+// Who is in each group, the admin included. `lastReadAt` counts unread messages.
+export const groupMember = sqliteTable("group_member", {
+  groupId: text("group_id").notNull().references(() => chatGroup.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  joinedAt: integer("joined_at", { mode: "timestamp_ms" }).notNull(),
+  lastReadAt: integer("last_read_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [primaryKey({ columns: [t.groupId, t.userId] }), index("group_member_user").on(t.userId)]);
+
+// Group messages, deleted 90 days after they are sent (expiresAt), read or not.
+export const groupMessage = sqliteTable("group_message", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id").notNull().references(() => chatGroup.id, { onDelete: "cascade" }),
+  fromId: text("from_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [index("group_message_group").on(t.groupId, t.createdAt), index("group_message_expires").on(t.expiresAt)]);
+
+// Voice and video calls through Cloudflare Realtime (SFU). A direct call has calleeId; a group call has groupId.
+// Every call ends by endsAt (3 hours after it starts); endReason: declined | missed | ended | time.
+export const call = sqliteTable("call", {
+  id: text("id").primaryKey(),
+  groupId: text("group_id").references(() => chatGroup.id, { onDelete: "cascade" }),
+  callerId: text("caller_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  calleeId: text("callee_id").references(() => user.id, { onDelete: "cascade" }),
+  video: integer("video", { mode: "boolean" }).notNull().default(false),
+  startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),
+  endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
+  endedAt: integer("ended_at", { mode: "timestamp_ms" }),
+  endReason: text("end_reason"),
+}, (t) => [index("call_group").on(t.groupId, t.endedAt), index("call_callee").on(t.calleeId, t.endedAt), index("call_open").on(t.endedAt, t.endsAt)]);
+
+// Who is or was in a call: their SFU session and the tracks they publish (JSON [{ name, mid }]). Present while
+// leftAt is null and seenAt is recent (the call screen polls).
+export const callParticipant = sqliteTable("call_participant", {
+  callId: text("call_id").notNull().references(() => call.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  sessionId: text("session_id").notNull(),
+  tracks: text("tracks").notNull().default("[]"),
+  joinedAt: integer("joined_at", { mode: "timestamp_ms" }).notNull(),
+  seenAt: integer("seen_at", { mode: "timestamp_ms" }).notNull(),
+  leftAt: integer("left_at", { mode: "timestamp_ms" }),
+}, (t) => [primaryKey({ columns: [t.callId, t.userId] }), index("call_participant_user").on(t.userId, t.leftAt)]);
+
+// Blocks: the blocked account cannot send the blocker friend requests, messages, calls or group invitations.
+export const userBlock = sqliteTable("user_block", {
+  blockerId: text("blocker_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  blockedId: text("blocked_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] }), index("user_block_blocked").on(t.blockedId)]);
+
+// Reports of abuse, for review in D1. `target` is a user, group, message or group message id; `snapshot` keeps the
+// reported text, since messages expire.
+export const abuseReport = sqliteTable("abuse_report", {
+  id: text("id").primaryKey(),
+  reporterId: text("reporter_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  kind: text("kind").notNull(), // user | group | message | group_message
+  target: text("target").notNull(),
+  reason: text("reason").notNull(),
+  snapshot: text("snapshot"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+}, (t) => [index("abuse_report_reporter").on(t.reporterId, t.createdAt)]);
 
 // When each user was last in the app and their daily streak, for Friend activity. Written by the shell's heartbeat
 // (POST /api/activity). A day counts once the app is opened on it (UTC, Ghana's time); `streakDay` is the last such day,

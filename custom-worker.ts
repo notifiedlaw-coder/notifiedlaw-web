@@ -4,7 +4,7 @@ import { Container } from "@cloudflare/containers";
 // @ts-ignore -- `.open-next/worker.js` exists only after `opennextjs-cloudflare build`
 import { default as handler } from "./.open-next/worker.js";
 import { clientKey } from "./src/lib/client-key";
-import { purgeExpiredMessages } from "./src/lib/message-purge";
+import { purgeExpired, sweepCalls } from "./src/lib/call-sweep";
 
 const BLOCK_MS = 10 * 60_000;
 const MAX_BLOCKED = 10_000;
@@ -44,9 +44,13 @@ export default {
     }
   },
 
-  /** The daily cron in wrangler.jsonc: deletes messages 30 days after they were read. */
-  async scheduled(_event, env, ctx) {
-    ctx.waitUntil(purgeExpiredMessages(env.DB).then((n) => console.log("purged messages", n)));
+  /**
+   * The crons in wrangler.jsonc. Every five minutes: end calls past 3 hours or abandoned. Daily: delete expired direct
+   * and group messages, and call records older than 30 days.
+   */
+  async scheduled(event, env, ctx) {
+    if (event.cron === "*/5 * * * *") ctx.waitUntil(sweepCalls(env.DB, env).then((n) => n && console.log("ended calls", n)));
+    else ctx.waitUntil(purgeExpired(env.DB).then((n) => console.log("purged", n)));
   },
 } satisfies ExportedHandler<CloudflareEnv>;
 

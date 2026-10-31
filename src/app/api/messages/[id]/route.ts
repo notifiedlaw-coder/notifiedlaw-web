@@ -4,6 +4,7 @@ import { readJson } from "@/lib/http";
 import { areFriends } from "@/lib/friends";
 import { conversation, sendMessage } from "@/lib/messages";
 import { MAX_MESSAGE } from "@/lib/friend-view";
+import { PROFANITY_ERROR, hasProfanity } from "@/lib/profanity";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -26,12 +27,13 @@ export async function GET(req: Request, { params }: Ctx) {
 export async function POST(req: Request, { params }: Ctx) {
   const userId = await userIdFrom(req);
   if (!userId) return Response.json({ error: "unauthenticated" }, { status: 401 });
-  const rl = await limited(req, "WRITES", userId);
+  const rl = await limited(req, "MESSAGES", userId);
   if (rl) return rl;
   const b = (await readJson(req)) as { body?: unknown } | null;
   const body = typeof b?.body === "string" ? b.body.trim() : "";
   if (!body) return Response.json({ error: "Write a message first." }, { status: 400 });
   if (body.length > MAX_MESSAGE) return Response.json({ error: `Messages can be up to ${MAX_MESSAGE} characters.` }, { status: 400 });
+  if (hasProfanity(body)) return Response.json({ error: PROFANITY_ERROR }, { status: 400 });
   const friendId = (await params).id;
   if (!(await areFriends(userId, friendId))) return Response.json({ error: "You can only message friends." }, { status: 403 });
   return Response.json({ message: await sendMessage(userId, friendId, body) });

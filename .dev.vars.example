@@ -7,3 +7,6 @@ ADMIN_SYNC_TOKEN=
 # Turnstile on the student sign-in form. Cloudflare's always-pass test secret; production uses the
 # "NotifiedLaw student sign-in" widget's secret (wrangler secret put TURNSTILE_SECRET_KEY).
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+# Calls: the Cloudflare Realtime SFU app's secret (dashboard: Realtime > SFU > your app). Its id is REALTIME_APP_ID in
+# wrangler.jsonc. Production: wrangler secret put REALTIME_APP_SECRET.
+REALTIME_APP_SECRET=

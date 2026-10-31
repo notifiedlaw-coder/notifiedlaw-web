@@ -10,6 +10,7 @@ import { and, eq, inArray, lt, ne } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import type { Plan } from "@/lib/data";
 import { effectivePlan } from "@/lib/promo";
+import { avatarUrl } from "@/lib/friend-view";
 import { sendEmail, studentLinkMessage } from "@/lib/email";
 import { limitedBy } from "@/lib/rate-limit";
 import { TURNSTILE_HEADER, verifyTurnstile } from "@/lib/turnstile";
@@ -179,10 +180,11 @@ export async function studentOf(userId: string) {
 /** Everything the client shell needs about a user besides their name: profile, subscription and student status. */
 export async function meFor(userId: string): Promise<Me> {
   const db = getDb();
-  const [[p], [s], st] = await Promise.all([
+  const [[p], [s], st, [av]] = await Promise.all([
     db.select().from(schema.profile).where(eq(schema.profile.userId, userId)),
     db.select().from(schema.subscription).where(eq(schema.subscription.userId, userId)),
     studentOf(userId),
+    db.select({ key: schema.userAvatar.key }).from(schema.userAvatar).where(eq(schema.userAvatar.userId, userId)),
   ]);
   return {
     profile: p ? {
@@ -194,6 +196,7 @@ export async function meFor(userId: string): Promise<Me> {
       email: st.email, university: st.university, studentId: st.studentId ?? "",
       verifiedAt: st.verifiedAt.getTime(), eligible: studentEligible(st.verifiedAt.getTime()),
     } : null,
+    avatar: avatarUrl(av?.key),
   };
 }
 

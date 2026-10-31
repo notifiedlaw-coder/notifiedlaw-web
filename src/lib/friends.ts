@@ -1,8 +1,8 @@
-import { and, eq, or, sql } from "drizzle-orm";
-import { activity, friendship, message, profile, student, user } from "@/db/schema";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { activity, friendship, message, profile, student, user, userAvatar, userBlock } from "@/db/schema";
 import { getDb } from "@/lib/auth";
 import { pairOf } from "@/lib/messages";
-import { dayOf, liveStreak, type Friend, type FriendLists } from "@/lib/friend-view";
+import { avatarUrl, dayOf, liveStreak, type Friend, type FriendLists } from "@/lib/friend-view";
 
 /** Friends, requests received and requests sent, together, per account. Keeps lists and sheets short. */
 export const MAX_FRIENDS = 100;
@@ -16,13 +16,14 @@ async function others(userId: string, side: "from" | "to") {
     .select({
       id: user.id, name: user.name, first: profile.firstName, last: profile.lastName,
       university: profile.university, studentUni: student.university, status: friendship.status, at: friendship.createdAt,
-      lastSeen: activity.lastSeenAt, streak: activity.streak, best: activity.bestStreak, streakDay: activity.streakDay,
+      lastSeen: activity.lastSeenAt, streak: activity.streak, best: activity.bestStreak, streakDay: activity.streakDay, avatar: userAvatar.key,
     })
     .from(friendship)
     .innerJoin(user, eq(user.id, theirs))
     .leftJoin(profile, eq(profile.userId, user.id))
     .leftJoin(student, eq(student.userId, user.id))
     .leftJoin(activity, eq(activity.userId, user.id))
+    .leftJoin(userAvatar, eq(userAvatar.userId, user.id))
     .where(eq(mine, userId))
     .limit(MAX_FRIENDS * 2);
 }
@@ -32,7 +33,7 @@ type Row = Awaited<ReturnType<typeof others>>[number];
 function view(r: Row): Friend {
   const friend = r.status === "accepted" && r.streakDay !== null;
   return {
-    id: r.id, name: r.first ? `${r.first} ${r.last}` : r.name, school: r.studentUni ?? r.university ?? null,
+    id: r.id, name: r.first ? `${r.first} ${r.last}` : r.name, school: r.studentUni ?? r.university ?? null, avatar: avatarUrl(r.avatar),
     lastSeen: friend ? r.lastSeen!.getTime() : null,
     streak: friend ? liveStreak(r.streak!, r.streakDay!) : 0,
     best: friend ? r.best! : 0,
@@ -72,6 +73,8 @@ export async function sendRequest(userId: string, email: string): Promise<string
   const [to] = await db.select({ id: user.id }).from(user).where(eq(sql`lower(${user.email})`, email.toLowerCase()));
   if (!to) return "No Notified Law account uses that email.";
   if (to.id === userId) return "That is your own email.";
+  // A block either way looks like no account, so the blocked person learns nothing.
+  if (await blockedEitherWay(userId, to.id)) return "No Notified Law account uses that email.";
   const [row] = await db.select().from(friendship).where(between(userId, to.id));
   if (row?.status === "accepted") return "You are already friends.";
   if (row?.fromId === userId) return "You have already sent them a request.";
@@ -102,4 +105,20 @@ export async function unfriend(userId: string, otherId: string) {
 export async function areFriends(a: string, b: string) {
   const [row] = await getDb().select({ status: friendship.status }).from(friendship).where(between(a, b));
   return row?.status === "accepted";
+}
+
+/** Whether either account has blocked the other. */
+export async function blockedEitherWay(a: string, b: string) {
+  const [row] = await getDb().select({ x: userBlock.blockerId }).from(userBlock)
+    .where(or(and(eq(userBlock.blockerId, a), eq(userBlock.blockedId, b)), and(eq(userBlock.blockerId, b), eq(userBlock.blockedId, a))));
+  return !!row;
+}
+
+/** Names and pictures of a few accounts (a group's members, a call's people), keyed by id. */
+export async function people(ids: string[]) {
+  if (!ids.length) return new Map<string, { name: string; avatar: string | null }>();
+  const rows = await getDb().select({ id: user.id, name: user.name, first: profile.firstName, last: profile.lastName, avatar: userAvatar.key })
+    .from(user).leftJoin(profile, eq(profile.userId, user.id)).leftJoin(userAvatar, eq(userAvatar.userId, user.id))
+    .where(inArray(user.id, [...new Set(ids)].slice(0, 90)));
+  return new Map(rows.map((r) => [r.id, { name: r.first ? `${r.first} ${r.last}` : r.name, avatar: avatarUrl(r.avatar) }]));
 }

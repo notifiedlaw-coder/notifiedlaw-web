@@ -218,6 +218,13 @@
       "when": 1793404386279,
       "tag": "0030_message_unread_expiry",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1793405151331,
+      "tag": "0031_groups_calls",
+      "breakpoints": true
     }
   ]
 }
