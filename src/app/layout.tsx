@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   title: { default: `${SITE.name} — ${SITE.tagline}`, template: `%s · ${SITE.name}` },
   description: SITE.description,
   applicationName: SITE.name,
+  // Added to the Home Screen, it opens full screen like an app, under its own name.
+  appleWebApp: { capable: true, title: SITE.name, statusBarStyle: "default" },
   authors: [{ name: SITE.name, url: SITE.url }],
   creator: SITE.name,
   publisher: SITE.name,

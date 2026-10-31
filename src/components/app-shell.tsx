@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Crest } from "@/components/avatar";
 import { usePathname } from "next/navigation";
 import { PLAN_NAMES } from "@/lib/data";
@@ -161,12 +161,42 @@ function Rail({ path }: { path: string }) {
 }
 
 /** Top bar on every screen: the page name (and its line on tablets and up); on phones the mark or a back button, and the profile. */
+/**
+ * Phones, as iOS large titles: while the page's own heading is on screen the bar leaves the title to it, then fades
+ * the title in (with its hairline) once the heading scrolls under the bar. Pages without a visible heading keep it.
+ */
+function useBarTitle(path: string) {
+  const [shown, setShown] = useState(true);
+  useEffect(() => {
+    const main = document.getElementById("main");
+    if (!main) return;
+    let io: IntersectionObserver | null = null;
+    let watched: Element | null = null;
+    const attach = () => {
+      const h1 = [...main.querySelectorAll("h1")].find((h) => h.getBoundingClientRect().height > 2) ?? null;
+      if (h1 === watched) return;
+      io?.disconnect();
+      watched = h1;
+      if (!h1) { setShown(true); return; }
+      io = new IntersectionObserver(([e]) => setShown(!e.isIntersecting), { root: main });
+      io.observe(h1);
+    };
+    attach();
+    // Pages fill in after navigation (loading states, client data), so look again when the content changes.
+    const mo = new MutationObserver(() => requestAnimationFrame(attach));
+    mo.observe(main, { childList: true, subtree: true });
+    return () => { mo.disconnect(); io?.disconnect(); };
+  }, [path]);
+  return shown;
+}
+
 function Toolbar({ path }: { path: string }) {
   const { title, sub } = titleFor(path);
   const parts = path.split("/").filter(Boolean);
   const deep = parts.length > 1;
+  const shown = useBarTitle(path);
   return (
-    <header className="nl-chrome flex h-[calc(3.75rem+env(safe-area-inset-top))] shrink-0 items-center gap-3.5 border-b border-edge/[0.08] bg-canvas pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.875rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] md:h-[72px] md:px-7 lg:px-10">
+    <header className={`nl-chrome flex h-[calc(3.75rem+env(safe-area-inset-top))] shrink-0 items-center gap-3.5 border-b bg-canvas transition-[border-color] duration-200 ${shown ? "border-edge/[0.08]" : "border-transparent md:border-edge/[0.08]"} pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.875rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] md:h-[72px] md:px-7 lg:px-10`}>
       {deep ? (
         <Link href={"/" + parts.slice(0, -1).join("/")} className="-ml-3 flex size-11 shrink-0 items-center justify-center text-link active:opacity-50 md:hidden" aria-label="Back">
           <Icon name="back" size={20} />
@@ -174,7 +204,7 @@ function Toolbar({ path }: { path: string }) {
       ) : (
         <Link href="/dashboard" aria-label="Today" className="md:hidden"><LogoMark size={30} ring="var(--canvas)" /></Link>
       )}
-      <div className="flex min-w-0 flex-col">
+      <div className={`flex min-w-0 flex-col transition-opacity duration-200 md:opacity-100 ${shown ? "opacity-100" : "opacity-0"}`} aria-hidden={!shown || undefined}>
         <span className="truncate font-display text-[24px] leading-[1.1] md:text-[28px]">{title}</span>
         {sub && <span className="hidden truncate text-[14px] text-faint md:block">{sub}</span>}
       </div>
@@ -219,6 +249,12 @@ function TabBar({ path }: { path: string }) {
           <Link
             key={n.id}
             href={n.href}
+            onClick={(e) => {
+              // As in native apps: tapping the tab you are on scrolls back to the top.
+              if (path !== n.href) return;
+              e.preventDefault();
+              document.getElementById("main")?.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             aria-current={on && !n.items ? "page" : undefined}
             className={`flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-[3px] text-[11px] ${on ? "font-bold text-blue" : "font-medium text-faint"}`}
             style={{ textDecoration: "none" }}
@@ -276,6 +312,15 @@ export function AppShell({ me, children }: { me: Me | null; children: React.Reac
   const path = usePathname();
   const sec = sectionFor(path);
   const keyboard = useKeyboardBox();
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    const main = document.getElementById("main");
+    if (!main) return;
+    main.classList.remove("nl-enter");
+    void main.offsetWidth; // restart the animation
+    main.classList.add("nl-enter");
+  }, [path]);
   return (
     <PlanProvider me={me}>
     <FriendsProvider enabled={!!me}>

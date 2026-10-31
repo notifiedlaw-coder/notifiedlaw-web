@@ -201,6 +201,43 @@ body {
   box-sizing: border-box;
 }
 
+/* App feel on touch screens: no grey tap flash, no double-tap zoom delay on controls, and chrome (bars, tabs,
+   buttons) that a long press does not select or open a link preview on. Reading text stays selectable. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+a,
+button,
+label,
+summary,
+select,
+[role="button"],
+[role="tab"],
+[role="radio"],
+[role="switch"] {
+  touch-action: manipulation;
+}
+@media (pointer: coarse) {
+  .nl-chrome,
+  nav,
+  button,
+  [role="button"],
+  [role="radio"],
+  [role="switch"] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+/* Phones: a page slides up into place when you open it, as a pushed screen does. */
+@keyframes nl-enter {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
+  .nl-enter { animation: nl-enter 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+}
+
 /* In the base layer, so a colour utility on a link wins over the default link colour. */
 @layer base {
   a {
