@@ -73,10 +73,14 @@ export function findIn(courses: Record<Level, Course[]>, slug: string) {
   return null;
 }
 
-/** The published Notion text of topic number `n` (1-based) of a course, or null when it is not live. */
-export async function getTopicBody(courseSlug: string, n: number): Promise<{ id: string; title: string; body: string } | null> {
+/**
+ * The published Notion text of topic number `n` (1-based) of a course, or null when it is not live. Slugs repeat
+ * across levels (a Level 400 and a Bar course can share a title), so the level the caller checked the plan against
+ * picks the course too.
+ */
+export async function getTopicBody(courseSlug: string, n: number, level: Level): Promise<{ id: string; title: string; body: string } | null> {
   const courses = await entries("course", true);
-  const c = courses.find((x) => x.slug === courseSlug);
+  const c = courses.find((x) => x.slug === courseSlug && x.level === level);
   if (!c) return null;
   const topics = (await entries("topic", false)).filter((t) => t.parentId === c.id).sort((a, b) => a.position - b.position);
   const t = topics[n - 1];

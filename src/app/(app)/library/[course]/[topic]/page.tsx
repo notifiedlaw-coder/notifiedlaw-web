@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: Params }) {
   const open = topicLock("None", hit.level, n) === null;
   const title = `${info.title} · ${hit.course.title} notes`;
   const description = open
-    ? excerpt((await getTopicBody(slug, n))?.body ?? "") || `${info.title}: ${hit.course.title} notes for Ghanaian law students.`
+    ? excerpt((await getTopicBody(slug, n, hit.level))?.body ?? "") || `${info.title}: ${hit.course.title} notes for Ghanaian law students.`
     : `${info.title}: ${hit.course.title} notes for Ghanaian law students.`;
   const url = `/library/${slug}/${n}`;
   return {
@@ -42,7 +42,7 @@ export default async function TopicPage({ params }: { params: Params }) {
   if (!info.ready) notFound();
   // A locked topic never sends its text: the plan is checked here, not in the browser.
   const lock = topicLock(await getPlan(), hit.level, n);
-  const cms = lock ? { id: null, title: info.title, body: "" } : await getTopicBody(slug, n);
+  const cms = lock ? { id: null, title: info.title, body: "" } : await getTopicBody(slug, n, hit.level);
   if (!cms) notFound();
   const completed = cms.id ? await myCompleted() : null;
   return <Reader course={hit.course.title} slug={hit.course.slug} lock={lock} n={n} title={cms.title} body={cms.body} topicId={cms.id} studied={completed && cms.id ? completed.includes(cms.id) : null} />;
