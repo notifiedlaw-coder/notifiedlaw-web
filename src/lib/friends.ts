@@ -6,6 +6,8 @@ import { avatarUrl, dayOf, liveStreak, type Friend, type FriendLists } from "@/l
 
 /** Friends, requests received and requests sent, together, per account. Keeps lists and sheets short. */
 export const MAX_FRIENDS = 100;
+/** Shown for an account that has not set up a profile, whose sign-in name has not been through the name rules. */
+const NO_NAME = "Notified Law user";
 
 
 /** The other side of each of a user's friendship rows, named as onboarding recorded them, with their activity. */
@@ -14,7 +16,7 @@ async function others(userId: string, side: "from" | "to") {
   const theirs = side === "from" ? friendship.toId : friendship.fromId;
   return getDb()
     .select({
-      id: user.id, name: user.name, first: profile.firstName, last: profile.lastName,
+      id: user.id, name: user.name, email: user.email, first: profile.firstName, last: profile.lastName,
       university: profile.university, studentUni: student.university, status: friendship.status, at: friendship.createdAt,
       lastSeen: activity.lastSeenAt, streak: activity.streak, best: activity.bestStreak, streakDay: activity.streakDay, avatar: userAvatar.key,
     })
@@ -28,12 +30,16 @@ async function others(userId: string, side: "from" | "to") {
     .limit(MAX_FRIENDS * 2);
 }
 
-type Row = Awaited<ReturnType<typeof others>>[number];
-/** Activity is shown only between friends; a request shows the name and school alone. */
+type Row = Awaited<ReturnType<typeof others>>[number] & { fromSide?: boolean };
+/**
+ * Activity is shown only between friends; a request received shows the name and school alone. A request sent shows
+ * only the email the sender typed, so typing someone's address does not reveal who owns it before they accept.
+ */
 function view(r: Row): Friend {
+  if (r.status === "pending" && r.fromSide) return { id: r.id, name: r.email, school: null, avatar: null, lastSeen: null, streak: 0, best: 0, today: false };
   const friend = r.status === "accepted" && r.streakDay !== null;
   return {
-    id: r.id, name: r.first ? `${r.first} ${r.last}` : r.name, school: r.studentUni ?? r.university ?? null, avatar: avatarUrl(r.avatar),
+    id: r.id, name: r.first ? `${r.first} ${r.last}` : NO_NAME, school: r.studentUni ?? r.university ?? null, avatar: avatarUrl(r.avatar),
     lastSeen: friend ? r.lastSeen!.getTime() : null,
     streak: friend ? liveStreak(r.streak!, r.streakDay!) : 0,
     best: friend ? r.best! : 0,
@@ -44,7 +50,8 @@ const byName = (a: Friend, b: Friend) => a.name.localeCompare(b.name);
 
 /** Everyone a user is friends with or has a request open with. */
 export async function friendLists(userId: string): Promise<FriendLists> {
-  const [sent, got] = await Promise.all([others(userId, "from"), others(userId, "to")]);
+  const [sentRows, got] = await Promise.all([others(userId, "from"), others(userId, "to")]);
+  const sent = sentRows.map((r) => ({ ...r, fromSide: true }));
   return {
     friends: [...sent, ...got].filter((r) => r.status === "accepted").map(view).sort(byName),
     incoming: got.filter((r) => r.status === "pending").sort((a, b) => b.at.getTime() - a.at.getTime()).map(view),
@@ -88,8 +95,9 @@ export async function sendRequest(userId: string, email: string): Promise<string
   return null;
 }
 
-/** Accepts the pending request `fromId` sent the user. False if there is none. */
+/** Accepts the pending request `fromId` sent the user. False if there is none, or if either has blocked the other. */
 export async function respond(userId: string, fromId: string) {
+  if (await blockedEitherWay(userId, fromId)) return false;
   const rows = await getDb().update(friendship).set({ status: "accepted", acceptedAt: new Date() })
     .where(and(eq(friendship.fromId, fromId), eq(friendship.toId, userId), eq(friendship.status, "pending"))).returning();
   return rows.length > 0;
@@ -101,10 +109,14 @@ export async function unfriend(userId: string, otherId: string) {
   await db.batch([db.delete(friendship).where(between(userId, otherId)), db.delete(message).where(pairOf(userId, otherId))]);
 }
 
-/** Whether the two accounts are friends, which messaging needs. */
+/**
+ * Whether the two accounts are friends and neither has blocked the other, which messaging and calling need. The block
+ * check stays here even though block() deletes the friendship: a request accepted while a block was being written
+ * could otherwise leave a friendship row behind.
+ */
 export async function areFriends(a: string, b: string) {
   const [row] = await getDb().select({ status: friendship.status }).from(friendship).where(between(a, b));
-  return row?.status === "accepted";
+  return row?.status === "accepted" && !(await blockedEitherWay(a, b));
 }
 
 /** Whether either account has blocked the other. */
@@ -120,5 +132,5 @@ export async function people(ids: string[]) {
   const rows = await getDb().select({ id: user.id, name: user.name, first: profile.firstName, last: profile.lastName, avatar: userAvatar.key })
     .from(user).leftJoin(profile, eq(profile.userId, user.id)).leftJoin(userAvatar, eq(userAvatar.userId, user.id))
     .where(inArray(user.id, [...new Set(ids)].slice(0, 90)));
-  return new Map(rows.map((r) => [r.id, { name: r.first ? `${r.first} ${r.last}` : r.name, avatar: avatarUrl(r.avatar) }]));
+  return new Map(rows.map((r) => [r.id, { name: r.first ? `${r.first} ${r.last}` : NO_NAME, avatar: avatarUrl(r.avatar) }]));
 }
