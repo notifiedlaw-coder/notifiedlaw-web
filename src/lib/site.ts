@@ -1,5 +1,6 @@
 // Relative, not "@/": next.config.ts imports this file, and path aliases do not resolve there.
 import { PLAN_PRICES, cedis } from "./content";
+import { CREDIT_NAME, PLAN_CREDITS } from "./data";
 export const SITE = {
   name: "NotifiedLaw",
   url: "https://notifiedlaw.com",
@@ -43,7 +44,7 @@ export const FAQ = [
   },
   {
     q: "How much does NotifiedLaw cost?",
-    a: `There is no free plan. Student costs ${cedis(PLAN_PRICES.Student)} per month and opens every topic from Level 100 to 400. Senior Judicial costs ${cedis(PLAN_PRICES.Pro)} per month and adds Notified AI. Supreme Justice costs ${cedis(PLAN_PRICES["Pro Max"])} per month and adds Pre-Bar, the Bar Course and exam prep. The first 2 topics of every course are open to everyone as a preview.`,
+    a: `There is no free plan. Student costs ${cedis(PLAN_PRICES.Student)} per month, opens every topic from Level 100 to 400 and includes ${PLAN_CREDITS.Student} ${CREDIT_NAME} a month for Notified AI. Senior Judicial costs ${cedis(PLAN_PRICES.Pro)} per month with ${PLAN_CREDITS.Pro} ${CREDIT_NAME} a month. Supreme Justice costs ${cedis(PLAN_PRICES["Pro Max"])} per month with ${PLAN_CREDITS["Pro Max"]} ${CREDIT_NAME} a month, and adds Pre-Bar, the Bar Course and exam prep. The first 2 topics of every course are open to everyone as a preview.`,
   },
   {
     q: "Can I pay with mobile money?",

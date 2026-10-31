@@ -26,7 +26,7 @@ export const PLAN_NAMES: Record<Plan, string> = {
 
 /** Notify Credits: the AI allowance each plan includes per month. Placeholder amounts, to be set before launch. */
 export const CREDIT_NAME = "Notify Credits";
-export const PLAN_CREDITS: Record<Plan, number> = { None: 0, Student: 0, Pro: 150, "Pro Max": 500 };
+export const PLAN_CREDITS: Record<Plan, number> = { None: 0, Student: 10, Pro: 50, "Pro Max": 150 };
 /** My Files storage each plan includes, in bytes. */
 const MB = 1024 * 1024;
 export const PLAN_STORAGE: Record<Plan, number> = { None: 0, Student: 500 * MB, Pro: 5 * 1024 * MB, "Pro Max": 10 * 1024 * MB };
