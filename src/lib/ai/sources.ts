@@ -1,6 +1,6 @@
 import { inArray } from "drizzle-orm";
 import { userFile } from "@/db/schema";
-import { getDb, getPlan } from "@/lib/auth";
+import { getDb, planFor } from "@/lib/auth";
 import { getCaseBriefs, topicById } from "@/lib/cms";
 import { topicLock } from "@/lib/data";
 import { textOf, MAX_DOC_CHARS } from "@/lib/ai/file-text";
@@ -26,7 +26,7 @@ export async function resolveRefs(userId: string, wanted: { kind: RefKind; id: s
   const ids = wanted.filter((w) => w.kind === "file").map((w) => w.id);
   if (ids.length) for (const f of await getDb().select().from(userFile).where(inArray(userFile.id, ids))) if (f.userId === userId) files.set(f.id, f);
   const cases = wanted.some((w) => w.kind === "case") ? await getCaseBriefs() : [];
-  const plan = wanted.some((w) => w.kind === "topic") ? await getPlan() : "None";
+  const plan = wanted.some((w) => w.kind === "topic") ? await planFor(userId) : "None";
 
   const docs: Attached[] = [];
   const refs: Ref[] = [];

@@ -194,8 +194,12 @@ export const planCols = { plan: schema.subscription.plan, promoPlan: schema.subs
 /** The signed-in user's plan from D1; None for guests and for users who have not paid. */
 export async function getPlan(): Promise<Plan> {
   const s = await getSession();
-  if (!s) return "None";
-  const [row] = await getDb().select(planCols).from(schema.subscription).where(eq(schema.subscription.userId, s.user.id));
+  return s ? planFor(s.user.id) : "None";
+}
+
+/** One account's plan, for code that already holds the user id and must check that same account. */
+export async function planFor(userId: string): Promise<Plan> {
+  const [row] = await getDb().select(planCols).from(schema.subscription).where(eq(schema.subscription.userId, userId));
   return planOf(row);
 }
 

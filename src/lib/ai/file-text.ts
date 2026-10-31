@@ -49,6 +49,8 @@ export async function textOf(file: typeof userFile.$inferSelect): Promise<{ text
       await save(FAILED);
       throw e;
     }
+    // Only what can ever be sent is kept, plus one character so `truncated` still shows the rest was cut.
+    text = text.slice(0, MAX_DOC_CHARS + 1);
     await save(text);
   }
   return { text: text.slice(0, MAX_DOC_CHARS), truncated: text.length > MAX_DOC_CHARS };

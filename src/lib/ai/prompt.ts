@@ -14,7 +14,9 @@ const HISTORY = 12;
 const HISTORY_CHARS = 24_000;
 export type Attached = { n: number; name: string; text: string; truncated: boolean };
 
-const block = (d: Attached) => `<document n="${d.n}" name="${d.name.replace(/"/g, "'")}">\n${d.text}${d.truncated ? "\n[The rest of this document was left out because it is long.]" : ""}\n</document>`;
+/** Document tags inside a document's own text, which could close its block early or fake another one. */
+const unframe = (s: string) => s.replace(/<(\/?)document\b/gi, "<$1doc");
+const block = (d: Attached) => `<document n="${d.n}" name="${unframe(d.name).replace(/"/g, "'")}">\n${unframe(d.text)}${d.truncated ? "\n[The rest of this document was left out because it is long.]" : ""}\n</document>`;
 
 /** The messages for one request: the system prompt, recent history, then the question with any attached documents. */
 export function buildMessages(history: StoredMessage[], question: string, docs: Attached[], mode: Mode = "ask"): ChatMessage[] {
