@@ -2,7 +2,7 @@ import { userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
 import { readBytes } from "@/lib/http";
 import { membership, setGroupAvatar } from "@/lib/groups";
-import { MAX_AVATAR_UPLOAD, deleteAvatar, storeAvatar, toAvatar } from "@/lib/avatars";
+import { MAX_AVATAR_UPLOAD, deleteAvatar, pruneAvatars, storeAvatar, toAvatar } from "@/lib/avatars";
 import { avatarUrl } from "@/lib/friend-view";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -26,8 +26,9 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!bytes?.length) return Response.json({ error: "Choose a photo under 8 MB." }, { status: 400 });
   const webp = await toAvatar(bytes);
   if (typeof webp === "string") return Response.json({ error: webp }, { status: 400 });
-  const key = await storeAvatar(`g/${a.group.id}`, webp, a.group.avatarKey);
+  const key = await storeAvatar(`g/${a.group.id}`, webp);
   await setGroupAvatar(a.group.id, key);
+  await pruneAvatars(`g/${a.group.id}`, key);
   return Response.json({ avatar: avatarUrl(key) });
 }
 

@@ -42,13 +42,28 @@ export async function toAvatar(bytes: Uint8Array<ArrayBuffer>): Promise<Uint8Arr
   }
 }
 
-/** Stores a picture under a fresh key (so caches never serve an old one) and deletes the one it replaces. */
-export async function storeAvatar(prefix: string, webp: Uint8Array, previous: string | null) {
+/** Stores a picture under a fresh key, so caches never serve an old one. The caller prunes the old ones once it is saved. */
+export async function storeAvatar(prefix: string, webp: Uint8Array) {
   const bucket = getCloudflareContext().env.FILES;
   const key = `avatars/${prefix}/${crypto.randomUUID()}.webp`;
   await bucket.put(key, webp, { httpMetadata: { contentType: "image/webp" } });
-  if (previous) await bucket.delete(previous).catch(() => {});
   return key;
+}
+
+/**
+ * Deletes every picture stored under `prefix` except `keep`: the one just replaced, and any left over from an
+ * earlier upload whose delete failed or raced. Call it once the new key is saved, so a failure never loses both.
+ */
+export async function pruneAvatars(prefix: string, keep: string) {
+  const bucket = getCloudflareContext().env.FILES;
+  let cursor: string | undefined;
+  do {
+    const page = await bucket.list({ prefix: `avatars/${prefix}/`, cursor }).catch(() => null);
+    if (!page) return;
+    const stale = page.objects.map((o) => o.key).filter((k) => k !== keep);
+    if (stale.length) await bucket.delete(stale).catch(() => {});
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
 }
 
 export async function deleteAvatar(key: string | null) {
