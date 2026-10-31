@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { asc, eq } from "drizzle-orm";
 import { getDb, planCols, planOf } from "@/lib/auth";
 import { subscription, timetable, timetableSession } from "@/db/schema";
-import { DEFAULT_INPUT, buildPlan, planSessions, todayIso, type StoredSession, type TimetableInput } from "@/lib/timetable";
+import { DEFAULT_INPUT, MAX_SESSIONS, buildPlan, planSessions, todayIso, type StoredSession, type TimetableInput } from "@/lib/timetable";
 
 export type TimetableState = { input: TimetableInput; sessions: StoredSession[] };
 
@@ -42,20 +42,27 @@ export async function saveInput(userId: string, input: TimetableInput) {
   ]);
 }
 
+/** How long the planner's own past sessions are kept; older ones are pruned when the planner next runs. */
+const KEEP_PAST_AUTO_DAYS = 90;
+
 /**
  * Runs the planner on the saved timetable: the planner's own sessions from today on are replaced by a new plan
- * that fills the free time around every session the student placed or changed. Past sessions are never touched.
+ * that fills the free time around every session the student placed or changed. Past sessions the student placed are
+ * never touched; the planner's own are pruned after KEEP_PAST_AUTO_DAYS. The plan is cut to fit MAX_SESSIONS.
  * The new rows go in as one JSON parameter, which keeps a long plan under D1's bound-parameter limit.
  */
 export async function planTimetable(userId: string, t: TimetableState) {
   const today = todayIso();
   const now = new Date();
   const keep = t.sessions.filter((s) => s.date >= today && !s.auto);
+  const cutoff = new Date(Date.now() - KEEP_PAST_AUTO_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const staying = t.sessions.filter((s) => !s.auto || (s.date < today && s.date >= cutoff)).length;
   const rows = planSessions(buildPlan(t.input, today, keep, now.getUTCHours() * 60 + now.getUTCMinutes()))
+    .slice(0, Math.max(0, MAX_SESSIONS - staying))
     .map((s) => ({ id: s.id, courseId: s.courseId, date: s.date, start: s.start, end: s.end, review: s.review ? 1 : 0 }));
   const db = d1();
   await db.batch([
-    db.prepare(`DELETE FROM timetable_session WHERE user_id = ?1 AND auto = 1 AND date >= ?2`).bind(userId, today),
+    db.prepare(`DELETE FROM timetable_session WHERE user_id = ?1 AND auto = 1 AND (date >= ?2 OR date < ?3)`).bind(userId, today, cutoff),
     db.prepare(`INSERT INTO timetable_session (id, user_id, course_id, date, start_time, end_time, review, auto)
       SELECT json_extract(value, '$.id'), ?1, json_extract(value, '$.courseId'), json_extract(value, '$.date'),
         json_extract(value, '$.start'), json_extract(value, '$.end'), json_extract(value, '$.review'), 1
