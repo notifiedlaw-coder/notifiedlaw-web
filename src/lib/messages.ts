@@ -20,12 +20,13 @@ const view = (userId: string) => (r: typeof message.$inferSelect): Message => ({
 /**
  * A conversation as the user opens it: what the friend sent is marked read, which brings its delete date forward to 30
  * days from now (if sooner than 90 days from sending). `after` (ms) returns only messages from then on, for polling. `seen` is when the newest message the friend has read was sent.
+ * `markRead` false only reads.
  */
-export async function conversation(userId: string, friendId: string, after?: number) {
+export async function conversation(userId: string, friendId: string, after?: number, markRead = true) {
   const now = Date.now();
   const db = getDb();
   // Never later than the 90 days from sending.
-  await db.update(message).set({ readAt: new Date(now), expiresAt: sql`min(${message.expiresAt}, ${now + MESSAGE_TTL_MS})` })
+  if (markRead) await db.update(message).set({ readAt: new Date(now), expiresAt: sql`min(${message.expiresAt}, ${now + MESSAGE_TTL_MS})` })
     .where(and(eq(message.fromId, friendId), eq(message.toId, userId), isNull(message.readAt), live(now)));
   const [rows, [seen]] = await Promise.all([
     db.select().from(message)

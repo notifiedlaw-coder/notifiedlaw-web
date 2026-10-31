@@ -1,6 +1,6 @@
 import { userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
-import { readJson } from "@/lib/http";
+import { fromApp, readJson } from "@/lib/http";
 import { groupMessages, membership, postGroupMessage } from "@/lib/groups";
 import { people } from "@/lib/friends";
 import { groupTyping } from "@/lib/typing";
@@ -18,7 +18,7 @@ export async function GET(req: Request, { params }: Ctx) {
   const id = (await params).id;
   if (!(await membership(userId, id))) return Response.json({ error: "You are not in this group." }, { status: 403 });
   const after = Number(new URL(req.url).searchParams.get("after"));
-  const [messages, typing] = await Promise.all([groupMessages(userId, id, Number.isFinite(after) && after > 0 ? after : undefined), groupTyping(userId, id)]);
+  const [messages, typing] = await Promise.all([groupMessages(userId, id, Number.isFinite(after) && after > 0 ? after : undefined, fromApp(req)), groupTyping(userId, id)]);
   return Response.json({ messages, typing });
 }
 

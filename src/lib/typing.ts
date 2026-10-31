@@ -1,7 +1,7 @@
 import { and, eq, gt, inArray, like, ne, sql } from "drizzle-orm";
 import { groupMember, typing } from "@/db/schema";
 import { getDb } from "@/lib/auth";
-import { people } from "@/lib/friends";
+import { blockedWith, people } from "@/lib/friends";
 import { TYPING_MS } from "@/lib/friend-view";
 
 export const dmChat = (toId: string) => `u:${toId}`;
@@ -30,9 +30,11 @@ export async function friendTyping(userId: string, friendId: string) {
 export async function groupTyping(userId: string, groupId: string) {
   const rows = await getDb().select({ id: typing.userId }).from(typing)
     .where(and(eq(typing.chat, groupChat(groupId)), gt(typing.untilAt, new Date()), ne(typing.userId, userId)));
-  if (!rows.length) return [];
-  const names = await people(rows.map((r) => r.id));
-  return rows.map((r) => ({ id: r.id, name: names.get(r.id)?.name ?? "Someone", avatar: names.get(r.id)?.avatar ?? null }));
+  const blocked = rows.length ? await blockedWith(userId) : new Set<string>();
+  const shown = rows.filter((r) => !blocked.has(r.id));
+  if (!shown.length) return [];
+  const names = await people(shown.map((r) => r.id));
+  return shown.map((r) => ({ id: r.id, name: names.get(r.id)?.name ?? "Someone", avatar: names.get(r.id)?.avatar ?? null }));
 }
 
 /** For the chat list: friends typing to the user, and the user's groups where someone else is typing. */

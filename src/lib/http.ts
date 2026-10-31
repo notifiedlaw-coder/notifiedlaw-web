@@ -1,6 +1,12 @@
 const MAX_BODY = 8 * 1024;
 
 /**
+ * Whether a GET came from the app itself, not a link on another site. Reads that also mark messages read only do so
+ * then, so a cross-site navigation cannot bring a conversation's delete date forward. Non-browser callers count.
+ */
+export const fromApp = (req: Request) => (req.headers.get("sec-fetch-site") ?? "same-origin") === "same-origin";
+
+/**
  * Parses a small JSON request body; null if it is missing, too large, or not JSON.
  */
 export async function readJson(req: Request): Promise<unknown> {

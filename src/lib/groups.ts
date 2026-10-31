@@ -1,7 +1,7 @@
-import { and, asc, desc, eq, gt, gte, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, ne, notInArray, sql } from "drizzle-orm";
 import { call, chatGroup, friendship, groupMember, groupMessage, typing, userBlock } from "@/db/schema";
 import { getDb } from "@/lib/auth";
-import { people } from "@/lib/friends";
+import { blockedWith, people } from "@/lib/friends";
 import { endGroupCalls, leaveGroupCalls } from "@/lib/calls";
 import { MAX_GROUP_MEMBERS, MAX_GROUP_NAME, MAX_OWNED_GROUPS, UNREAD_TTL_MS, avatarUrl, type GroupDetail, type GroupMessage, type GroupSummary } from "@/lib/friend-view";
 import { PROFANITY_ERROR, hasProfanity } from "@/lib/profanity";
@@ -140,15 +140,25 @@ export async function deleteGroup(groupId: string) {
   await getDb().delete(chatGroup).where(eq(chatGroup.id, groupId));
 }
 
-/** A group's live messages, or those from `after` on, and marks the group read for the user. */
-export async function groupMessages(userId: string, groupId: string, after?: number): Promise<GroupMessage[]> {
+/**
+ * A group's live messages since the user joined, or those from `after` on, and (unless `markRead` is false) marks the
+ * group read. Messages from anyone the user has blocked, or been blocked by, are left out.
+ */
+export async function groupMessages(userId: string, groupId: string, after?: number, markRead = true): Promise<GroupMessage[]> {
   const db = getDb();
   const now = Date.now();
+  const [[member], blocked] = await Promise.all([
+    db.select({ joinedAt: groupMember.joinedAt }).from(groupMember).where(and(eq(groupMember.groupId, groupId), eq(groupMember.userId, userId))),
+    blockedWith(userId),
+  ]);
+  if (!member) return [];
+  const since = Math.max(member.joinedAt.getTime(), after ?? 0);
   const [rows] = await Promise.all([
     db.select().from(groupMessage)
-      .where(and(eq(groupMessage.groupId, groupId), gt(groupMessage.expiresAt, new Date(now)), after ? gte(groupMessage.createdAt, new Date(after)) : undefined))
+      .where(and(eq(groupMessage.groupId, groupId), gt(groupMessage.expiresAt, new Date(now)), gte(groupMessage.createdAt, new Date(since)),
+        blocked.size ? notInArray(groupMessage.fromId, [...blocked]) : undefined))
       .orderBy(desc(groupMessage.createdAt)).limit(MAX_LOAD),
-    db.update(groupMember).set({ lastReadAt: new Date(now) }).where(and(eq(groupMember.groupId, groupId), eq(groupMember.userId, userId))),
+    markRead && db.update(groupMember).set({ lastReadAt: new Date(now) }).where(and(eq(groupMember.groupId, groupId), eq(groupMember.userId, userId))),
   ]);
   const names = await people(rows.map((r) => r.fromId));
   return rows.reverse().map((r) => ({
@@ -169,10 +179,11 @@ export async function postGroupMessage(userId: string, groupId: string, body: st
   return row;
 }
 
-/** Unread group messages across the user's groups, for the friends button's badge. */
+/** Unread group messages across the user's groups, for the friends button's badge. Blocked senders do not count. */
 export async function groupUnreadCount(userId: string) {
+  const blocked = await blockedWith(userId);
   const [r] = await getDb().select({ n: sql<number>`count(*)` }).from(groupMessage)
     .innerJoin(groupMember, and(eq(groupMember.groupId, groupMessage.groupId), eq(groupMember.userId, userId)))
-    .where(and(ne(groupMessage.fromId, userId), gt(groupMessage.createdAt, groupMember.lastReadAt), gt(groupMessage.expiresAt, new Date())));
+    .where(and(ne(groupMessage.fromId, userId), blocked.size ? notInArray(groupMessage.fromId, [...blocked]) : undefined, gt(groupMessage.createdAt, groupMember.lastReadAt), gt(groupMessage.expiresAt, new Date())));
   return r?.n ?? 0;
 }

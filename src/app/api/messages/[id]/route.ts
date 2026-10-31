@@ -1,6 +1,6 @@
 import { userIdFrom } from "@/lib/auth";
 import { limited } from "@/lib/rate-limit";
-import { readJson } from "@/lib/http";
+import { fromApp, readJson } from "@/lib/http";
 import { areFriends } from "@/lib/friends";
 import { conversation, sendMessage } from "@/lib/messages";
 import { friendTyping } from "@/lib/typing";
@@ -21,7 +21,7 @@ export async function GET(req: Request, { params }: Ctx) {
   const friendId = (await params).id;
   if (!(await areFriends(userId, friendId))) return Response.json({ error: "You can only message friends." }, { status: 403 });
   const after = Number(new URL(req.url).searchParams.get("after"));
-  const [c, typing] = await Promise.all([conversation(userId, friendId, Number.isFinite(after) && after > 0 ? after : undefined), friendTyping(userId, friendId)]);
+  const [c, typing] = await Promise.all([conversation(userId, friendId, Number.isFinite(after) && after > 0 ? after : undefined, fromApp(req)), friendTyping(userId, friendId)]);
   return Response.json({ ...c, typing });
 }
 
