@@ -7,7 +7,7 @@ import { Icon } from "@/components/icons";
 import { BookmarkButton, useBookmarks } from "@/components/bookmark";
 import { usePlan } from "@/components/plan";
 import { CompareSheet } from "./compare-sheet";
-import { Chevron, Page, SearchField, Segmented, Title } from "@/components/ui";
+import { Chevron, Page, SearchField, Segmented } from "@/components/ui";
 import type { CmsCase, CmsColumn } from "@/lib/cms";
 
 const SMALL = new Set(["of", "and", "the", "in", "on", "for", "at", "to"]);
@@ -44,7 +44,7 @@ function columnsFor(cases: CmsCase[], schema: CmsColumn[]): Col[] {
   });
 }
 
-/** Case briefs published from Notion, in a table with Notion's columns; each select column's header filters by its options. */
+/** Case briefs published from Notion, as one list; each select column of the Notion table filters it by its options. */
 export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: CmsCase[]; columns: CmsColumn[]; bookmarks: string[] | null }) {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"A–Z" | "Z–A">("A–Z");
@@ -83,91 +83,53 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
   const count = (col: string, v: string) => all.filter((c) => c.cells[col]?.includes(v)).length;
   // Option names are Notion's capitals, so they are relabelled; text such as a citation is shown as written.
   const cell = (c: CmsCase, col: Col) => (c.cells[col.name] ?? []).map(col.filter ? label : (v) => v).join(", ");
-  const grid = { gridTemplateColumns: `minmax(220px, 2.2fr) ${cols.map(() => "minmax(110px, 1fr)").join(" ")}` };
+
+  const pill = (on: boolean) => `flex h-10 items-center gap-1.5 rounded-full border px-4 text-[15px] font-medium ${on ? "border-transparent bg-strong text-strong-fg" : "border-edge/15 bg-surface text-ink hover:bg-hover"}`;
+  const meta = (c: CmsCase) => cols.filter((col) => !isJurisdiction(col.name)).map((col) => cell(c, col)).filter(Boolean).join(" · ");
 
   return (
-    <Page max={1120}>
-      <Title title="Case Law" sub="Case Briefs" />
-      <div className="flex flex-wrap items-center gap-2">
-        <SearchField value={q} onChange={setQ} placeholder="Search cases, citations, courts" />
-        <Segmented options={["A–Z", "Z–A"] as const} value={sort} onChange={setSort} />
-        <button type="button" aria-pressed={saved} onClick={() => (marks.marked ? setSaved((v) => !v) : marks.toggle(""))}
-          className={`flex h-8 items-center gap-1.5 rounded-full border-0 px-3 text-xs font-medium ${saved ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}>
-          Bookmarks{marks.marked?.size ? ` · ${marks.marked.size}` : ""}
-        </button>
-        <button type="button" aria-pressed={comparing} onClick={startCompare}
-          className={`flex h-8 items-center gap-1.5 rounded-full border-0 px-3 text-xs font-medium ${comparing ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`}>
-          {comparing ? "Cancel compare" : "Compare cases"}
-        </button>
-      </div>
-      {marks.error && <p role="alert" className="m-0 text-xs text-red">{marks.error}</p>}
-      {/* Phones and tablets: the column filters as pills above a list. */}
-      {filters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 lg:hidden">
+    <Page max={920}>
+      <header className="flex flex-col gap-2">
+        <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">Case briefs</div>
+        <h1 className="m-0 text-[38px] leading-[1.02] md:text-[46px] lg:text-[56px]">Case law</h1>
+      </header>
+      {/* Hick's law: search first, then a handful of filters. */}
+      <div className="relative -mt-2 flex flex-col gap-3">
+        <div className="flex"><SearchField value={q} onChange={setQ} placeholder="Search cases, citations, courts" /></div>
+        <div className="-mx-[18px] flex items-center gap-2 overflow-x-auto px-[18px] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
           {filters.map((c) => <ColumnFilter key={c.name} col={c} picked={picked[c.name] ?? []} onPick={(v) => setCol(c.name, v)} count={(v) => count(c.name, v)} pill />)}
+          <button type="button" aria-pressed={saved} onClick={() => (marks.marked ? setSaved((v) => !v) : marks.toggle(""))} className={`shrink-0 ${pill(saved)}`}>
+            Saved{marks.marked?.size ? ` · ${marks.marked.size}` : ""}
+          </button>
+          <button type="button" aria-pressed={comparing} onClick={startCompare} className={`shrink-0 ${pill(comparing)}`}>
+            {comparing ? "Cancel compare" : "Compare"}
+          </button>
+          <span className="hidden flex-1 sm:block" />
+          <div className="w-[140px] shrink-0"><Segmented options={["A–Z", "Z–A"] as const} value={sort} onChange={setSort} /></div>
         </div>
-      )}
-      <div role="status" className="-mt-2 flex items-center gap-2 text-xs text-muted">
+      </div>
+      {marks.error && <p role="alert" className="m-0 text-[13px] text-red">{marks.error}</p>}
+      <div role="status" className="-mt-3 flex items-center gap-3 text-[14px] text-faint">
         {cases.length} {cases.length === 1 ? "case" : "cases"}
-        {active > 0 && <button type="button" onClick={() => setPicked({})} className="font-medium text-blue">Clear filters</button>}
+        {active > 0 && <button type="button" onClick={() => setPicked({})} className="font-semibold text-link">Clear filters</button>}
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-surface shadow-card lg:hidden">
+      <div className="-mt-2 overflow-hidden rounded-[18px] border border-edge/10 bg-surface">
         {cases.map((c) => (
           comparing ? (
             <button key={c.id} type="button" role="checkbox" aria-checked={pick.includes(c.id)} disabled={!pick.includes(c.id) && pick.length >= 2} onClick={() => togglePick(c.id)}
-              className="flex w-full items-center gap-3 border-0 border-t border-edge/[0.06] bg-transparent px-4 py-3 text-left first:border-0 hover:bg-hover disabled:opacity-40">
+              className="flex min-h-[76px] w-full items-center gap-3.5 border-0 border-t border-edge/[0.07] bg-transparent px-5 py-3.5 text-left first:border-0 hover:bg-hover disabled:opacity-40">
               <Pick n={pick.indexOf(c.id) + 1} />
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-sm font-medium">{c.title}</span>
-                <span className="truncate text-xs text-muted">{cols.map((col) => cell(c, col)).filter(Boolean).join(" · ")}</span>
-              </span>
+              <CaseText c={c} meta={meta(c)} />
             </button>
           ) : (
-          <div key={c.id} className="flex items-center border-t border-edge/[0.06] first:border-0 hover:bg-hover">
-            <Link href={`/case-law/${c.slug}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4" style={{ textDecoration: "none", color: "inherit" }}>
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-sm font-medium">{c.title}</span>
-                <span className="truncate text-xs text-muted">{cols.map((col) => cell(c, col)).filter(Boolean).join(" · ")}</span>
-              </span>
-              <Chevron />
-            </Link>
-            <span className="px-1.5"><BookmarkButton on={!!marks.marked?.has(c.id)} onClick={() => marks.toggle(c.id)} title={c.title} /></span>
-          </div>
-          )
-        ))}
-        {cases.length === 0 && <NoMatch q={q} none={!all.length} saved={saved} />}
-      </div>
-
-      {/* Wide screens: Notion's table, a filter in each select column's header. */}
-      <div className="hidden rounded-xl bg-surface shadow-card lg:block">
-        <div role="row" className="grid items-center gap-4 border-b border-edge/10 px-4 py-1.5 text-xs font-semibold text-muted" style={comparing ? { gridTemplateColumns: `28px ${grid.gridTemplateColumns}` } : grid}>
-          {comparing && <span aria-hidden />}
-          <span role="columnheader" className="py-1.5">Case Name</span>
-          {cols.map((c) => (
-            <span key={c.name} role="columnheader" className="min-w-0">
-              {c.filter && c.options.length
-                ? <ColumnFilter col={c} picked={picked[c.name] ?? []} onPick={(v) => setCol(c.name, v)} count={(v) => count(c.name, v)} />
-                : <span className="block py-1.5">{label(c.name)}</span>}
-            </span>
-          ))}
-        </div>
-        {cases.map((c) => (
-          comparing ? (
-            <button key={c.id} type="button" role="checkbox" aria-checked={pick.includes(c.id)} disabled={!pick.includes(c.id) && pick.length >= 2} onClick={() => togglePick(c.id)}
-              className="grid w-full items-center gap-4 border-0 border-t border-edge/[0.06] bg-transparent py-3 pl-4 pr-4 text-left text-[13px] first:border-0 last:rounded-b-xl hover:bg-hover disabled:opacity-40" style={{ gridTemplateColumns: `28px ${grid.gridTemplateColumns}` }}>
-              <Pick n={pick.indexOf(c.id) + 1} />
-              <span className="min-w-0 text-sm font-medium">{c.title}</span>
-              {cols.map((col) => <span key={col.name} className="min-w-0 text-muted">{cell(c, col) || "—"}</span>)}
-            </button>
-          ) : (
-          <div key={c.id} className="relative border-t border-edge/[0.06] first:border-0 last:rounded-b-xl hover:bg-hover">
-            <Link href={`/case-law/${c.slug}`} role="row" className="grid items-center gap-4 py-3 pl-4 pr-14 text-[13px]" style={{ ...grid, textDecoration: "none", color: "inherit" }}>
-              <span role="cell" className="min-w-0 text-sm font-medium">{c.title}</span>
-              {cols.map((col) => <span key={col.name} role="cell" className="min-w-0 text-muted">{cell(c, col) || "—"}</span>)}
-            </Link>
-            <span className="absolute right-3 top-1/2 -translate-y-1/2"><BookmarkButton on={!!marks.marked?.has(c.id)} onClick={() => marks.toggle(c.id)} title={c.title} /></span>
-          </div>
+            <div key={c.id} className="flex items-center border-t border-edge/[0.07] first:border-0 hover:bg-hover">
+              <Link href={`/case-law/${c.slug}`} className="flex min-h-[76px] min-w-0 flex-1 items-center gap-3 py-3.5 pl-5" style={{ textDecoration: "none", color: "inherit" }}>
+                <CaseText c={c} meta={meta(c)} />
+                <Chevron />
+              </Link>
+              <span className="px-2"><BookmarkButton on={!!marks.marked?.has(c.id)} onClick={() => marks.toggle(c.id)} title={c.title} /></span>
+            </div>
           )
         ))}
         {cases.length === 0 && <NoMatch q={q} none={!all.length} saved={saved} />}
@@ -190,6 +152,17 @@ export function CaseLaw({ cases: all, columns: schema, bookmarks }: { cases: Cms
   );
 }
 
+/** A case in the list: its name in the reading face, a jurisdiction badge, then the citation, court and course. */
+const CaseText = ({ c, meta }: { c: CmsCase; meta: string }) => (
+  <span className="flex min-w-0 flex-1 flex-col gap-1">
+    <span className="flex min-w-0 items-center gap-2">
+      <span className="truncate font-display text-[21px] italic leading-[1.15]">{c.title}</span>
+      {c.jurisdiction[0] && <span className="shrink-0 rounded-full bg-peach px-2.5 py-0.5 text-[12px] font-bold text-[var(--peach-fg)]">{label(c.jurisdiction[0])}</span>}
+    </span>
+    {meta && <span className="truncate text-[14px] text-faint">{meta}</span>}
+  </span>
+);
+
 /** The selection circle in compare mode: empty, or filled with the case's place in the pair (1 or 2). */
 const Pick = ({ n }: { n: number }) => (
   <span aria-hidden className={`flex size-[22px] shrink-0 items-center justify-center rounded-full text-xs font-semibold ${n ? "bg-blue text-white" : "border-[1.5px] border-faint/70"}`}>{n || ""}</span>
@@ -197,7 +170,7 @@ const Pick = ({ n }: { n: number }) => (
 
 // With no briefs published yet the table and its filters still show, with this in place of rows.
 const NoMatch = ({ q, none, saved }: { q: string; none: boolean; saved: boolean }) => (
-  <div className="p-6 text-center text-sm text-muted">{none ? "No case briefs yet. They appear here once they are published." : q ? <>Nothing matches “{q}”. Try a party name or citation.</> : saved ? "No bookmarked cases here yet. Tap the bookmark on a case to keep it." : "No cases match these filters."}</div>
+  <div className="p-8 text-center text-[15px] text-muted">{none ? "No case briefs yet. They appear here once they are published." : q ? <>Nothing matches “{q}”. Try a party name or citation.</> : saved ? "No bookmarked cases here yet. Tap the bookmark on a case to keep it." : "No cases match these filters."}</div>
 );
 
 /** A column's filter: a button (a header, or a pill on small screens) opening a checklist of the column's Notion options. */
@@ -217,11 +190,11 @@ function ColumnFilter({ col, picked, onPick, count, pill }: { col: Col; picked: 
   const toggle = (v: string) => onPick(picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v]);
   const name = label(col.name);
   return (
-    <div ref={box} className="relative">
-      <button type="button" onClick={() => { setEnd((box.current?.getBoundingClientRect().left ?? 0) + 270 > window.innerWidth); setOpen((o) => !o); }} aria-expanded={open} aria-haspopup="true"
+    <div ref={box} className={pill ? "shrink-0 sm:relative" : "relative"}>
+      <button type="button" onClick={() => { setEnd(!!pill && window.innerWidth < 640 ? false : (box.current?.getBoundingClientRect().left ?? 0) + 270 > window.innerWidth); setOpen((o) => !o); }} aria-expanded={open} aria-haspopup="true"
         aria-label={`Filter by ${name}${on ? `, ${picked.length} chosen` : ""}`}
         className={pill
-          ? `flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium ${on ? "bg-strong text-strong-fg" : "bg-surface text-ink shadow-[0_0_0_0.5px_var(--hairline)]"}`
+          ? `flex h-10 items-center gap-1.5 rounded-full border px-4 text-[15px] font-medium ${on ? "border-transparent bg-strong text-strong-fg" : "border-edge/15 bg-surface text-ink hover:bg-hover"}`
           : `-mx-2 flex max-w-full items-center gap-1 rounded-md px-2 py-1.5 hover:bg-fill ${on ? "text-blue" : ""}`}>
         <span className="truncate">{name}{on && pill ? ` · ${picked.length === 1 ? label(picked[0]) : picked.length}` : ""}</span>
         {on && !pill && <span className="rounded-full bg-blue px-1.5 text-[10px] leading-4 text-white">{picked.length}</span>}
