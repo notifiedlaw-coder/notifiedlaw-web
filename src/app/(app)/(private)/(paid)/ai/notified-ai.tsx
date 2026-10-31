@@ -348,7 +348,7 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
               <button type="button" aria-expanded={moreModes} onClick={() => setMoreModes((v) => !v)} className="h-11 shrink-0 cursor-pointer border-0 bg-transparent px-2 text-[15px] font-semibold text-link">{moreModes ? "Fewer" : "More modes"}</button>
               <span className="hidden shrink-0 text-[14px] text-faint md:inline">{MODES[mode].hint}</span>
             </div>
-            <div className="flex flex-col gap-2 rounded-[22px] border border-edge/15 bg-surface p-2.5 pl-3.5 shadow-[0_8px_24px_rgba(22,26,38,0.06)] focus-within:border-blue">
+            <div className="flex flex-col gap-2 rounded-[22px] border border-edge/15 bg-surface p-2.5 pl-3.5 shadow-[0_8px_24px_rgba(22,26,38,0.06)]">
               {attached.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 px-1 pt-1">
                   {attached.map((f) => (
@@ -381,7 +381,7 @@ export function NotifiedAi({ chats: initial, credits: first, mentions, ready, in
                   onChange={(e) => { setText(e.target.value); setCaret(e.target.selectionStart); setPickerOff(false); setPickIndex(0); grow(); }}
                   onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
                   onKeyDown={onKey}
-                  className="max-h-[180px] min-h-11 min-w-0 flex-1 resize-none self-center border-0 bg-transparent px-1 py-2.5 text-[17px] leading-[1.35] text-ink outline-none placeholder:text-faint disabled:opacity-60" />
+                  className="max-h-[180px] min-h-11 min-w-0 flex-1 resize-none self-center border-0 bg-transparent px-1 py-2.5 text-[17px] leading-[1.35] text-ink outline-none! placeholder:text-faint disabled:opacity-60" />
                 {hearing && !streaming && (
                   <button type="button" aria-label={listening ? "Stop dictating" : "Dictate"} aria-pressed={listening} disabled={noCredits} onClick={toggleVoice}
                     className={`flex size-11 shrink-0 items-center justify-center rounded-full border-0 transition-transform active:scale-90 disabled:opacity-40 ${listening ? "animate-pulse bg-red text-white" : "bg-transparent text-muted hover:bg-fill"}`}>
@@ -449,7 +449,7 @@ function UserBubble({ m, canEdit, onResend }: { m: Msg; canEdit: boolean; onRese
       {editing ? (
         <div className="flex w-full max-w-[85%] flex-col gap-2 rounded-[20px] bg-surface p-2.5 shadow-[0_0_0_2px_var(--color-blue)]">
           <textarea autoFocus value={draft} maxLength={MAX_QUESTION} onChange={(e) => setDraft(e.target.value)} rows={Math.min(8, Math.max(2, draft.split("\n").length))} aria-label="Edit your question"
-            className="w-full resize-none border-0 bg-transparent text-[16px] leading-[1.4] text-ink outline-none" />
+            className="w-full resize-none border-0 bg-transparent text-[16px] leading-[1.4] text-ink outline-none!" />
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => { setEditing(false); setDraft(m.content); }} className="h-8 rounded-full border-0 bg-fill px-3.5 text-[13px] font-medium">Cancel</button>
             <button type="button" disabled={!draft.trim()} onClick={() => { setEditing(false); onResend(draft); }} className="h-8 rounded-full border-0 bg-blue px-3.5 text-[13px] font-semibold text-white disabled:opacity-40">Send again</button>
@@ -603,7 +603,7 @@ function ChatList({ chats, activeId, onOpen, onDelete, onPatch }: {
               {rename?.id === c.id ? (
                 <input autoFocus value={rename.value} maxLength={80} aria-label="Chat name" onChange={(e) => setRename({ id: c.id, value: e.target.value })} onBlur={() => setRename(null)}
                   onKeyDown={(e) => { if (e.key === "Escape") setRename(null); if (e.key === "Enter" && rename.value.trim()) { onPatch(c.id, { title: rename.value.trim() }); setRename(null); } }}
-                  className="m-1 h-9 min-w-0 flex-1 rounded-[8px] border-0 bg-surface px-2.5 text-[14px] text-ink shadow-[0_0_0_2px_var(--color-blue)] outline-none" />
+                  className="m-1 h-9 min-w-0 flex-1 rounded-[8px] border-0 bg-surface px-2.5 text-[14px] text-ink shadow-[0_0_0_1px_var(--hairline)] outline-none!" />
               ) : (
                 <button type="button" onClick={() => onOpen(c.id)} aria-current={c.id === activeId} className="flex min-h-11 min-w-0 flex-1 items-center gap-1.5 border-0 bg-transparent px-3 text-left text-[14px] text-ink">
                   {c.pinned && <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" className="shrink-0 text-faint" aria-label="Pinned"><path d="M9.5 1.5 14.5 6.5l-2 .5-2.5 2.5.5 3.5-1 1-3-3-4 4-1-1 4-4-3-3 1-1 3.5.5L9 4z" /></svg>}
