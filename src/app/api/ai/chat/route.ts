@@ -79,6 +79,8 @@ export async function POST(req: Request) {
     history = history.slice(0, at);
   }
 
+  // Reading a PDF goes through Kimi at our cost, so nobody without the credits for even the cheapest answer gets there.
+  if ((await creditsLeft(userId)).left < messageCost(0, mode)) return apiError("AI103", 402);
   let sources;
   try {
     sources = await resolveRefs(userId, wanted);
@@ -107,18 +109,21 @@ export async function POST(req: Request) {
   let answer = "";
   let saved: string | null = null;
   let finished = false;
-  // Saves what was written; an answer with nothing in it is refunded instead.
-  const finish = async () => {
+  let sent = false;
+  // Saves what was written; an answer with nothing in it is refunded instead. Stopping before the first word, once
+  // the question has gone to Kimi, keeps one credit: Kimi has already read the whole prompt by then.
+  const finish = async (stopped = false) => {
     if (finished) return;
     finished = true;
     if (answer.trim()) saved = await addMessage(chatId, "assistant", answer, sources.refs);
-    else await refundCredits(userId, cost);
+    else await refundCredits(userId, stopped && sent ? cost - 1 : cost);
   };
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       controller.enqueue(sse({ type: "meta", chatId, userMessageId, sources: sources.refs }));
       try {
+        sent = true;
         for await (const text of kimiStream(messages, { signal: abort.signal })) {
           answer += text;
           controller.enqueue(sse({ type: "delta", text }));
@@ -147,7 +152,7 @@ export async function POST(req: Request) {
     // The reader pressed Stop or left: keep what was written.
     async cancel() {
       abort.abort();
-      await finish();
+      await finish(true);
     },
   });
   return new Response(stream, { headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "private, no-store, no-transform", "x-accel-buffering": "no" } });
