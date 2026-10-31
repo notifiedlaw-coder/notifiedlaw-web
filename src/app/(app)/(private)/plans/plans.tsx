@@ -37,13 +37,14 @@ export function Plans() {
       </header>
       {!paid && <p className="m-0 w-full rounded-[18px] bg-tint px-5 py-4 text-[15px]"><b>Choose a plan to start using NotifiedLaw.</b> Every plan opens the full library from Level 100 to 400.</p>}
       <PromoCode className="self-start" />
-      <div className="grid w-full gap-4 md:grid-cols-3">
+      {/* On wide screens the cards share one row grid (subgrid), so name, price, blurb, credits, features and button line up across all three. */}
+      <div className="grid w-full gap-4 md:grid-cols-3 md:gap-x-4 md:gap-y-0">
         {TIERS.map((t) => {
           const isCur = t.plan === current;
           const featured = t.plan === (student ? "Student" : "Pro Max");
           const locked = t.plan === "Student" && !isCur && !student?.eligible;
           return (
-            <div key={t.plan} className={`relative flex flex-col gap-3.5 rounded-[22px] p-6 ${featured ? "bg-tint shadow-[0_0_0_2px_var(--primary)]" : "border border-edge/10 bg-surface"}`}>
+            <div key={t.plan} className={`relative flex flex-col gap-3.5 rounded-[22px] border-2 p-6 md:row-span-6 md:grid md:grid-rows-subgrid md:items-start md:gap-y-3.5 ${featured ? "border-[var(--primary)] bg-tint" : "border-edge/10 bg-surface"}`}>
               {t.badge && <span className="absolute -top-3 left-6 rounded-full bg-[#E0683A] px-3 py-1 text-[12px] font-bold text-white">{t.badge}</span>}
               <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">{PLAN_NAMES[t.plan]}</div>
               <div><span className="font-display text-[48px] leading-none">{cedis(PLAN_PRICES[t.plan])}</span><span className="text-[15px] text-muted"> / month</span></div>
@@ -51,7 +52,7 @@ export function Plans() {
               <div className="rounded-[12px] bg-peach px-3.5 py-2 text-[14px] font-semibold text-[var(--peach-fg)]">
                 {PLAN_CREDITS[t.plan] > 0 ? `${PLAN_CREDITS[t.plan]} ${CREDIT_NAME} / month` : `No ${CREDIT_NAME}`}
               </div>
-              <ul className="m-0 flex flex-1 list-none flex-col gap-2.5 p-0 text-[15px]">
+              <ul className="m-0 flex flex-1 list-none flex-col gap-2.5 self-start p-0 text-[15px]">
                 {t.feats.map(([on, f]) => <li key={f} className="flex gap-2" style={{ opacity: on ? 1 : 0.45 }}><span className={on ? "text-green" : ""}>{on ? "✓" : "—"}</span>{f}</li>)}
               </ul>
               {locked && student ? (
