@@ -25,6 +25,9 @@ export function getAuth() {
     database: drizzleAdapter(db, { provider: "sqlite", schema }),
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
+    // Endpoints the app never calls. Accounts are one Google login or one university email, so linking, email
+    // changes and handing out the stored Google tokens are switched off rather than left reachable.
+    disabledPaths: ["/link-social", "/unlink-account", "/list-accounts", "/account-info", "/change-email", "/get-access-token", "/refresh-token"],
     // Professionals sign up with Google. Students sign up and sign in with a link sent to their university email.
     socialProviders: {
       google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET },
@@ -43,8 +46,11 @@ export function getAuth() {
       user: {
         create: { before: async (u) => ({ data: { ...u, name: accountName(u.name) ?? "" } }) },
         update: {
-          before: async (u) => {
-            if (u.name === undefined) return;
+          // user.image is never shown (pictures are userAvatar), so update-user cannot set it to an arbitrary string.
+          before: async (data) => {
+            const u = { ...data };
+            delete u.image;
+            if (u.name === undefined) return { data: u };
             const name = accountName(u.name);
             if (!name) throw refuse("Names can only contain letters, spaces, hyphens, apostrophes and full stops.");
             return { data: { ...u, name } };
