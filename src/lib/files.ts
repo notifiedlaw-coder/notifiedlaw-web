@@ -51,7 +51,8 @@ export async function reserve(row: typeof userFile.$inferInsert, quota: number) 
   const res = await getDb().run(sql`
     INSERT INTO ${userFile} (id, user_id, key, name, kind, folder_id, size, sha256, created_at)
     SELECT ${row.id}, ${row.userId}, ${row.key}, ${row.name}, ${row.kind}, ${row.folderId ?? null}, ${row.size}, ${row.sha256}, ${row.createdAt.getTime()}
-    WHERE (SELECT COALESCE(SUM(size), 0) FROM ${userFile} WHERE user_id = ${row.userId}) + ${row.size} <= ${quota}`);
+    WHERE (SELECT COALESCE(SUM(size), 0) FROM ${userFile} WHERE user_id = ${row.userId}) + ${row.size} <= ${quota}
+      AND ${folderLive(row.userId, row.folderId ?? null)}`);
   return res.meta.changes > 0;
 }
 
@@ -112,20 +113,34 @@ export const nameTaken = (all: Folder[], parentId: string | null, name: string, 
 const sameName = (userId: string, parentId: string | null, name: string, except: string) =>
   sql`NOT EXISTS (SELECT 1 FROM ${userFolder} WHERE user_id = ${userId} AND parent_id IS ${parentId} AND lower(name) = lower(${name}) AND id <> ${except})`;
 
+/**
+ * The folder still exists and is the user's (or is the top level), checked inside the write itself, so a folder
+ * deleted at the same moment cannot be left holding a file or a subfolder.
+ */
+export const folderLive = (userId: string, folderId: string | null) =>
+  sql`(${folderId} IS NULL OR EXISTS (SELECT 1 FROM ${userFolder} WHERE id = ${folderId} AND user_id = ${userId}))`;
+
 /** Adds a folder unless its name is taken in that place, in one statement. False when it is. */
 export async function addFolder(f: { id: string; userId: string; parentId: string | null; name: string; createdAt: Date }) {
   const res = await getDb().run(sql`
     INSERT INTO ${userFolder} (id, user_id, parent_id, name, created_at)
     SELECT ${f.id}, ${f.userId}, ${f.parentId}, ${f.name}, ${f.createdAt.getTime()}
-    WHERE ${sameName(f.userId, f.parentId, f.name, f.id)}`);
+    WHERE ${sameName(f.userId, f.parentId, f.name, f.id)} AND ${folderLive(f.userId, f.parentId)}`);
   return res.meta.changes > 0;
 }
 
-/** Renames and/or moves a folder unless its name would then be taken there, in one statement. False when it would. */
+/**
+ * Renames and/or moves a folder unless its name would then be taken there, in one statement. False when it would.
+ * The new parent's ancestors are walked inside the same statement, so two moves at once (A into B, B into A)
+ * cannot make a loop that the snapshot checks in the route both passed.
+ */
 export async function moveFolder(userId: string, id: string, parentId: string | null, name: string) {
   const res = await getDb().run(sql`
     UPDATE ${userFolder} SET parent_id = ${parentId}, name = ${name}
-    WHERE id = ${id} AND user_id = ${userId} AND ${sameName(userId, parentId, name, id)}`);
+    WHERE id = ${id} AND user_id = ${userId} AND ${sameName(userId, parentId, name, id)} AND ${folderLive(userId, parentId)}
+      AND NOT EXISTS (
+        WITH RECURSIVE up(fid) AS (SELECT ${parentId} UNION SELECT f.parent_id FROM ${userFolder} f JOIN up ON f.id = up.fid WHERE f.parent_id IS NOT NULL)
+        SELECT 1 FROM up WHERE fid = ${id})`);
   return res.meta.changes > 0;
 }
 
@@ -173,7 +188,10 @@ export async function saveFile(userId: string, quota: number, f: { name: string;
   const id = crypto.randomUUID();
   const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", f.bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
   const row = { id, userId, key: fileKey(userId, id), name: f.name, kind: f.kind, folderId: f.folderId, size: f.bytes.length, sha256, createdAt: new Date() };
-  if (!(await reserve(row, quota))) return { ok: false, code: "U112", status: 413 };
+  if (!(await reserve(row, quota))) {
+    // The folder may have been deleted since the check above.
+    return f.folderId && !(await foldersOf(userId)).some((x) => x.id === f.folderId) ? { ok: false, code: "U111", status: 404 } : { ok: false, code: "U112", status: 413 };
+  }
   try {
     await filesBucket().put(row.key, f.bytes, { httpMetadata: { contentType: CONTENT_TYPES[f.kind] }, customMetadata: { userId }, sha256 });
   } catch {

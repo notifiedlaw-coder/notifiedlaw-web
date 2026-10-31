@@ -5,7 +5,7 @@ import { cleanFileName, type FileKind } from "@/lib/file-check";
 import { readJson } from "@/lib/http";
 import { limited } from "@/lib/rate-limit";
 import { apiError } from "@/lib/error-codes";
-import { CONTENT_TYPES, dropFiles, filesBucket, foldersOf, ownFile } from "@/lib/files";
+import { CONTENT_TYPES, dropFiles, filesBucket, folderLive, foldersOf, ownFile } from "@/lib/files";
 
 /** Header value for the download name: an ASCII fallback plus the exact name, RFC 6266 style. */
 function disposition(type: "inline" | "attachment", name: string) {
@@ -72,6 +72,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     set.folderId = folderId;
   }
   if (!Object.keys(set).length) return apiError("M204", 400);
-  await getDb().update(userFile).set(set).where(and(eq(userFile.id, row.id), eq(userFile.userId, userId)));
+  const done = await getDb().update(userFile).set(set)
+    .where(and(eq(userFile.id, row.id), eq(userFile.userId, userId), set.folderId ? folderLive(userId, set.folderId) : undefined)).returning({ id: userFile.id });
+  if (!done.length) return apiError("M203", 404);
   return Response.json({ ok: true, ...set });
 }
