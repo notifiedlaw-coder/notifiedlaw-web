@@ -100,6 +100,20 @@ async function checkPdf(bytes: Uint8Array): Promise<CheckResult> {
   // use more memory or CPU than a Worker has. Real PDFs come nowhere near either.
   let budget = 16 * MB, outside = "", from = 0;
   const work = { left: 16 * MB };
+  // Lengths given as "N G R" point to an object holding just the number; all of those, found in one pass.
+  let lengthObjs: Map<string, number> | null = null;
+  const lengthOf = (ref: string) => {
+    lengthObjs ??= new Map([...s.matchAll(/(?<![0-9])(\d{1,10})\s+(\d{1,5})\s+obj\s*(\d{1,10})\s*endobj/g)].map((x) => [`${x[1]} ${x[2]}`, Number(x[3])]));
+    return lengthObjs.get(ref);
+  };
+  const lengthFits = (dict: string, dataStart: number, dataEnd: number) => {
+    const l = /\/Length\s+(\d{1,10})(?:\s+(\d{1,5})\s+R)?/.exec(dict);
+    if (!l) return false;
+    // An indirect length that is not a plain top-level object (one inside an object stream) cannot be checked here.
+    const len = l[2] === undefined ? Number(l[1]) : lengthOf(`${l[1]} ${l[2]}`);
+    if (len === undefined) return true;
+    return len <= dataEnd - dataStart && /^\s*$/.test(s.slice(dataStart + len, dataEnd));
+  };
   for (let at = 0; (at = s.indexOf("stream", at)) >= 0; ) {
     const index = at;
     at += 6;
@@ -110,13 +124,15 @@ async function checkPdf(bytes: Uint8Array): Promise<CheckResult> {
     const dataStart = at + eol;
     const dataEnd = s.indexOf("endstream", dataStart);
     if (dataEnd < 0) return fail("This PDF looks damaged. Export it again and retry.");
-    outside += s.slice(from, dataStart);
-    from = at = dataEnd;
     const dictEnd = s.lastIndexOf(">>", m.index) + 2;
     const start = dictStart(s, dictEnd, work);
     if (work.left < 0) return fail("This PDF is too complex to check. Print it to a new PDF and try again.");
-    if (start < 0) continue;
-    const dict = decodeNames(s.slice(start, dictEnd));
+    const dict = start < 0 ? "" : decodeNames(s.slice(start, dictEnd));
+    // Left out only when it is a real stream, whose /Length ends where "endstream" begins. A fake ">> stream" in a
+    // comment or string would otherwise hide everything up to the next "endstream" from the scan.
+    if (!lengthFits(dict, dataStart, dataEnd)) { at = dataStart; continue; }
+    outside += s.slice(from, dataStart);
+    from = at = dataEnd;
     if (!/\/Type\s*\/ObjStm\b/.test(dict)) continue;
     const filter = /\/Filter\s*(\[[^\]]*\]|\/\w+)/.exec(dict)?.[1].replace(/[[\]\s]/g, "") ?? "";
     const data = bytes.subarray(dataStart, dataEnd);
