@@ -39,7 +39,7 @@ export async function kimiJson(system: string, user: string, opts: { maxTokens?:
   } catch (e) {
     throw new AiUnavailable(`Kimi request failed: ${e instanceof Error ? e.message : e}`);
   }
-  if (!res.ok) throw new AiUnavailable(`Kimi answered ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+  if (!res.ok) throw new AiUnavailable(`Kimi answered ${res.status}`);
   const body = (await res.json().catch(() => null)) as Reply | null;
   const choice = body?.choices?.[0];
   if (!choice?.message?.content) throw new AiUnavailable("Kimi sent no content");
@@ -70,7 +70,7 @@ export async function* kimiStream(messages: ChatMessage[], opts: { maxTokens?: n
     if (opts.signal?.aborted) return;
     throw new AiUnavailable(`Kimi request failed: ${e instanceof Error ? e.message : e}`);
   }
-  if (!res.ok || !res.body) throw new AiUnavailable(`Kimi answered ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+  if (!res.ok || !res.body) throw new AiUnavailable(`Kimi answered ${res.status}`);
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = "";

@@ -66,7 +66,7 @@ const queryDb = async (token: string, id: string) => {
 };
 
 async function children(token: string, id: string): Promise<Block[]> {
-  const blocks = await all<Block>((cursor) => notion(token, `/blocks/${id}/children?page_size=100${cursor ? `&start_cursor=${cursor}` : ""}`));
+  const blocks = await all<Block>((cursor) => notion(token, `/blocks/${id}/children?page_size=100${cursor ? `&start_cursor=${encodeURIComponent(cursor)}` : ""}`));
   for (const b of blocks) {
     if (b.has_children && b.type !== "child_database" && b.type !== "child_page") b.children = await children(token, b.id);
   }
